@@ -1,0 +1,1 @@
+/home/robot/dd2419_ws/devel/.private/robp_msgs/lib/python3/dist-packages/robp_msgs/__init__.py

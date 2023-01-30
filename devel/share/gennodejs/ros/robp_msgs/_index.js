@@ -1,0 +1,1 @@
+/home/robot/dd2419_ws/devel/.private/robp_msgs/share/gennodejs/ros/robp_msgs/_index.js

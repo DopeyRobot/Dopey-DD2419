@@ -1,0 +1,32 @@
+\subsubsection parameters ROS parameters
+
+Reads and maintains the following parameters on the ROS server
+
+- \b "~frame_id" : \b [str] The header frame ID to use when publishing messages min: , default: imu_link, max: 
+- \b "~data_rate" : \b [double] The number of milliseconds between acquisitions of data on the device min: 1.0, default: 500.0, max: 500.0
+- \b "~algorithm" : \b [int] Name of the spatial algorithm used for orientation estimation, only used if use_orientation is set to true min: 0, default: 1, max: 2
+- \b "~ahrs_angular_velocity_threshold" : \b [double] Parameter for AHRS orientation estimation, only used if use_orientation is set to true min: 0.0, default: 0.5, max: 10.0
+- \b "~ahrs_angular_velocity_delta_threshold" : \b [double] Parameter for AHRS orientation estimation, only used if use_orientation is set to true min: 0.0, default: 0.1, max: 10.0
+- \b "~ahrs_acceleration_threshold" : \b [double] Parameter for AHRS orientation estimation, only used if use_orientation is set to true min: 0.0, default: 0.05, max: 10.0
+- \b "~ahrs_mag_time" : \b [double] Parameter for AHRS orientation estimation, only used if use_orientation is set to true min: 0.0, default: 120.0, max: 1000.0
+- \b "~ahrs_accel_time" : \b [double] Parameter for AHRS orientation estimation, only used if use_orientation is set to true min: 0.0, default: 120.0, max: 1000.0
+- \b "~ahrs_bias_time" : \b [double] Parameter for AHRS orientation estimation, only used if use_orientation is set to true min: 0.0, default: 1.25, max: 1000.0
+- \b "~heating_enabled" : \b [bool] Use the internal heating element min: False, default: False, max: True
+- \b "~linear_acceleration_stdev" : \b [double] The standard deviation to use for the linear acceleration when publishing the message (ug) min: 0.0, default: 280.0, max: 1000.0
+- \b "~angular_velocity_stdev" : \b [double] The standard deviation to use for the angular velocity when publishing the message (deg/s) min: 0.0, default: 0.095, max: 1000.0
+- \b "~magnetic_field_stdev" : \b [double] The standard deviation to use for the magnetic field when publishing the message (milligauss) min: 0.0, default: 1.1, max: 1000.0
+- \b "~time_resynchronization_interval_ms" : \b [int] The number of milliseconds to wait between resynchronizing the time on the Phidgets spatial with the local time. Larger values have less 'jumps', but will have more timestamp drift. Setting this to 0 disables resynchronization min: 0, default: 5000, max: 100
+- \b "~cc_mag_field" : \b [double] Ambient magnetic field calibration value; see device's user guide for information on how to calibrate min: 0.0, default: 0.52859, max: 1000.0
+- \b "~cc_offset0" : \b [double] Calibration offset value 0; see device's user guide for information on how to calibrate min: 0.0, default: 0.03921, max: 1000.0
+- \b "~cc_offset1" : \b [double] Calibration offset value 1; see device's user guide for information on how to calibrate min: 0.0, default: 0.19441, max: 1000.0
+- \b "~cc_offset2" : \b [double] Calibration offset value 2; see device's user guide for information on how to calibrate min: 0.0, default: -0.03493, max: 1000.0
+- \b "~cc_gain0" : \b [double] Gain offset value 0; see device's user guide for information on how to calibrate min: 0.0, default: 1.81704, max: 1000.0
+- \b "~cc_gain1" : \b [double] Gain offset value 1; see device's user guide for information on how to calibrate min: 0.0, default: 1.81028, max: 1000.0
+- \b "~cc_gain2" : \b [double] Gain offset value 2; see device's user guide for information on how to calibrate min: 0.0, default: 2.04819, max: 1000.0
+- \b "~cc_t0" : \b [double] T offset value 0; see device's user guide for information on how to calibrate min: 0.0, default: 0.00142, max: 1000.0
+- \b "~cc_t1" : \b [double] T offset value 1; see device's user guide for information on how to calibrate min: 0.0, default: -0.03591, max: 1000.0
+- \b "~cc_t2" : \b [double] T offset value 2; see device's user guide for information on how to calibrate min: 0.0, default: 0.0016, max: 1000.0
+- \b "~cc_t3" : \b [double] T offset value 3; see device's user guide for information on how to calibrate min: 0.0, default: -0.05038, max: 1000.0
+- \b "~cc_t4" : \b [double] T offset value 4; see device's user guide for information on how to calibrate min: 0.0, default: -0.03942, max: 1000.0
+- \b "~cc_t5" : \b [double] T offset value 5; see device's user guide for information on how to calibrate min: 0.0, default: -0.05673, max: 1000.0
+

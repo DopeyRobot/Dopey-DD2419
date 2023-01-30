@@ -1,0 +1,8 @@
+\subsubsection parameters ROS parameters
+
+Reads and maintains the following parameters on the ROS server
+
+- \b "~frame_id" : \b [str] Frame ID from temperature min: , default: imu_link, max: 
+- \b "~data_rate" : \b [double] Data rate Hz min: 0.017, default: 8.0, max: 8.0
+- \b "~temperature_change_trigger" : \b [double] Minimum temperature in degrees celsius change to trigger (0 trigger at data_rate) min: 0.0, default: 0.0, max: 125.0
+

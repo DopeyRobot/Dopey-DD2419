@@ -1,0 +1,1 @@
+/home/robot/dd2419_ws/devel/.private/robp_msgs/share/roseus/ros/robp_msgs/manifest.l

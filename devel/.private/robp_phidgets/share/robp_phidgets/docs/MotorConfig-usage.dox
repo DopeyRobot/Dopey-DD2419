@@ -1,0 +1,11 @@
+\subsubsection usage Usage
+\verbatim
+<node name="robp_phidgets" pkg="robp_phidgets" type="robp_phidgets">
+  <param name="acceleration" type="double" value="100.0" />
+  <param name="braking_strength" type="double" value="1.0" />
+  <param name="current_limit" type="double" value="2.0" />
+  <param name="data_rate" type="double" value="10.0" />
+  <param name="failsafe_timeout" type="int" value="500" />
+</node>
+\endverbatim
+

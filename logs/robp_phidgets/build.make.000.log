@@ -1,0 +1,200 @@
+[35m[1mScanning dependencies of target robp_msgs_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target std_srvs_generate_messages_eus[0m
+[35m[1mScanning dependencies of target std_srvs_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target tf2_msgs_generate_messages_nodejs[0m
+[35m[1mScanning dependencies of target robp_msgs_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target tf2_msgs_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target actionlib_msgs_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target std_srvs_generate_messages_py[0m
+[  0%] Built target robp_msgs_generate_messages_lisp
+[  0%] Built target robp_msgs_generate_messages_cpp
+[  0%] Built target tf2_msgs_generate_messages_nodejs
+[  0%] Built target tf2_msgs_generate_messages_lisp
+[  0%] Built target std_srvs_generate_messages_lisp
+[  0%] Built target std_srvs_generate_messages_eus
+[  0%] Built target std_srvs_generate_messages_py
+[  0%] Built target actionlib_msgs_generate_messages_lisp
+[35m[1mScanning dependencies of target rosgraph_msgs_generate_messages_eus[0m
+[35m[1mScanning dependencies of target robp_msgs_generate_messages_nodejs[0m
+[35m[1mScanning dependencies of target roscpp_generate_messages_eus[0m
+[35m[1mScanning dependencies of target roscpp_generate_messages_py[0m
+[35m[1mScanning dependencies of target geometry_msgs_generate_messages_eus[0m
+[35m[1mScanning dependencies of target std_msgs_generate_messages_py[0m
+[35m[1mScanning dependencies of target nodelet_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target std_msgs_generate_messages_nodejs[0m
+[  0%] Built target roscpp_generate_messages_eus
+[  0%] Built target std_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_py
+[  0%] Built target rosgraph_msgs_generate_messages_eus
+[  0%] Built target robp_msgs_generate_messages_nodejs
+[  0%] Built target roscpp_generate_messages_py
+[  0%] Built target nodelet_generate_messages_lisp
+[  0%] Built target geometry_msgs_generate_messages_eus
+[35m[1mScanning dependencies of target sensor_msgs_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target roscpp_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target std_msgs_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target actionlib_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target dynamic_reconfigure_gencfg[0m
+[35m[1mScanning dependencies of target std_srvs_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target robp_phidgets_gencfg[0m
+[35m[1mScanning dependencies of target robp_msgs_generate_messages_eus[0m
+[  0%] Built target dynamic_reconfigure_gencfg
+[  0%] Built target actionlib_generate_messages_lisp
+[  0%] Built target roscpp_generate_messages_lisp
+[  0%] Built target std_msgs_generate_messages_lisp
+[  0%] Built target sensor_msgs_generate_messages_cpp
+[  0%] Built target std_srvs_generate_messages_cpp
+[  0%] Built target robp_msgs_generate_messages_eus
+[  3%] [34m[1mGenerating dynamic reconfigure files from cfg/Encoder.cfg: /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/EncoderConfig.h /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/python3/dist-packages/robp_phidgets/cfg/EncoderConfig.py[0m
+[35m[1mScanning dependencies of target nodelet_generate_messages_cpp[0m
+[  6%] [34m[1mGenerating dynamic reconfigure files from cfg/Logging.cfg: /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/LoggingConfig.h /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/python3/dist-packages/robp_phidgets/cfg/LoggingConfig.py[0m
+[ 10%] [34m[1mGenerating dynamic reconfigure files from cfg/Motor.cfg: /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/MotorConfig.h /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/python3/dist-packages/robp_phidgets/cfg/MotorConfig.py[0m
+[35m[1mScanning dependencies of target actionlib_msgs_generate_messages_eus[0m
+[35m[1mScanning dependencies of target rosgraph_msgs_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target dynamic_reconfigure_generate_messages_py[0m
+[35m[1mScanning dependencies of target rosgraph_msgs_generate_messages_py[0m
+[ 10%] Built target nodelet_generate_messages_cpp
+[ 10%] Built target actionlib_msgs_generate_messages_eus
+[ 10%] Built target dynamic_reconfigure_generate_messages_py
+[ 10%] Built target rosgraph_msgs_generate_messages_lisp
+[ 10%] Built target rosgraph_msgs_generate_messages_py
+[ 16%] [34m[1mGenerating dynamic reconfigure files from cfg/Temperature.cfg: /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/TemperatureConfig.h /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/python3/dist-packages/robp_phidgets/cfg/TemperatureConfig.py[0m
+[ 16%] [34m[1mGenerating dynamic reconfigure files from cfg/Spatial.cfg: /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/SpatialConfig.h /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/python3/dist-packages/robp_phidgets/cfg/SpatialConfig.py[0m
+[35m[1mScanning dependencies of target dynamic_reconfigure_generate_messages_eus[0m
+[35m[1mScanning dependencies of target geometry_msgs_generate_messages_nodejs[0m
+[35m[1mScanning dependencies of target geometry_msgs_generate_messages_cpp[0m
+[ 16%] Built target dynamic_reconfigure_generate_messages_eus
+[ 16%] Built target geometry_msgs_generate_messages_nodejs
+[ 16%] Built target geometry_msgs_generate_messages_cpp
+[35m[1mScanning dependencies of target dynamic_reconfigure_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target roscpp_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target geometry_msgs_generate_messages_py[0m
+[ 16%] Built target dynamic_reconfigure_generate_messages_cpp
+[ 16%] Built target roscpp_generate_messages_cpp
+[ 16%] Built target geometry_msgs_generate_messages_py
+[35m[1mScanning dependencies of target tf2_msgs_generate_messages_eus[0m
+[35m[1mScanning dependencies of target sensor_msgs_generate_messages_py[0m
+[ 16%] Built target tf2_msgs_generate_messages_eus
+[35m[1mScanning dependencies of target std_msgs_generate_messages_cpp[0m
+Generating reconfiguration files for Encoder in robp_phidgets
+Generating reconfiguration files for Logging in robp_phidgets
+Generating reconfiguration files for Motor in robp_phidgets
+[ 16%] Built target sensor_msgs_generate_messages_py
+Wrote header file in /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/EncoderConfig.h
+Wrote header file in /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/LoggingConfig.h
+Wrote header file in /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/MotorConfig.h
+[35m[1mScanning dependencies of target dynamic_reconfigure_generate_messages_lisp[0m
+[ 16%] Built target std_msgs_generate_messages_cpp
+[35m[1mScanning dependencies of target tf2_msgs_generate_messages_cpp[0m
+[ 16%] Built target dynamic_reconfigure_generate_messages_lisp
+Generating reconfiguration files for Temperature in robp_phidgets
+Generating reconfiguration files for Spatial in robp_phidgets
+Wrote header file in /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/TemperatureConfig.h
+[35m[1mScanning dependencies of target roscpp_generate_messages_nodejs[0m
+[35m[1mScanning dependencies of target geometry_msgs_generate_messages_lisp[0m
+Wrote header file in /home/robot/dd2419_ws/devel/.private/robp_phidgets/include/robp_phidgets/SpatialConfig.h
+[ 16%] Built target tf2_msgs_generate_messages_cpp
+[35m[1mScanning dependencies of target robp_msgs_generate_messages_py[0m
+[ 16%] Built target geometry_msgs_generate_messages_lisp
+[ 16%] Built target roscpp_generate_messages_nodejs
+[35m[1mScanning dependencies of target imu_filter_madgwick_gencfg[0m
+[ 16%] Built target robp_msgs_generate_messages_py
+[35m[1mScanning dependencies of target rosgraph_msgs_generate_messages_nodejs[0m
+[ 16%] Built target imu_filter_madgwick_gencfg
+[35m[1mScanning dependencies of target actionlib_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target actionlib_msgs_generate_messages_py[0m
+[ 16%] Built target rosgraph_msgs_generate_messages_nodejs
+[35m[1mScanning dependencies of target nodelet_generate_messages_eus[0m
+[35m[1mScanning dependencies of target actionlib_generate_messages_nodejs[0m
+[35m[1mScanning dependencies of target nodelet_generate_messages_nodejs[0m
+[35m[1mScanning dependencies of target robp_phidgets_util[0m
+[ 16%] Built target actionlib_generate_messages_cpp
+[ 16%] Built target actionlib_msgs_generate_messages_py
+[35m[1mScanning dependencies of target bond_generate_messages_nodejs[0m
+[ 16%] Built target nodelet_generate_messages_eus
+[ 16%] Built target actionlib_generate_messages_nodejs
+[ 16%] Built target nodelet_generate_messages_nodejs
+[ 20%] [32mBuilding CXX object CMakeFiles/robp_phidgets_util.dir/src/util.cpp.o[0m
+[ 23%] [32mBuilding CXX object CMakeFiles/robp_phidgets_util.dir/src/error.cpp.o[0m
+[ 23%] Built target bond_generate_messages_nodejs
+[35m[1mScanning dependencies of target std_srvs_generate_messages_nodejs[0m
+[35m[1mScanning dependencies of target nodelet_generate_messages_py[0m
+[35m[1mScanning dependencies of target tf2_msgs_generate_messages_py[0m
+[35m[1mScanning dependencies of target dynamic_reconfigure_generate_messages_nodejs[0m
+[ 23%] Built target std_srvs_generate_messages_nodejs
+[ 23%] Built target nodelet_generate_messages_py
+[ 23%] Built target tf2_msgs_generate_messages_py
+[ 23%] Built target dynamic_reconfigure_generate_messages_nodejs
+[ 23%] Built target robp_phidgets_gencfg
+[35m[1mScanning dependencies of target sensor_msgs_generate_messages_nodejs[0m
+[35m[1mScanning dependencies of target bond_generate_messages_eus[0m
+[35m[1mScanning dependencies of target bond_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target bond_generate_messages_lisp[0m
+[ 23%] Built target sensor_msgs_generate_messages_nodejs
+[35m[1mScanning dependencies of target sensor_msgs_generate_messages_lisp[0m
+[35m[1mScanning dependencies of target sensor_msgs_generate_messages_eus[0m
+[ 23%] Built target bond_generate_messages_cpp
+[ 23%] Built target bond_generate_messages_eus
+[ 23%] Built target bond_generate_messages_lisp
+[ 23%] Built target sensor_msgs_generate_messages_lisp
+[35m[1mScanning dependencies of target rosgraph_msgs_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target bond_generate_messages_py[0m
+[ 23%] Built target sensor_msgs_generate_messages_eus
+[35m[1mScanning dependencies of target actionlib_generate_messages_eus[0m
+[35m[1mScanning dependencies of target actionlib_msgs_generate_messages_cpp[0m
+[35m[1mScanning dependencies of target actionlib_generate_messages_py[0m
+[ 23%] Built target actionlib_generate_messages_eus
+[ 23%] Built target rosgraph_msgs_generate_messages_cpp
+[35m[1mScanning dependencies of target std_msgs_generate_messages_eus[0m
+[ 23%] Built target bond_generate_messages_py
+[ 23%] Built target actionlib_generate_messages_py
+[ 23%] Built target actionlib_msgs_generate_messages_cpp
+[ 23%] Built target std_msgs_generate_messages_eus
+[35m[1mScanning dependencies of target actionlib_msgs_generate_messages_nodejs[0m
+[ 23%] Built target actionlib_msgs_generate_messages_nodejs
+[35m[1mScanning dependencies of target robp_phidgets_logging_nodelet[0m
+[ 26%] [32mBuilding CXX object CMakeFiles/robp_phidgets_logging_nodelet.dir/src/logging_nodelet.cpp.o[0m
+[ 30%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_util.so[0m
+[ 30%] Built target robp_phidgets_util
+[35m[1mScanning dependencies of target robp_phidgets_temperature[0m
+[35m[1mScanning dependencies of target robp_phidgets_motor[0m
+[35m[1mScanning dependencies of target robp_phidgets_spatial[0m
+[35m[1mScanning dependencies of target robp_phidgets_encoder[0m
+[ 33%] [32mBuilding CXX object CMakeFiles/robp_phidgets_motor.dir/src/motor.cpp.o[0m
+[ 36%] [32mBuilding CXX object CMakeFiles/robp_phidgets_encoder.dir/src/encoder.cpp.o[0m
+[ 40%] [32mBuilding CXX object CMakeFiles/robp_phidgets_temperature.dir/src/temperature.cpp.o[0m
+[ 43%] [32mBuilding CXX object CMakeFiles/robp_phidgets_spatial.dir/src/spatial.cpp.o[0m
+[ 46%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_motor.so[0m
+[ 46%] Built target robp_phidgets_motor
+[35m[1mScanning dependencies of target robp_phidgets_motors[0m
+[ 50%] [32mBuilding CXX object CMakeFiles/robp_phidgets_motors.dir/src/motors.cpp.o[0m
+[ 53%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_encoder.so[0m
+[ 53%] Built target robp_phidgets_encoder
+[35m[1mScanning dependencies of target robp_phidgets_encoders[0m
+[ 56%] [32mBuilding CXX object CMakeFiles/robp_phidgets_encoders.dir/src/encoders.cpp.o[0m
+[ 60%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_temperature.so[0m
+[ 60%] Built target robp_phidgets_temperature
+[35m[1mScanning dependencies of target robp_phidgets_temperature_nodelet[0m
+[ 63%] [32mBuilding CXX object CMakeFiles/robp_phidgets_temperature_nodelet.dir/src/temperature_nodelet.cpp.o[0m
+[ 66%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_motors.so[0m
+[ 66%] Built target robp_phidgets_motors
+[35m[1mScanning dependencies of target robp_phidgets_motors_nodelet[0m
+[ 70%] [32mBuilding CXX object CMakeFiles/robp_phidgets_motors_nodelet.dir/src/motors_nodelet.cpp.o[0m
+[ 73%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_logging_nodelet.so[0m
+[ 76%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_temperature_nodelet.so[0m
+[ 76%] Built target robp_phidgets_temperature_nodelet
+[ 76%] Built target robp_phidgets_logging_nodelet
+[ 80%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_encoders.so[0m
+[ 80%] Built target robp_phidgets_encoders
+[35m[1mScanning dependencies of target robp_phidgets_encoders_nodelet[0m
+[ 83%] [32mBuilding CXX object CMakeFiles/robp_phidgets_encoders_nodelet.dir/src/encoders_nodelet.cpp.o[0m
+[ 86%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_motors_nodelet.so[0m
+[ 86%] Built target robp_phidgets_motors_nodelet
+[ 90%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_spatial.so[0m
+[ 90%] Built target robp_phidgets_spatial
+[35m[1mScanning dependencies of target robp_phidgets_spatial_nodelet[0m
+[ 93%] [32mBuilding CXX object CMakeFiles/robp_phidgets_spatial_nodelet.dir/src/spatial_nodelet.cpp.o[0m
+[ 96%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_encoders_nodelet.so[0m
+[ 96%] Built target robp_phidgets_encoders_nodelet
+[100%] [32m[1mLinking CXX shared library /home/robot/dd2419_ws/devel/.private/robp_phidgets/lib/librobp_phidgets_spatial_nodelet.so[0m
+[100%] Built target robp_phidgets_spatial_nodelet

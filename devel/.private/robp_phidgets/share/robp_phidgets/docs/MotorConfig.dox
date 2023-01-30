@@ -1,0 +1,10 @@
+\subsubsection parameters ROS parameters
+
+Reads and maintains the following parameters on the ROS server
+
+- \b "~acceleration" : \b [double] Acceleration in duty cycle/s min: 0.1, default: 100.0, max: 100.0
+- \b "~braking_strength" : \b [double] The braking strength to apply when the duty cycle is 0 min: 0.0, default: 1.0, max: 1.0
+- \b "~current_limit" : \b [double] Current limit in A min: 0.0, default: 2.0, max: 4.0
+- \b "~data_rate" : \b [double] Data rate Hz min: 0.017, default: 10.0, max: 10.0
+- \b "~failsafe_timeout" : \b [int] Failsafe timeout in ms min: 500, default: 500, max: 30000
+

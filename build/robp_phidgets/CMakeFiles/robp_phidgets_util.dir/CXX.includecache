@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/robot/dd2419_ws/src/robp_robot/robp_phidgets/include/robp_phidgets/error.h
+phidget22.h
+-
+exception
+-
+string
+-
+
+/home/robot/dd2419_ws/src/robp_robot/robp_phidgets/include/robp_phidgets/util.h
+phidget22.h
+-
+
+/home/robot/dd2419_ws/src/robp_robot/robp_phidgets/src/error.cpp
+robp_phidgets/error.h
+-
+
+/home/robot/dd2419_ws/src/robp_robot/robp_phidgets/src/util.cpp
+robp_phidgets/error.h
+-
+robp_phidgets/util.h
+-
+

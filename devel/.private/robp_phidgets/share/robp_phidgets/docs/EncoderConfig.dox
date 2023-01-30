@@ -1,0 +1,7 @@
+\subsubsection parameters ROS parameters
+
+Reads and maintains the following parameters on the ROS server
+
+- \b "~data_rate" : \b [double] Data rate Hz min: 0.017, default: 20.0, max: 20.0
+- \b "~position_change_trigger" : \b [int] Minimum position change to trigger (0 trigger at data_rate) min: 0, default: 0, max: 60000000
+
