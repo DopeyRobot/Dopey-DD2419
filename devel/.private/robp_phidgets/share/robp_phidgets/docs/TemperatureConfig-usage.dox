@@ -1,9 +1,0 @@
-\subsubsection usage Usage
-\verbatim
-<node name="robp_phidgets" pkg="robp_phidgets" type="robp_phidgets">
-  <param name="frame_id" type="str" value="imu_link" />
-  <param name="data_rate" type="double" value="8.0" />
-  <param name="temperature_change_trigger" type="double" value="0.0" />
-</node>
-\endverbatim
-

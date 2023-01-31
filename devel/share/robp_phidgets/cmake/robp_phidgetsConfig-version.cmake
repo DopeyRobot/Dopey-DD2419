@@ -1,1 +1,0 @@
-/home/robot/dd2419_ws/devel/.private/robp_phidgets/share/robp_phidgets/cmake/robp_phidgetsConfig-version.cmake

@@ -1,8 +1,0 @@
-\subsubsection usage Usage
-\verbatim
-<node name="robp_phidgets" pkg="robp_phidgets" type="robp_phidgets">
-  <param name="data_rate" type="double" value="20.0" />
-  <param name="position_change_trigger" type="int" value="0" />
-</node>
-\endverbatim
-
