@@ -1,4 +1,4 @@
-#!usr/bin/env python
+#!usr/bin/env python3
 import rospy
 from geometry_msgs.msg import Twist
 from robp_msgs.msg import DutyCycles, Encoders
@@ -109,5 +109,5 @@ class CartesianController:
 
 if __name__ == "__main__":
     rospy.init_node("cartesian_controller", anonymous=True)
-    controller = CartesianController()
+    controller = CartesianController("cmd_vel")
     rospy.spin()
