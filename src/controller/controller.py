@@ -1,4 +1,4 @@
-#!usr/bin/env python3
+#!/usr/bin/env python3
 import rospy
 from geometry_msgs.msg import Twist
 from robp_msgs.msg import DutyCycles, Encoders
