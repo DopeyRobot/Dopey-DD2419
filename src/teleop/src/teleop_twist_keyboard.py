@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import threading
 
-import roslib; roslib.load_manifest('teleop_twist_keyboard')
+#import roslib; roslib.load_manifest('teleop_twist_keyboard')
 import rospy
 
 from geometry_msgs.msg import Twist
@@ -63,6 +63,7 @@ moveBindings = {
         'L':(0,-1,0,0),
         'U':(1,1,0,0),
         '<':(-1,0,0,0),
+        'k':(-1,0,0,0),
         '>':(-1,-1,0,0),
         'M':(-1,1,0,0),
         't':(0,0,1,0),
@@ -81,7 +82,7 @@ speedBindings={
 class PublishThread(threading.Thread):
     def __init__(self, rate):
         super(PublishThread, self).__init__()
-        self.publisher = rospy.Publisher('cmd_vel', TwistMsg, queue_size = 1)
+        self.publisher = rospy.Publisher('/motor_controller/twist', TwistMsg, queue_size = 1)
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0

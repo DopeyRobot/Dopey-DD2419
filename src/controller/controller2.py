@@ -19,9 +19,9 @@ DeltaEncRight = None
 int_error1 = 0
 int_error2 = 0
 alpha1 = 0.02
-alpha2 = 0.01767
+alpha2 = 0.02
 beta1 = 2*1e-6
-beta2 = 1*1e-6
+beta2 = 2*1e-6
 
 def callbackDesTw(msg):
     global Des_vx, Des_wz
@@ -53,9 +53,9 @@ def controller():
     
     while not rospy.is_shutdown():
         rospy.loginfo("controller of task 2 active")
-        r = 0.0352 #m
-        tpr = 360
-        b = 0.23 #m
+        r = 0.04921 #m
+        tpr = 3072
+        b = 0.3 #m
 
         vw1 = 2*math.pi*r*f*DeltaEncLeft/tpr
         vw2 = 2*math.pi*r*f*DeltaEncRight/tpr

@@ -15,9 +15,9 @@ class CartesianController:
         self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.twist_callback)
 
         self.f = 10
-        self.b = 0.23
-        self.r = 0.0352
-        self.ticks_per_rev = 360
+        self.b = 0.3
+        self.r = 0.04921
+        self.ticks_per_rev = 3072
 
         self.twist = Twist()
         self.encoders = Encoders()
@@ -25,9 +25,9 @@ class CartesianController:
         self.int_error_left = 0
         self.int_error_right = 0
         self.P_left = 0.01
-        self.I_left = 0.5
-        self.P_right = 0.001
-        self.I_right = 0.5
+        self.I_left = 0.02
+        self.P_right = 0.01
+        self.I_right = 0.02
 
         self.verbose = verbose
 
@@ -109,5 +109,5 @@ class CartesianController:
 
 if __name__ == "__main__":
     rospy.init_node("cartesian_controller", anonymous=True)
-    controller = CartesianController("cmd_vel")
+    controller = CartesianController("/motor_controller/twist")
     rospy.spin()
