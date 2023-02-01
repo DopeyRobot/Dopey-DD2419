@@ -1,0 +1,8 @@
+<launch>
+	<!-- launch all phidgets -->
+	<include file="$(find robp_phidgets)/launch/phidgets.launch" />
+
+	<!-- launch the controller node -->
+	<node pkg="controller" type="controller.py" name="cartesian_controller_node" output="screen" />
+
+</launch>
