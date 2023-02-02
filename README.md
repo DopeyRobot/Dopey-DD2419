@@ -16,3 +16,8 @@
   
 - `rosbag play --clock --pause <bag-name>.bag` - will start in paused mode, press SPACE to play
 
+## Packages
+### Joystick Package
+
+`sudo apt-get install ros-noetic-joy`
+
