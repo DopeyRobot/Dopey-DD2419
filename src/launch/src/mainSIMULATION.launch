@@ -1,0 +1,9 @@
+<launch>
+	
+	<!-- Use time from rosbag -->
+	<param name="/use_sim_time" value="true" />
+	
+	<!-- launch main launch file -->
+	<include file="$(find launch)/src/main.launch" />
+
+</launch>
