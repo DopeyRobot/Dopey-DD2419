@@ -16,5 +16,7 @@
 
 	<!-- launch the odometry node -->
 	<node pkg="odometry" type="odometry.py" name="odometry_node" output="screen" />
+	
+	<node pkg="teleop_twist_joy" type="teleop_node" name="teleop_twist_joy_node" output="screen" />
 
 </launch>
