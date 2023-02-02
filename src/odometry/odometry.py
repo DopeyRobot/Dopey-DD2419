@@ -66,7 +66,6 @@ class Odometry:
             t.transform.rotation.y = q[1]
             t.transform.rotation.z = q[2]
             t.transform.rotation.w = q[3]
-            rospy.loginfo("publishing transform between odom and base_link")
             br.sendTransform(t)
             self.rate.sleep()
 
