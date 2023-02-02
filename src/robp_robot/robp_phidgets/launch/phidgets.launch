@@ -32,4 +32,7 @@
     <arg name="manager" value="$(arg manager)"/>
     <arg name="port" default="$(arg imu_port)"/>
   </include>
+  
+  <include file="$(find robp_phidgets)/launch/teleop.launch">
+  </include>
 </launch>
