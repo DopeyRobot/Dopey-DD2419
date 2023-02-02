@@ -17,4 +17,7 @@
 	<!-- launch the odometry node -->
 	<node pkg="odometry" type="odometry.py" name="odometry_node" output="screen" />
 
+	<!-- launch the realsense node -->
+	<node file = "$(find realsense2_camera)/launch/rs_camera.launch" />
+
 </launch>
