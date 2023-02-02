@@ -1,0 +1,7 @@
+<launch>
+	<!-- launch all phidgets -->
+	<include file="$(find robp_phidgets)/launch/phidgets.launch" />
+
+    <!-- launch the teleop node -->
+	<node pkg="teleop" type="teleop_twist_keyboard.py" name="keyboard_teleop_node" output="screen" />
+</launch>
