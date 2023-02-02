@@ -1,0 +1,7 @@
+<launch>
+	<!-- launch the controller node -->
+	<node pkg="controller" type="controller.py" name="cartesian_controller_node" output="screen" />
+	<!-- launch the odometry node -->
+	<node pkg="odometry" type="odometry.py" name="odometry_node" output="screen" />
+
+</launch>
