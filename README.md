@@ -67,4 +67,4 @@
 6. Drive around and collect data
 7. `ctrl-c` in terminal of recording
 8. Plug Dopey back into a screen, keyboard and mouse
-9. Inside Dopey [relive the best moments of Dopey's life](#play-a-recorded-rosbag-and-visualize-in-rviz) (Use the rosbag tagged with today's date)
+9. Inside Dopey [relive the best moments of Dopey's life](#play-a-recorded-rosbag-and-visualize-in-rviz) (Use the rosbag called milestone1.bag)
