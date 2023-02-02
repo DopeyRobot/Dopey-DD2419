@@ -4,4 +4,6 @@
 
     <!-- launch the teleop node -->
 	<node pkg="teleop" type="teleop_twist_keyboard.py" name="keyboard_teleop_node" output="screen" />
+
+	<node pkg="teleop_twist_joy" type="teleop_node" name="teleop_twist_joy_node" output="screen" />
 </launch>
