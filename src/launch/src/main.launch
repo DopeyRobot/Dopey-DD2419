@@ -19,7 +19,8 @@
 
 	<!-- launch the realsense node -->
 	<include file = "$(find realsense2_camera)/launch/rs_camera.launch" >
-		<arg name="tf_prefix" value="RGBDcamera"/>
+		<arg name="tf_prefix" value="camera"/>
+		<arg name="filters" value="pointcloud" />
 	</include>
 
 </launch>
