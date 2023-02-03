@@ -24,10 +24,14 @@ class CartesianController:
 
         self.int_error_left = 0
         self.int_error_right = 0
-        self.P_left = 0.01
-        self.I_left = 0.02
-        self.P_right = 0.01
-        self.I_right = 0.02
+        # P = 0.02
+        # I = 0.05
+        P = 0.02
+        I = 0.07
+        self.P_left = P
+        self.I_left = I
+        self.P_right = P
+        self.I_right = I
 
         self.verbose = verbose
 
