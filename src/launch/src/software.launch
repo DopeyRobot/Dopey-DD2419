@@ -6,6 +6,8 @@
 	<node pkg="controller" type="controller.py" name="cartesian_controller_node" output="screen" />
 	<!-- launch the odometry node -->
 	<node pkg="odometry" type="odometry.py" name="odometry_node" output="screen" />
+	<!-- launch the aruco detector and RViz dissplayer node -->
+	<node pkg="aruco_detection" type="display_markers.py" name="display_markers_node" output="screen" />
 
 	<node name="aruco" pkg="aruco_ros" type="marker_publisher">
 		<remap from="/camera_info" to="/camera/color/camera_info"/>

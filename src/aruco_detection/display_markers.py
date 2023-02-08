@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import rospy
 from geometry_msgs.msg import TransformStamped, PoseStamped
 from aruco_msgs.msg import MarkerArray
@@ -16,8 +16,6 @@ class aruco_dectection:
         self.run()
 
     def aruco_callback(self, msg):
-        rospy.loginfo('New encoder received:\n%s', msg)
-        
         transforms_list = []
         for detected_marker in msg.markers:
             detected_aruco_pose = PoseStamped()
@@ -28,13 +26,15 @@ class aruco_dectection:
 
             transform_is_possible = self.buffer.can_transform("map", self.aruco_markers_frame, msg.header.stamp, rospy.Duration(2))
             if transform_is_possible:
-                rospy.loginfo(f"Is the transform is possible?: {transform_is_possible}")
+                # rospy.loginfo(f"Is the transform is possible?: {transform_is_possible}")
                 transformed_aruco_pose = self.buffer.transform(detected_aruco_pose, "map", rospy.Duration(2))
 
                 t = TransformStamped()
                 t.header.stamp = msg.header.stamp
                 t.header.frame_id = "map"
                 t.child_frame_id = "aruco/detected%s" % str(detected_marker.id)
+
+                rospy.loginfo("Aruco marker detected with ID: %s" % str(detected_marker.id))
 
                 t.transform.translation.x = transformed_aruco_pose.pose.position.x
                 t.transform.translation.y = transformed_aruco_pose.pose.position.y
@@ -51,13 +51,6 @@ class aruco_dectection:
                 rospy.loginfo(f"Is the transform is possible?: {transform_is_possible}")
                 rospy.loginfo("NO IT DID NOT WORK")
                 
-          # Try failed!!      
-          #  try:
-          #      transformed_pose = self.buffer.transform(detected_aruco_pose, "map", A)
-          #  except:
-          #      print("It could not be transformed")
-          #      continue
-          
         self.br.sendTransform(transforms_list)
 
         
@@ -69,5 +62,5 @@ class aruco_dectection:
 
 if __name__ == '__main__':
     rospy.init_node('display_markers')
-    odometry()
+    aruco_dectection()
     rospy.spin()
