@@ -44,7 +44,7 @@
 
 ### Play rosbag
 
-- `roslaunch launch rviz.launch`
+- `roslaunch launch rvizSIMULATION.launch`
   
 - `rosbag play --clock --pause <bag-name>.bag` - will start in paused mode, press SPACE to play
 
