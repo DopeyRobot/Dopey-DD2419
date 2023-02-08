@@ -12,6 +12,7 @@ class aruco_dectection:
         self.buffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.buffer)
         self.aruco_markers_frame = "camera_color_optical_frame"
+        self.rate = rospy.Rate(10)
         
         self.run()
 
@@ -21,8 +22,7 @@ class aruco_dectection:
             detected_aruco_pose = PoseStamped()
             detected_aruco_pose.pose = detected_marker.pose.pose
             detected_aruco_pose.header.frame_id = self.aruco_markers_frame
-            detected_aruco_pose.header.stamp = msg.header.stamp #What does the stamp do??
-            A = rospy.Duration(2)
+            detected_aruco_pose.header.stamp = msg.header.stamp
 
             transform_is_possible = self.buffer.can_transform("map", self.aruco_markers_frame, msg.header.stamp, rospy.Duration(2))
             if transform_is_possible:
@@ -32,15 +32,14 @@ class aruco_dectection:
                 t = TransformStamped()
                 t.header.stamp = msg.header.stamp
                 t.header.frame_id = "map"
-                t.child_frame_id = "aruco/detected%s" % str(detected_marker.id)
+                t.child_frame_id = f"aruco/detected {detected_marker.id}"
 
-                rospy.loginfo("Aruco marker detected with ID: %s" % str(detected_marker.id))
+                # rospy.loginfo("Aruco marker detected with ID: %s" % str(detected_marker.id))
 
                 t.transform.translation.x = transformed_aruco_pose.pose.position.x
                 t.transform.translation.y = transformed_aruco_pose.pose.position.y
                 t.transform.translation.z = transformed_aruco_pose.pose.position.z
 
-                #q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.yaw)
                 t.transform.rotation.x = transformed_aruco_pose.pose.orientation.x
                 t.transform.rotation.y = transformed_aruco_pose.pose.orientation.y
                 t.transform.rotation.z = transformed_aruco_pose.pose.orientation.z
@@ -48,17 +47,15 @@ class aruco_dectection:
 
                 transforms_list.append(t)
             else:
-                rospy.loginfo(f"Is the transform is possible?: {transform_is_possible}")
-                rospy.loginfo("NO IT DID NOT WORK")
+                rospy.loginfo("No tranform found for the aruco marker")
                 
         self.br.sendTransform(transforms_list)
 
         
 
     def run(self):
-        rate = rospy.Rate(10) # 10hz
         while not rospy.is_shutdown():
-            rate.sleep()
+            self.rate.sleep()
 
 if __name__ == '__main__':
     rospy.init_node('display_markers')
