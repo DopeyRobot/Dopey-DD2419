@@ -53,22 +53,22 @@ class PosService:
         self.pickup_service = rospy.Service("pickup/f", Empty, self.pickup_f_callback)
 
         self.joint1_pub = rospy.Publisher(
-            "/joint1_controller/command_duration", Float64, queue_size=10
+            "/joint1_controller/command_duration", CommandDuration, queue_size=10
         )
         self.joint2_pub = rospy.Publisher(
-            "/joint2_controller/command_duration", Float64, queue_size=10
+            "/joint2_controller/command_duration", CommandDuration, queue_size=10
         )
         self.joint3_pub = rospy.Publisher(
-            "/joint3_controller/command_duration", Float64, queue_size=10
+            "/joint3_controller/command_duration", CommandDuration, queue_size=10
         )
         self.joint4_pub = rospy.Publisher(
-            "/joint4_controller/command_duration", Float64, queue_size=10
+            "/joint4_controller/command_duration", CommandDuration, queue_size=10
         )
         self.joint5_pub = rospy.Publisher(
-            "/joint5_controller/command_duration", Float64, queue_size=10
+            "/joint5_controller/command_duration", CommandDuration, queue_size=10
         )
         self.gripper_pub = rospy.Publisher(
-            "r_joint_controller/command_duration", Float64, queue_size=10
+            "r_joint_controller/command_duration", CommandDuration, queue_size=10
         )
 
     def home_callback(self, req: EmptyRequest) -> EmptyResponse:
