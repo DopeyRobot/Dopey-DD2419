@@ -43,7 +43,7 @@ class RefPoses(Enum):
     HOME = JointData.from_list(positions=[0, 0, 0, 0, 0, 0])
     PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
     PICKUP_F = JointData.from_list(positions=[1.57, -1, -0.8, -1.3, 0, -0.2])
-    PICKUP_TRAY = JointData.from_list(positions=[-1.57, 0, -0.85, -1.5, 0, -0.2])
+    PICKUP_TRAY = JointData.from_list(positions=[-1.57, 0.7, -1.57, -1.5, 0, -0.2])
 
 
 class PosService:
