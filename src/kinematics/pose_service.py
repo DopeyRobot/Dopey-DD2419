@@ -4,6 +4,7 @@ from sensor_msgs.msg import JointState
 from enum import Enum
 from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
 from std_msgs.msg import Float64
+from hiwonder_servo_msgs.msg import CommandDuration
 
 
 class JointData:
@@ -24,6 +25,8 @@ class JointData:
         data.joint5 = state.position[4]
         data.gripper = state.position[5]
 
+        return data
+
     def from_list(positions: list):
         data = JointData()
         data.joint1 = positions[0]
@@ -33,32 +36,38 @@ class JointData:
         data.joint5 = positions[4]
         data.gripper = positions[5]
 
+        return data        
+
 
 class RefPoses(Enum):
-    HOME = JointData.from_list(JointState(positions=[0, 0, 0, 0, 0, 0]))
-    PICKUP = JointData.from_list(JointState(positions=[0, -1, -0.8, -1.3, 0, -0.2]))
-
+    HOME = JointData.from_list(positions=[0, 0, 0, 0, 0, 0])
+    PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
+    PICKUP_F = JointData.from_list(positions=[1.57, -1, -0.8, -1.3, 0, -0.2])
 
 class PosService:
     def __init__(self) -> None:
+        rospy.init_node("pose_server")
         self.home_service = rospy.Service("home", Empty, self.home_callback)
+        self.pickup_service = rospy.Service("pickup/r", Empty, self.pickup_r_callback )
+        self.pickup_service = rospy.Service("pickup/f", Empty, self.pickup_f_callback )
+        
         self.joint1_pub = rospy.Publisher(
-            "/joint1_controller/command", Float64, queue_size=10
+            "/joint1_controller/command_duration", Float64, queue_size=10
         )
         self.joint2_pub = rospy.Publisher(
-            "/joint2_controller/command", Float64, queue_size=10
+            "/joint2_controller/command_duration", Float64, queue_size=10
         )
         self.joint3_pub = rospy.Publisher(
-            "/joint3_controller/command", Float64, queue_size=10
+            "/joint3_controller/command_duration", Float64, queue_size=10
         )
         self.joint4_pub = rospy.Publisher(
-            "/joint4_controller/command", Float64, queue_size=10
+            "/joint4_controller/command_duration", Float64, queue_size=10
         )
         self.joint5_pub = rospy.Publisher(
-            "/joint5_controller/command", Float64, queue_size=10
+            "/joint5_controller/command_duration", Float64, queue_size=10
         )
         self.gripper_pub = rospy.Publisher(
-            "r_joint_controller/command", Float64, queue_size=10
+            "r_joint_controller/command_duration", Float64, queue_size=10
         )
 
     def home_callback(self, req: EmptyRequest) -> EmptyResponse:
@@ -71,3 +80,32 @@ class PosService:
         self.gripper_pub.publish(RefPoses.HOME.value.gripper)
 
         return EmptyResponse()
+
+    def pickup_r_callback(self, req:EmptyRequest) -> EmptyResponse:
+        rospy.loginfo("Moving to pickup position")
+        self.joint1_pub.publish(RefPoses.PICKUP_R.value.joint1)
+        self.joint2_pub.publish(RefPoses.PICKUP_R.value.joint2)
+        self.joint3_pub.publish(RefPoses.PICKUP_R.value.joint3)
+        self.joint4_pub.publish(RefPoses.PICKUP_R.value.joint4)
+        self.joint5_pub.publish(RefPoses.PICKUP_R.value.joint5)
+        self.gripper_pub.publish(RefPoses.PICKUP_R.value.gripper)
+
+        return EmptyResponse()
+
+    def pickup_f_callback(self, req:EmptyRequest) -> EmptyResponse:
+        rospy.loginfo("Moving to pickup position")
+        self.joint1_pub.publish(RefPoses.PICKUP_F.value.joint1)
+        self.joint2_pub.publish(RefPoses.PICKUP_F.value.joint2)
+        self.joint3_pub.publish(RefPoses.PICKUP_F.value.joint3)
+        self.joint4_pub.publish(RefPoses.PICKUP_F.value.joint4)
+        self.joint5_pub.publish(RefPoses.PICKUP_F.value.joint5)
+        self.gripper_pub.publish(RefPoses.PICKUP_F.value.gripper)
+
+        return EmptyResponse()
+
+
+
+
+if __name__ == "__main__":
+    PosService()
+    rospy.spin()
