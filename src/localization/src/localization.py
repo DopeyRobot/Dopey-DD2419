@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 from geometry_msgs.msg import TransformStamped
-from robp_msgs.msg import Encoders
+from aruco_msgs.msg import MarkerArray
 import tf_conversions
 import tf2_ros
 import math
@@ -10,12 +10,17 @@ from odometryLoc import Odometry
 
 class Localization:
     def __init__(self) -> None:
+        self.sub_anchor = rospy.Subscriber(
+            "/aruco/markers", MarkerArray, self.anchor_callback
+        )
         self.odom = Odometry()
         self.rate = rospy.Rate(self.odom.f)
+        self.anchor = None
         self.run()
 
-    def update_callback(self, msg):
-        pass
+    def anchor_callback(self, msg):
+        rospy.loginfo("anchor callback")
+        
 
     def predict(self):
         self.odom.run()
