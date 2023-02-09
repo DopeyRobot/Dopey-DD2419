@@ -35,7 +35,7 @@ class CartesianController:
 
         self.verbose = verbose
 
-        rospy.init_node("cartesian_controller", anonymous=True)
+        # rospy.init_node("cartesian_controller", anonymous=True)
         rospy.loginfo("Cartesian controller started")
 
         self.rate = rospy.Rate(self.f)
