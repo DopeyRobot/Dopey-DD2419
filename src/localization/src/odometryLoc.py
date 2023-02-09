@@ -20,7 +20,7 @@ class Odometry:
         self.x = 0
         self.y = 0
         self.yaw = 0
-        self.old_stamp = Encoders().header.stamp
+        self.old_stamp = Encoders().header.stamp #Init empty stamp
 
         #self.rate = rospy.Rate(self.f)
         #self.run()
@@ -43,7 +43,7 @@ class Odometry:
 
         return vdt, wdt
 
-    def run(self):
+    def step(self):
         #while not rospy.is_shutdown():
         br = tf2_ros.TransformBroadcaster()
 
@@ -66,8 +66,8 @@ class Odometry:
         t.transform.rotation.y = q[1]
         t.transform.rotation.z = q[2]
         t.transform.rotation.w = q[3]
+
         #to avoid redundat tf warnings
-        
         if self.old_stamp != t.header.stamp:
             br.sendTransform(t)
             self.old_stamp = t.header.stamp
