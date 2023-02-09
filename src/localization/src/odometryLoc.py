@@ -20,7 +20,7 @@ class Odometry:
         self.x = 0
         self.y = 0
         self.yaw = 0
-        self.old_stamp = None
+        self.old_stamp = Encoders().header.stamp
 
         #self.rate = rospy.Rate(self.f)
         #self.run()
@@ -67,13 +67,11 @@ class Odometry:
         t.transform.rotation.z = q[2]
         t.transform.rotation.w = q[3]
         #to avoid redundat tf warnings
-        try:
-            if self.old_stamp != t.header.stamp:
-                br.sendTransform(t)
-                self.old_stamp = t.header.stamp
-        except:
+        
+        if self.old_stamp != t.header.stamp:
             br.sendTransform(t)
             self.old_stamp = t.header.stamp
+        
         #self.rate.sleep()
 
     def get_pose(self):
