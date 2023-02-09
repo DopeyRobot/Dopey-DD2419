@@ -36,7 +36,7 @@ class JointData:
         data.joint5 = positions[4]
         data.gripper = positions[5]
 
-        return data        
+        return data
 
 
 class RefPoses(Enum):
@@ -44,13 +44,14 @@ class RefPoses(Enum):
     PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
     PICKUP_F = JointData.from_list(positions=[1.57, -1, -0.8, -1.3, 0, -0.2])
 
+
 class PosService:
     def __init__(self) -> None:
         rospy.init_node("pose_server")
         self.home_service = rospy.Service("home", Empty, self.home_callback)
-        self.pickup_service = rospy.Service("pickup/r", Empty, self.pickup_r_callback )
-        self.pickup_service = rospy.Service("pickup/f", Empty, self.pickup_f_callback )
-        
+        self.pickup_service = rospy.Service("pickup/r", Empty, self.pickup_r_callback)
+        self.pickup_service = rospy.Service("pickup/f", Empty, self.pickup_f_callback)
+
         self.joint1_pub = rospy.Publisher(
             "/joint1_controller/command_duration", Float64, queue_size=10
         )
@@ -72,38 +73,69 @@ class PosService:
 
     def home_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Moving to home position")
-        self.joint1_pub.publish(RefPoses.HOME.value.joint1)
-        self.joint2_pub.publish(RefPoses.HOME.value.joint2)
-        self.joint3_pub.publish(RefPoses.HOME.value.joint3)
-        self.joint4_pub.publish(RefPoses.HOME.value.joint4)
-        self.joint5_pub.publish(RefPoses.HOME.value.joint5)
-        self.gripper_pub.publish(RefPoses.HOME.value.gripper)
+        self.joint1_pub.publish(self.to_command_duration(RefPoses.HOME.value.joint1))
+        self.joint2_pub.publish(self.to_command_duration(RefPoses.HOME.value.joint2))
+        self.joint3_pub.publish(self.to_command_duration(RefPoses.HOME.value.joint3))
+        self.joint4_pub.publish(self.to_command_duration(RefPoses.HOME.value.joint4))
+        self.joint5_pub.publish(self.to_command_duration(RefPoses.HOME.value.joint5))
+        self.gripper_pub.publish(self.to_command_duration(RefPoses.HOME.value.gripper))
 
         return EmptyResponse()
 
-    def pickup_r_callback(self, req:EmptyRequest) -> EmptyResponse:
+    def pickup_r_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Moving to pickup position")
-        self.joint1_pub.publish(RefPoses.PICKUP_R.value.joint1)
-        self.joint2_pub.publish(RefPoses.PICKUP_R.value.joint2)
-        self.joint3_pub.publish(RefPoses.PICKUP_R.value.joint3)
-        self.joint4_pub.publish(RefPoses.PICKUP_R.value.joint4)
-        self.joint5_pub.publish(RefPoses.PICKUP_R.value.joint5)
-        self.gripper_pub.publish(RefPoses.PICKUP_R.value.gripper)
+        self.joint1_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_R.value.joint1)
+        )
+        self.joint2_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_R.value.joint2)
+        )
+        self.joint3_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_R.value.joint3)
+        )
+        self.joint4_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_R.value.joint4)
+        )
+        self.joint5_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_R.value.joint5)
+        )
+        self.gripper_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_R.value.gripper)
+        )
 
         return EmptyResponse()
 
-    def pickup_f_callback(self, req:EmptyRequest) -> EmptyResponse:
+    def pickup_f_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Moving to pickup position")
-        self.joint1_pub.publish(RefPoses.PICKUP_F.value.joint1)
-        self.joint2_pub.publish(RefPoses.PICKUP_F.value.joint2)
-        self.joint3_pub.publish(RefPoses.PICKUP_F.value.joint3)
-        self.joint4_pub.publish(RefPoses.PICKUP_F.value.joint4)
-        self.joint5_pub.publish(RefPoses.PICKUP_F.value.joint5)
-        self.gripper_pub.publish(RefPoses.PICKUP_F.value.gripper)
+        self.joint1_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_F.value.joint1)
+        )
+        self.joint2_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_F.value.joint2)
+        )
+        self.joint3_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_F.value.joint3)
+        )
+        self.joint4_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_F.value.joint4)
+        )
+        self.joint5_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_F.value.joint5)
+        )
+        self.gripper_pub.publish(
+            self.to_command_duration(RefPoses.PICKUP_F.value.gripper)
+        )
 
         return EmptyResponse()
 
+    def to_command_duration(
+        self, position: float, duration: float = 2000
+    ) -> CommandDuration:
+        command = CommandDuration()
+        command.data = position
+        command.duration = duration
 
+        return command
 
 
 if __name__ == "__main__":
