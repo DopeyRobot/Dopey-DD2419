@@ -6,8 +6,6 @@ import tf_conversions
 import tf2_ros
 import math
 
-
-
 class Odometry:
     def __init__(self) -> None:
         self.sub_goal = rospy.Subscriber(
@@ -23,8 +21,8 @@ class Odometry:
         self.y = 0
         self.yaw = 0
 
-        self.rate = rospy.Rate(self.f)
-        self.run()
+        #self.rate = rospy.Rate(self.f)
+        #self.run()
 
     def encoder_callback(self, msg):
         self.encoders = msg
@@ -45,33 +43,31 @@ class Odometry:
         return vdt, wdt
 
     def run(self):
-        while not rospy.is_shutdown():
-            br = tf2_ros.TransformBroadcaster()
+        #while not rospy.is_shutdown():
+        br = tf2_ros.TransformBroadcaster()
 
-            t = TransformStamped()
-            t.header.frame_id = "odom"
-            t.header.stamp = self.encoders.header.stamp
-            t.child_frame_id = "base_link"
+        t = TransformStamped()
+        t.header.frame_id = "odom"
+        t.header.stamp = self.encoders.header.stamp
+        t.child_frame_id = "base_link"
 
-            # TODO: Fill in
-            vdt, wdt = self.translate_encoders()
+        # TODO: Fill in
+        vdt, wdt = self.translate_encoders()
 
-            self.x += vdt * math.cos(self.yaw)
-            self.y += vdt * math.sin(self.yaw)
-            self.yaw += wdt
+        self.x += vdt * math.cos(self.yaw)
+        self.y += vdt * math.sin(self.yaw)
+        self.yaw += wdt
 
-            t.transform.translation.x = self.x
-            t.transform.translation.y = self.y
-            q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.yaw)
-            t.transform.rotation.x = q[0]
-            t.transform.rotation.y = q[1]
-            t.transform.rotation.z = q[2]
-            t.transform.rotation.w = q[3]
-            br.sendTransform(t)
-            self.rate.sleep()
+        t.transform.translation.x = self.x
+        t.transform.translation.y = self.y
+        q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.yaw)
+        t.transform.rotation.x = q[0]
+        t.transform.rotation.y = q[1]
+        t.transform.rotation.z = q[2]
+        t.transform.rotation.w = q[3]
+        br.sendTransform(t)
+        #self.rate.sleep()
 
+    def get_pose(self):
+        return self.x, self.y, self.yaw
 
-if __name__ == "__main__":
-    rospy.init_node("odometry")
-    Odometry()
-    rospy.spin()
