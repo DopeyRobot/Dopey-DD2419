@@ -43,6 +43,8 @@ class RefPoses(Enum):
     HOME = JointData.from_list(positions=[0, 0, 0, 0, 0, 0])
     PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
     PICKUP_F = JointData.from_list(positions=[1.57, -1, -0.8, -1.3, 0, -0.2])
+    OPEN_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.2])
+    CLOSE_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, -0.2])
 
 
 class PosService:
@@ -51,6 +53,12 @@ class PosService:
         self.home_service = rospy.Service("home", Empty, self.home_callback)
         self.pickup_service = rospy.Service("pickup/r", Empty, self.pickup_r_callback)
         self.pickup_service = rospy.Service("pickup/f", Empty, self.pickup_f_callback)
+        self.open_gripper_service = rospy.Service(
+            "gripper/open", Empty, self.open_gripper_callback
+        )
+        self.close_gripper_service = rospy.Service(
+            "gripper/close", Empty, self.close_gripper_callback
+        )
 
         self.joint1_pub = rospy.Publisher(
             "/joint1_controller/command_duration", Float64, queue_size=10
@@ -124,6 +132,22 @@ class PosService:
         )
         self.gripper_pub.publish(
             self.to_command_duration(RefPoses.PICKUP_F.value.gripper)
+        )
+
+        return EmptyResponse()
+
+    def open_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
+        rospy.loginfo("Opening gripper")
+        self.gripper_pub.publish(
+            self.to_command_duration(RefPoses.OPEN_GRIPPER.value.gripper)
+        )
+
+        return EmptyResponse()
+
+    def close_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
+        rospy.loginfo("Closing gripper")
+        self.gripper_pub.publish(
+            self.to_command_duration(RefPoses.CLOSE_GRIPPER.value.gripper)
         )
 
         return EmptyResponse()
