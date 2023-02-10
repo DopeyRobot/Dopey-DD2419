@@ -30,6 +30,19 @@ class JointData:
         return data
 
     @staticmethod
+    def from_np_array(state: np.ndarray, include_gripper: bool = False):
+        data = JointData()
+        data.joint1 = state[0]
+        data.joint2 = state[1]
+        data.joint3 = state[2]
+        data.joint4 = state[3]
+        data.joint5 = state[4]
+        if include_gripper:
+            data.gripper = state[5]
+
+        return data
+
+    @staticmethod
     def from_list(positions: list):
         data = JointData()
         data.joint1 = positions[0]
@@ -92,6 +105,7 @@ class PoseService:
             "gripper/close", Empty, self.close_gripper_callback
         )
 
+        self.IK_service = rospy.ServiceProxy("ik", JointData)
         self.joint1_pub = rospy.Publisher(
             "/joint1_controller/command_duration", CommandDuration, queue_size=10
         )
