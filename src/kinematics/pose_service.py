@@ -5,7 +5,13 @@ from enum import Enum
 from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
 from std_msgs.msg import Float64
 import numpy as np
-from hiwonder_servo_msgs.msg import CommandDuration
+
+# from hiwonder_servo_msgs.msg import CommandDuration
+
+
+class CommandDuration:
+    def __init__(self, *args) -> None:
+        return None
 
 
 class JointData:

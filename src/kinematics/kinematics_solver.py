@@ -3,7 +3,7 @@ import numpy as np
 import rospy
 import tf2_ros as tf2
 from sensor_msgs.msg import JointState
-from pose_service import JointData
+from pose_service import JointData, RefPoses
 from geometry_msgs.msg import Quaternion
 
 # link lengths of the robot in meters
@@ -44,15 +44,39 @@ class KinematicsSolver:
         columns are alpha, d, a, theta
         """
         PI_2 = np.pi / 2
+
+        ## first matrix to test
+        # matrix = np.array(
+        #     [
+        #         [-PI_2, L12, 0.0, joint_data.joint1],
+        #         [0.0, 0.0, L23, joint_data.joint2 - PI_2],
+        #         [0.0, 0.0, L34, joint_data.joint3],
+        #         [0.0, 0.0, L45, joint_data.joint4],
+        #         [joint_data.joint5, 0.0, LEND, 0.0],
+        #     ]
+        # )
+
+        # second matrix to test (seems to be the right one :) )
         matrix = np.array(
             [
                 [-PI_2, L12, 0.0, joint_data.joint1],
                 [0.0, 0.0, L23, joint_data.joint2 - PI_2],
                 [0.0, 0.0, L34, joint_data.joint3],
-                [0.0, 0.0, L45, joint_data.joint4],
-                [joint_data.joint5, 0.0, LEND, 0.0],
+                [PI_2, 0.0, 0.0, joint_data.joint4 + PI_2],
+                [0.0, L45 + LEND, 0.0, joint_data.joint5],
             ]
         )
+
+        ## third matrix to test
+        # matrix = np.array(
+        #     [
+        #         [-PI_2, L12, 0.0, joint_data.joint1],
+        #         [0.0, 0.0, L23, joint_data.joint2],
+        #         [0.0, 0.0, L34, joint_data.joint3],
+        #         [PI_2, 0.0, 0.0, joint_data.joint4],
+        #         [0.0, L45 + LEND, 0.0, joint_data.joint5],
+        #     ]
+        # )
 
         return matrix
 
