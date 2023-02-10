@@ -4,6 +4,7 @@ from sensor_msgs.msg import JointState
 from enum import Enum
 from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
 from std_msgs.msg import Float64
+import numpy as np
 from hiwonder_servo_msgs.msg import CommandDuration
 
 
@@ -39,6 +40,29 @@ class JointData:
         data.gripper = positions[5]
 
         return data
+
+    @staticmethod
+    def to_np_array(data: "JointData", include_gripper: bool = False):
+        if include_gripper:
+            return np.array(
+                [
+                    data.joint1,
+                    data.joint2,
+                    data.joint3,
+                    data.joint4,
+                    data.joint5,
+                    data.gripper,
+                ]
+            )
+        return np.array(
+            [
+                data.joint1,
+                data.joint2,
+                data.joint3,
+                data.joint4,
+                data.joint5,
+            ]
+        )
 
 
 class RefPoses(Enum):
