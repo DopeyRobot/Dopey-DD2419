@@ -10,7 +10,7 @@ L12 = 18e-3
 L23 = 100e-3
 L34 = 97e-3
 L45 = 55e-3
-
+LEND = 50e-3
 
 class KinematicsSolver:
     def __init__(self) -> None:
@@ -27,19 +27,19 @@ class KinematicsSolver:
         self.cur_joint_state = msg
 
     def get_DH_matrix(self):
+        """"
+        columns are alpha, d, a, theta
+        """
         PI_2 = np.pi / 2
         cur_joint_data = JointData.from_joint_state(self.cur_joint_state)
         matrix = np.array(
             [
-                [
-                    -PI_2,
-                    L12,
-                    0.0,
-                    cur_joint_data.joint1,
-                ],
-                [],
-                [],
-                [],
-                [],
+                [-PI_2, L12, 0.0, cur_joint_data.joint1],
+                [0.0,0.0,L23, cur_joint_data.joint2-PI_2],
+                [0.0, 0.0, L34, cur_joint_data.joint3],
+                [0.0,0.0,L45,cur_joint_data.joint4],
+                [cur_joint_data.joint5,0.0,LEND, 0.0]
             ]
         )
+        
+        return matrix
