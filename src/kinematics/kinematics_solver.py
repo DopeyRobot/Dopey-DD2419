@@ -26,7 +26,7 @@ class KinematicsSolver:
 
     def run(self):
         while not rospy.is_shutdown():
-            if len(self.cur_joint_state.position)>0:
+            if len(self.cur_joint_state.position) > 0:
                 pos, R = self.forwards_kinematics()
                 rospy.loginfo(f"End effector position: {pos}")
                 rospy.loginfo(f"End effector rotation matrix: {R}")
@@ -55,7 +55,7 @@ class KinematicsSolver:
 
         return matrix
 
-    def get_DH_transform(self,joint_state:JointState, link_number: int):
+    def get_DH_transform(self, joint_state: JointState, link_number: int):
         """
         returns the transform matrix for the given link number
         """
@@ -74,7 +74,7 @@ class KinematicsSolver:
             ]
         )
 
-    def get_transform(self,joint_state:JointState, link_number: int):
+    def get_transform(self, joint_state: JointState, link_number: int):
         """
         returns the transform matrix from the base to the given link number
         """
@@ -84,7 +84,7 @@ class KinematicsSolver:
 
         return transform
 
-    def forwards_kinematics(self, joint_state:JointState):
+    def forwards_kinematics(self, joint_state: JointState):
         """
         returns the transform matrix from the base to the end effector
         """
@@ -94,7 +94,7 @@ class KinematicsSolver:
         pe_b = transform.dot(pe0)
         return pe_b[:3], R
 
-    def get_end_effector_pose(self, joint_state:JointState):
+    def get_end_effector_pose(self, joint_state: JointState):
         """
         returns the transform matrix from the base to the end effector
         """
@@ -103,7 +103,7 @@ class KinematicsSolver:
         pe_b = transform.dot(pe0)
         return pe_b[:3]
 
-    def get_link_pose(self, joint_state:JointState, link_number: int):
+    def get_link_pose(self, joint_state: JointState, link_number: int):
         """
         returns the transform matrix from the base to the given link number
         """
@@ -113,7 +113,7 @@ class KinematicsSolver:
 
         return pe_b[:3]
 
-    def get_link_normal(self,joint_state:JointState, link_number: int):
+    def get_link_normal(self, joint_state: JointState, link_number: int):
         """
         returns the normal vector of the given link number
         """
@@ -124,17 +124,19 @@ class KinematicsSolver:
 
         return zi_b
 
-    def get_jacobian_column(self,joint_state:JointState, link_number: int):
+    def get_jacobian_column(self, joint_state: JointState, link_number: int):
         """
         returns the jacobian column for the given link number
         """
         zi = self.get_link_normal(joint_state, link_number)
         pi = self.get_link_pose(joint_state, link_number)
-        pe = self.get_end_effector_pose(joint_state, )
+        pe = self.get_end_effector_pose(
+            joint_state,
+        )
 
         return np.concatenate([np.cross(zi, pe - pi), zi])
 
-    def get_jacobian(self, joint_state:JointState):
+    def get_jacobian(self, joint_state: JointState):
         """
         returns the jacobian matrix
         """
@@ -154,15 +156,27 @@ class KinematicsSolver:
 
         return error.dot(error)
 
-
     def get_error_vector(self, X, X_hat, R, R_hat):
         pos_error = X_hat - X
         R_hat = R_hat.transpose()
-        rot_error = -0.5*(np.cross(R_hat[:,0],R[:,0])+np.cross(R_hat[:,1],R[:,1])+np.cross(R_hat[:,2],R[:,2]))
+        rot_error = -0.5 * (
+            np.cross(R_hat[:, 0], R[:, 0])
+            + np.cross(R_hat[:, 1], R[:, 1])
+            + np.cross(R_hat[:, 2], R[:, 2])
+        )
 
         return np.concatenate([pos_error, rot_error])
 
-    def solve_next_position(self, point, R, joint_positions, tol = 1e-4, lr=1, verbose = False, debug = False):
+    def solve_next_position(
+        self,
+        desired_pos,
+        desired_R,
+        joint_state,
+        tol=1e-4,
+        lr=1,
+        verbose=False,
+        debug=False,
+    ):
         """
         fast convergence on position, but slow on R.
         """
@@ -170,27 +184,28 @@ class KinematicsSolver:
         X_hat, R_hat = self.forwards_kinematics()
         X = point
         theta = np.array(joint_positions)
-        k=1
+        k = 1
         _loss = self.loss(self.get_error_vector(X, X_hat, R, R_hat))
-        if verbose: print("solving ...")
-        while  _loss > tol:
+        if verbose:
+            print("solving ...")
+        while _loss > tol:
             jacobian = self.get_jacobian()
             inverse_jacobian = self.get_inverse_jacobian(jacobian)
-            error = self.get_error_vector(X,X_hat,R,R_hat)
+            error = self.get_error_vector(X, X_hat, R, R_hat)
             err_theta = inverse_jacobian.dot(error)
-            theta = theta - lr*err_theta
+            theta = theta - lr * err_theta
             X_hat, R_hat = self.forwards_kinematics(theta)
             _loss = self.loss(error)
-            k+=1
-            lr/=10
+            k += 1
+            lr /= 10
             if k > 7:
-                if verbose : print("timeout")
+                if verbose:
+                    print("timeout")
                 raise RuntimeError()
         return theta
+
 
 if __name__ == "__main__":
     rospy.init_node("kinematics_solver")
     solver = KinematicsSolver()
     rospy.spin()
-
-

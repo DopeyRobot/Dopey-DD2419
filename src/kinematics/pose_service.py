@@ -41,26 +41,25 @@ class JointData:
 
         return data
 
-    @staticmethod
-    def to_np_array(data: "JointData", include_gripper: bool = False):
+    def to_np_array(self, include_gripper: bool = False):
         if include_gripper:
             return np.array(
                 [
-                    data.joint1,
-                    data.joint2,
-                    data.joint3,
-                    data.joint4,
-                    data.joint5,
-                    data.gripper,
+                    self.joint1,
+                    self.joint2,
+                    self.joint3,
+                    self.joint4,
+                    self.joint5,
+                    self.gripper,
                 ]
             )
         return np.array(
             [
-                data.joint1,
-                data.joint2,
-                data.joint3,
-                data.joint4,
-                data.joint5,
+                self.joint1,
+                self.joint2,
+                self.joint3,
+                self.joint4,
+                self.joint5,
             ]
         )
 
