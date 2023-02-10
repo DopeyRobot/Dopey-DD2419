@@ -44,8 +44,8 @@ class RefPoses(Enum):
     PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
     PICKUP_F = JointData.from_list(positions=[1.57, -1, -0.8, -1.3, 0, -0.2])
     PICKUP_TRAY = JointData.from_list(positions=[-1.57, 0.7, -1.57, -1.5, 0, -0.2])
-    OPEN_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.2])
-    CLOSE_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, -0.2])
+    OPEN_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, -1.5])
+    CLOSE_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])
 
 
 class PosService:
@@ -118,7 +118,7 @@ class PosService:
     def open_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Opening gripper")
         self.gripper_pub.publish(
-            self.to_command_duration(RefPoses.OPEN_GRIPPER.value.gripper)
+            self.to_command_duration(RefPoses.OPEN_GRIPPER.value.gripper, duration=1000)
         )
 
         return EmptyResponse()
@@ -126,7 +126,7 @@ class PosService:
     def close_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Closing gripper")
         self.gripper_pub.publish(
-            self.to_command_duration(RefPoses.CLOSE_GRIPPER.value.gripper)
+            self.to_command_duration(RefPoses.CLOSE_GRIPPER.value.gripper, duration=1000)
         )
 
         return EmptyResponse()
