@@ -2,7 +2,7 @@
 import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
-from pose_service import JointData, RefPoses
+from kinematics_utils import JointData, RefPoses
 from geometry_msgs.msg import Quaternion
 
 # link lengths of the robot in meters
