@@ -4,4 +4,4 @@
 /logs
 /.vscode
 /bagfiles/*
-*pyc
+*.pyc
