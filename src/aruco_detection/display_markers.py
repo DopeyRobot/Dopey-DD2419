@@ -13,6 +13,7 @@ class aruco_dectection:
         self.listener = tf2_ros.TransformListener(self.buffer)
         self.aruco_markers_frame = "camera_color_optical_frame"
         self.rate = rospy.Rate(10)
+        self.parent = "map" #Old: "map"
         
         self.run()
 
@@ -24,14 +25,14 @@ class aruco_dectection:
             detected_aruco_pose.header.frame_id = self.aruco_markers_frame
             detected_aruco_pose.header.stamp = msg.header.stamp
 
-            transform_is_possible = self.buffer.can_transform("map", self.aruco_markers_frame, msg.header.stamp, rospy.Duration(2))
+            transform_is_possible = self.buffer.can_transform(self.parent, self.aruco_markers_frame, msg.header.stamp, rospy.Duration(2))
             if transform_is_possible:
                 # rospy.loginfo(f"Is the transform is possible?: {transform_is_possible}")
-                transformed_aruco_pose = self.buffer.transform(detected_aruco_pose, "map", rospy.Duration(2))
+                transformed_aruco_pose = self.buffer.transform(detected_aruco_pose, self.parent, rospy.Duration(2))
 
                 t = TransformStamped()
                 t.header.stamp = msg.header.stamp
-                t.header.frame_id = "map"
+                t.header.frame_id = self.parent
                 t.child_frame_id = f"aruco/detected {detected_marker.id}"
 
                 # rospy.loginfo("Aruco marker detected with ID: %s" % str(detected_marker.id))
@@ -47,7 +48,7 @@ class aruco_dectection:
 
                 transforms_list.append(t)
             else:
-                rospy.loginfo("No tranform found for the aruco marker")
+                rospy.loginfo("No transform found for the aruco marker")
                 
         self.br.sendTransform(transforms_list)
 
