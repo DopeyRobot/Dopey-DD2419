@@ -50,7 +50,7 @@ class RefPoses(Enum):
     CLOSE_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])
 
 
-class PosService:
+class PoseService:
     def __init__(self) -> None:
         rospy.init_node("pose_server")
         self.home_service = rospy.Service("home", Empty, self.home_callback)
@@ -99,7 +99,7 @@ class PosService:
 
     def home_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Moving to home position")
-        self.publish_data(RefPoses.HOME.value)
+        self.publish_data(RefPoses.HOME.value, include_gripper=True)
         return EmptyResponse()
 
     def pickup_r_callback(self, req: EmptyRequest) -> EmptyResponse:
@@ -117,17 +117,21 @@ class PosService:
         self.publish_data(RefPoses.PICKUP_TRAY.value)
         return EmptyResponse()
 
-    def publish_data(self, joint_data: JointData):
+    def publish_data(self, joint_data: JointData, include_gripper: bool = False):
         self.joint1_pub.publish(self.to_command_duration(joint_data.joint1))
         self.joint2_pub.publish(self.to_command_duration(joint_data.joint2))
         self.joint3_pub.publish(self.to_command_duration(joint_data.joint3))
         self.joint4_pub.publish(self.to_command_duration(joint_data.joint4))
         self.joint5_pub.publish(self.to_command_duration(joint_data.joint5))
-        self.gripper_pub.publish(
-            self.to_command_duration(
-                JointData.from_joint_state(self.cur_joint_state).gripper
+
+        if include_gripper:
+            self.gripper_pub.publish(self.to_command_duration(joint_data.gripper))
+        else:
+            self.gripper_pub.publish(
+                self.to_command_duration(
+                    JointData.from_joint_state(self.cur_joint_state).gripper
+                )
             )
-        )
 
     def open_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Opening gripper")
@@ -147,9 +151,8 @@ class PosService:
 
         return EmptyResponse()
 
-    def to_command_duration(
-        self, position: float, duration: float = 2000
-    ) -> CommandDuration:
+    @staticmethod
+    def to_command_duration(position: float, duration: float = 2000) -> CommandDuration:
         command = CommandDuration()
         command.data = position
         command.duration = duration
@@ -158,5 +161,5 @@ class PosService:
 
 
 if __name__ == "__main__":
-    PosService()
+    PoseService()
     rospy.spin()
