@@ -76,7 +76,6 @@ class RefPoses(Enum):
 
 class PoseService:
     def __init__(self) -> None:
-        rospy.init_node("pose_server")
         self.home_service = rospy.Service("home", Empty, self.home_callback)
         self.pickup_service_right = rospy.Service(
             "pickup/right", Empty, self.pickup_r_callback
@@ -185,5 +184,6 @@ class PoseService:
 
 
 if __name__ == "__main__":
+    rospy.init_node("pose_server")
     PoseService()
     rospy.spin()
