@@ -16,6 +16,7 @@ class JointData:
         self.joint5 = 0
         self.gripper = 0
 
+    @staticmethod
     def from_joint_state(state: JointState):
         data = JointData()
         data.joint1 = state.position[0]
@@ -27,6 +28,7 @@ class JointData:
 
         return data
 
+    @staticmethod
     def from_list(positions: list):
         data = JointData()
         data.joint1 = positions[0]
@@ -87,6 +89,14 @@ class PosService:
             "r_joint_controller/command_duration", CommandDuration, queue_size=10
         )
 
+        self.joint_state_sub = rospy.Subscriber(
+            "/joint_states", JointState, self.join_state_callback
+        )
+        self.cur_joint_state = JointState()
+
+    def join_state_callback(self, state: JointState):
+        self.cur_joint_state = state
+
     def home_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Moving to home position")
         self.publish_data(RefPoses.HOME.value)
@@ -113,7 +123,11 @@ class PosService:
         self.joint3_pub.publish(self.to_command_duration(joint_data.joint3))
         self.joint4_pub.publish(self.to_command_duration(joint_data.joint4))
         self.joint5_pub.publish(self.to_command_duration(joint_data.joint5))
-        self.gripper_pub.publish(self.to_command_duration(joint_data.gripper))
+        self.gripper_pub.publish(
+            self.to_command_duration(
+                JointData.from_joint_state(self.cur_joint_state).gripper
+            )
+        )
 
     def open_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Opening gripper")
@@ -126,7 +140,9 @@ class PosService:
     def close_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Closing gripper")
         self.gripper_pub.publish(
-            self.to_command_duration(RefPoses.CLOSE_GRIPPER.value.gripper, duration=1000)
+            self.to_command_duration(
+                RefPoses.CLOSE_GRIPPER.value.gripper, duration=1000
+            )
         )
 
         return EmptyResponse()
