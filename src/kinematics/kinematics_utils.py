@@ -3,6 +3,10 @@ import numpy as np
 
 
 class JointData:
+    """
+    Class to carry joint data in a more convenient way, without using a ros message
+    """
+
     def __init__(self) -> None:
         self.joint1 = 0
         self.joint2 = 0
@@ -72,6 +76,16 @@ class JointData:
 
 
 class RefPoses(Enum):
+    """
+    Enum to carry references poses for the robot in joint space:
+    - HOME: robot in home position
+    - PICKUP_R: robot in position to pick up an object from the right
+    - PICKUP_F: robot in position to pick up an object from the front
+    - PICKUP_TRAY: robot in position to pick up an object from the tray
+    - OPEN_GRIPPER: contains open gripper position
+    - CLOSE_GRIPPER: contains closed gripper position
+    """
+
     HOME = JointData.from_list(positions=[0, 0, 0, 0, 0, 0])
     PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
     PICKUP_F = JointData.from_list(positions=[1.57, -1, -0.8, -1.3, 0, -0.2])

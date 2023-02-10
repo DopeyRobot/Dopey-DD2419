@@ -10,6 +10,10 @@ from hiwonder_servo_msgs.msg import CommandDuration
 
 
 class PoseService:
+    """
+    Allows for easy publishing of robot poses in joint space, not to be used for inverse kinematics.
+    """
+
     def __init__(self) -> None:
         self.home_service = rospy.Service("home", Empty, self.home_callback)
         self.pickup_service_right = rospy.Service(
