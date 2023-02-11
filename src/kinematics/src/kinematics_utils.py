@@ -49,7 +49,11 @@ class JointData:
         data.joint3 = positions[2]
         data.joint4 = positions[3]
         data.joint5 = positions[4]
-        data.gripper = positions[5]
+
+        try:
+            data.gripper = positions[5]
+        except:
+            pass    
 
         return data
 

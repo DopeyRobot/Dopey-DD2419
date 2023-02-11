@@ -6,6 +6,7 @@ from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
 from std_msgs.msg import Float64
 import numpy as np
 from kinematics_utils import RefPoses, JointData
+from kinematics.srv import JointAngles
 from hiwonder_servo_msgs.msg import CommandDuration
 
 
@@ -32,9 +33,9 @@ class PoseService:
             "gripper/close", Empty, self.close_gripper_callback
         )
 
-        # self.pose_service = rospy.Service(
-        #     "pose_service", JointState, self.pose_service_callback
-        # )
+        self.pose_service = rospy.Service(
+            "pose_service", JointAngles, self.pose_service_callback
+        )
         self.joint1_pub = rospy.Publisher(
             "/joint1_controller/command_duration", CommandDuration, queue_size=10
         )
@@ -59,8 +60,8 @@ class PoseService:
         )
         self.cur_joint_state = JointState()
 
-    def pose_service_callback(self, req: JointState):
-        joint_data = JointData.from_joint_state(req)
+    def pose_service_callback(self, req: JointAngles):
+        joint_data = JointData.from_list(req.joints)
         rospy.loginfo("moving to pose")
         self.publish_data(joint_data)
         return EmptyResponse()
