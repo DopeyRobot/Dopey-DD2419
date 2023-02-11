@@ -32,7 +32,9 @@ class PoseService:
             "gripper/close", Empty, self.close_gripper_callback
         )
 
-        self.IK_service = rospy.ServiceProxy("ik", JointData)
+        # self.pose_service = rospy.Service(
+        #     "pose_service", JointState, self.pose_service_callback
+        # )
         self.joint1_pub = rospy.Publisher(
             "/joint1_controller/command_duration", CommandDuration, queue_size=10
         )
@@ -56,6 +58,12 @@ class PoseService:
             "/joint_states", JointState, self.join_state_callback
         )
         self.cur_joint_state = JointState()
+
+    def pose_service_callback(self, req: JointState):
+        joint_data = JointData.from_joint_state(req)
+        rospy.loginfo("moving to pose")
+        self.publish_data(joint_data)
+        return EmptyResponse()
 
     def join_state_callback(self, state: JointState):
         self.cur_joint_state = state

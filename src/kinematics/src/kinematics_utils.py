@@ -1,4 +1,5 @@
 from enum import Enum
+from sensor_msgs.msg import JointState
 import numpy as np
 
 
@@ -73,6 +74,19 @@ class JointData:
                 self.joint5,
             ]
         )
+
+    def to_joint_state(self):
+        joint_state = JointState()
+        joint_state.position = [
+            self.joint1,
+            self.joint2,
+            self.joint3,
+            self.joint4,
+            self.joint5,
+            self.gripper
+        ]
+
+        return joint_state
 
 
 class RefPoses(Enum):
