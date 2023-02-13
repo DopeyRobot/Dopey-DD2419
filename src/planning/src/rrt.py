@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import rospy
 from geometry_msgs.msg import TransformStamped
 from robp_msgs.msg import Encoders
@@ -8,11 +8,12 @@ import math
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import yaml
 
 # Assumes a map generetad by SLAM in 2D occupancy grid, where 1 is occupied and 0 free.
 # The path generated will be a list of 2D coordinates representing the points along the path. 
 
-import yaml
+
 
 # Load the .yaml file
 with open("maptest.yaml", "r") as file:
