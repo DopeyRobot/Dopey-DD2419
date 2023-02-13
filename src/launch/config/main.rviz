@@ -94,13 +94,9 @@ Visualization Manager:
       Value: true
     - Class: rviz/TF
       Enabled: true
-      Frame Timeout: 15
+      Frame Timeout: 1500
       Frames:
         All Enabled: false
-        aruco/detected 1:
-          Value: true
-        aruco/detected 2:
-          Value: true
         base_link:
           Value: true
         camera_accel_frame:
@@ -144,35 +140,7 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        odom:
-          base_link:
-            camera_bottom_screw_frame:
-              camera_link:
-                camera_accel_frame:
-                  camera_accel_optical_frame:
-                    {}
-                camera_color_frame:
-                  camera_color_optical_frame:
-                    {}
-                camera_depth_frame:
-                  camera_depth_optical_frame:
-                    {}
-                camera_gyro_frame:
-                  camera_gyro_optical_frame:
-                    {}
-                camera_infra1_frame:
-                  camera_infra1_optical_frame:
-                    {}
-                camera_infra2_frame:
-                  camera_infra2_optical_frame:
-                    {}
-            imu_link:
-              {}
-          map:
-            aruco/detected 1:
-              {}
-            aruco/detected 2:
-              {}
+        {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -256,7 +224,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 8.324551582336426
+      Distance: 6.155337333679199
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
