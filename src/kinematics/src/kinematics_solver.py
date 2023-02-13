@@ -3,8 +3,8 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
 from kinematics_utils import JointData, RefPoses
-from geometry_msgs.msg import Quaternion
-from kinematics.srv import JointAngles
+
+# from kinematics.srv import JointAngles
 
 # link lengths of the robot in meters
 L12 = 18e-3
@@ -16,20 +16,20 @@ LEND = 50e-3
 
 class KinematicsSolver:
     def __init__(self) -> None:
-        self.joint_state_sub = rospy.Subscriber(
-            "/joint_states", JointState, self.joint_state_callback
-        )
-        rospy.wait_for_service("pose_service")
-        self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
+        # self.joint_state_sub = rospy.Subscriber(
+        #     "/joint_states", JointState, self.joint_state_callback
+        # )
+        # rospy.wait_for_service("pose_service")
+        # self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
         self.cur_joint_state = JointState()
         self.verbose = False
-        self.rate = rospy.Rate(1)
+        # self.rate = rospy.Rate(1)
 
-        self.run()
+        # self.run()
 
     def run(self):
         des_R = np.eye(3, 3)
-        des_pos = np.array([0.0,  0.0, 0.31])
+        des_pos = np.array([0.0, 0.0, 0.31])
         while not rospy.is_shutdown():
             if len(self.cur_joint_state.position) > 0:
                 joint_data = JointData.from_joint_state(self.cur_joint_state)
@@ -43,7 +43,7 @@ class KinematicsSolver:
                 )
                 rospy.loginfo(angles)
                 self.pose_service(angles)
-                
+
             self.rate.sleep()
 
     def joint_state_callback(self, msg):
@@ -225,7 +225,7 @@ class KinematicsSolver:
         if verbose:
             rospy.loginfo("solving ...")
         while _loss > tol:
-            
+
             jacobian = self.get_jacobian(JointData.from_np_array(theta))
             inverse_jacobian = self.get_inverse_jacobian(jacobian)
             error = self.get_error_vector(X, X_hat, R, R_hat)
@@ -246,31 +246,48 @@ class KinematicsSolver:
                 raise RuntimeError()
         return theta
 
-    def ros_quaternion_to_rotation(self, quaternion: Quaternion):
-        return np.array(
-            [
-                [
-                    1 - 2 * (quaternion.y**2 + quaternion.z**2),
-                    2 * (quaternion.x * quaternion.y - quaternion.z * quaternion.w),
-                    2 * (quaternion.x * quaternion.z + quaternion.y * quaternion.w),
-                ],
-                [
-                    2 * (quaternion.x * quaternion.y + quaternion.z * quaternion.w),
-                    1 - 2 * (quaternion.x**2 + quaternion.z**2),
-                    2 * (quaternion.y * quaternion.z - quaternion.x * quaternion.w),
-                ],
-                [
-                    2 * (quaternion.x * quaternion.z - quaternion.y * quaternion.w),
-                    2 * (quaternion.y * quaternion.z + quaternion.x * quaternion.w),
-                    1 - 2 * (quaternion.x**2 + quaternion.y**2),
-                ],
-            ]
+    def inverse_kinematics(self, desired_pos, desired_R):
+        p = desired_pos
+        rx = desired_R[:, 0]
+        ry = desired_R[:, 1]
+        rz = desired_R[:, 2]
+
+        if p[0] != 0:
+            theta1 = np.arctan(p[1] / p[0])
+        else:
+            theta1 = 0.0
+        c234 = rz[2]
+        if theta1 != 0:
+            s234 = -rz[1] / np.sin(theta1)
+        else:
+            s234 = -rz[0] / np.cos(theta1)
+
+        a = L12 - (L45 + LEND) * s234 - p[2]
+        b = p[0] * np.cos(theta1) + p[1] * np.sin(theta1) + (L45 + LEND) * s234
+        t = a**2 + b**2 - L23**2 - L34**2
+        u = 2 * L23 * L34
+        v = t / u
+
+        print(a, b, t, u, v)
+        theta3 = np.arccos(v)
+        theta2 = np.arctan2(
+            a * (L23 + L34 * np.cos(theta3)) - b * L34 * np.sin(theta3),
+            a * L34 * np.sin(theta3) + b * (L23 + L34 * np.cos(theta3)),
         )
+        theta4 = np.arctan2(s234, c234) - theta2 - theta3
+        theta5 = c234 * theta1 - np.arctan2(p[1], p[0])
+
+        return JointData.from_list([theta1, theta2, theta3, theta4, theta5])
 
 
 if __name__ == "__main__":
 
-
-    rospy.init_node("kinematics_solver")
+    # rospy.init_node("kinematics_solver")
     solver = KinematicsSolver()
-    rospy.spin()
+    R = np.eye(3)
+    X = np.array([0.0, 0.0, 0.32])
+
+    res = solver.inverse_kinematics(X, R)
+
+    print(res.to_np_array())
+    # rospy.spin()
