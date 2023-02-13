@@ -10,7 +10,7 @@ from buildmap import map_data
 
 # Define the start and goal locations
 start = [0, 0]
-goal = [10, 10]
+goal = [20, 20]
 
 # Initialize an empty list RRT to store the nodes in the tree.
 RRT = [start]
@@ -55,10 +55,11 @@ x = goal
 while x != start:
     for i in range(len(RRT)):
         if np.linalg.norm(np.array(x) - np.array(RRT[i])) <= step_size:
-            print('hej')
             path.append(RRT[i])
             x = RRT[i]
+            print(x)
             break
+
 
 print(path)
 # Plot the map and the path
