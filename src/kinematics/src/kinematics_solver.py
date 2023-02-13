@@ -2,7 +2,7 @@
 import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
-from kinematics_utils import JointData, RefPoses
+from kinematics_utils import JointData, RefPoses, Trajectory
 
 # from kinematics.srv import JointAngles
 
@@ -30,21 +30,24 @@ class KinematicsSolver:
     def run(self):
         des_R = np.eye(3, 3)
         des_pos = np.array([0.0, 0.0, 0.31])
+        joint_data = JointData.from_joint_state(self.cur_joint_state)
+        cur_pos, cur_R = self.forwards_kinematics(joint_data)
+        trajectory = Trajectory(cur_pos, cur_R, des_pos, des_R)
         while not rospy.is_shutdown():
             if len(self.cur_joint_state.position) > 0:
-                joint_data = JointData.from_joint_state(self.cur_joint_state)
-                pos, R = self.forwards_kinematics(joint_data)
-                rospy.loginfo(f"End effector position: {pos}")
-                rospy.loginfo(f"End effector rotation matrix: {R}")
-                angles = self.solve_next_position(
-                    desired_pos=des_pos,
-                    desired_R=des_R,
-                    joint_data=JointData.from_joint_state(self.cur_joint_state),
-                )
-                rospy.loginfo(angles)
-                self.pose_service(angles)
+                for des_pos, des_R in zip(trajectory.points, trajectory.rotations):
+                    pos, R = self.forwards_kinematics(joint_data)
+                    rospy.loginfo(f"End effector position: {pos}")
+                    rospy.loginfo(f"End effector rotation matrix: {R}")
+                    angles = self.solve_next_position(
+                        desired_pos=des_pos,
+                        desired_R=des_R,
+                        joint_data=JointData.from_joint_state(self.cur_joint_state),
+                    )
+                    rospy.loginfo(angles)
+                    self.pose_service(angles)
 
-            self.rate.sleep()
+                    self.rate.sleep()
 
     def joint_state_callback(self, msg):
         if self.verbose:
