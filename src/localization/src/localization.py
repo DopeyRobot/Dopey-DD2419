@@ -12,6 +12,8 @@ from scipy.spatial.transform import Rotation as R
 import numpy as np
 import pdb
 
+
+
 #TODO: 
 # 1. DONE. Fix smoother odometry when the aruco marker is seen initially (it's smooth the second time it sees it)
 # 2. Fix the transition matrix in _inverse_transform
@@ -108,13 +110,12 @@ class Localization:
                     self.latest_t = t
 
     def _inverse_transform(self, transform):
+        #pdb.set_trace()
         inverse_transform = transform
-        #r = R.from_quat([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
-        r = R.from_quat([1,0,0,0])
+        r = R.from_quat([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
         t = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
         T = np.zeros((4,4))
         T[:3,:3] = r.as_matrix()
-        
         T[:3,3] = t
         T[3,3] = 1
         inversed_T = np.linalg.inv(T)
