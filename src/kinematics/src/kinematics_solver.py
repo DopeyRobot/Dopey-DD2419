@@ -8,6 +8,7 @@ L23 = 100e-3
 L34 = 97e-3
 L45 = 55e-3
 LEND = 50e-3
+PI_2 = np.pi / 2
 
 
 class KinematicsSolver:
@@ -18,7 +19,6 @@ class KinematicsSolver:
         """ "
         columns are alpha, d, a, theta
         """
-        PI_2 = np.pi / 2
 
         ## first matrix to test
         # matrix = np.array(
