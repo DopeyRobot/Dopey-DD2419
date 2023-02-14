@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-import rospy
-from sensor_msgs.msg import JointState
-from kinematics_utils import JointData, RefPoses, Trajectory
-
-from kinematics.srv import JointAngles
+from kinematics_utils import JointData
 
 # link lengths of the robot in meters
 L12 = 18e-3
@@ -17,47 +13,8 @@ LEND = 50e-3
 class KinematicsSolver:
     def __init__(self) -> None:
         self.verbose = False
-        self.rate = rospy.Rate(1)
-        self.joint_state_sub = rospy.Subscriber(
-            "/joint_states", JointState, self.joint_state_callback
-        )
-        # rospy.wait_for_service("pose_service")
-        self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
-        self.joint_state_pub = rospy.Publisher("joint_states", JointState, queue_size=100)
-        self.cur_joint_state = JointState()
 
-        self.wait_for_joints()
-        self.run()
-
-    def wait_for_joints(self):
-        while len(self.cur_joint_state.position) == 0:
-            rospy.sleep(1)
-    def run(self):
-        des_pos, des_R = self.forwards_kinematics(RefPoses.HOME.value)
-        joint_data = JointData.from_joint_state(self.cur_joint_state)
-        cur_pos, cur_R = self.forwards_kinematics(joint_data)
-        trajectory = Trajectory(cur_pos, cur_R, des_pos, des_R, N=20)
-        while not rospy.is_shutdown():
-                for des_pos, des_R in zip(trajectory.points, trajectory.orientations):
-                    angles = self.solve_next_position(
-                        desired_pos=des_pos,
-                        desired_R=des_R,
-                        joint_data=JointData.from_joint_state(self.cur_joint_state),
-                    )
-                    # self.pose_service(angles, 2000)
-                    joint_state = JointData.from_list(angles).to_joint_state()
-                    joint_state.position = joint_state.position
-                    rospy.loginfo(len(joint_state.position))
-                    self.joint_state_pub.publish(joint_state)
-
-                    self.rate.sleep()
-
-    def joint_state_callback(self, msg):
-        if self.verbose:
-            rospy.loginfo("Received new joint state")
-        self.cur_joint_state = msg
-
-    def get_DH_matrix(self, joint_data: JointData):
+    def get_DH_matrix(self, joint_data: JointData) -> np.ndarray:
         """ "
         columns are alpha, d, a, theta
         """
@@ -98,7 +55,7 @@ class KinematicsSolver:
 
         return matrix
 
-    def get_DH_transform(self, joint_data: JointData, link_number: int):
+    def get_DH_transform(self, joint_data: JointData, link_number: int) -> np.ndarray:
         """
         returns the transform matrix for the given link number
         """
@@ -117,7 +74,7 @@ class KinematicsSolver:
             ]
         )
 
-    def get_transform(self, joint_data: JointData, link_number: int):
+    def get_transform(self, joint_data: JointData, link_number: int) -> np.ndarray:
         """
         returns the transform matrix from the base to the given link number
         """
@@ -127,7 +84,7 @@ class KinematicsSolver:
 
         return transform
 
-    def forwards_kinematics(self, joint_data: JointData):
+    def forwards_kinematics(self, joint_data: JointData) -> np.ndarray:
         """
         returns the transform matrix from the base to the end effector
         """
@@ -137,7 +94,7 @@ class KinematicsSolver:
         pe_b = transform.dot(pe0)
         return pe_b[:3], R
 
-    def get_end_effector_pose(self, joint_data: JointData):
+    def get_end_effector_pose(self, joint_data: JointData) -> np.ndarray:
         """
         returns the transform matrix from the base to the end effector
         """
@@ -146,7 +103,7 @@ class KinematicsSolver:
         pe_b = transform.dot(pe0)
         return pe_b[:3]
 
-    def get_link_pose(self, joint_data: JointData, link_number: int):
+    def get_link_pose(self, joint_data: JointData, link_number: int) -> np.ndarray:
         """
         returns the transform matrix from the base to the given link number
         """
@@ -156,7 +113,7 @@ class KinematicsSolver:
 
         return pe_b[:3]
 
-    def get_link_normal(self, joint_data: JointData, link_number: int):
+    def get_link_normal(self, joint_data: JointData, link_number: int) -> np.ndarray:
         """
         returns the normal vector of the given link number
         """
@@ -167,7 +124,9 @@ class KinematicsSolver:
 
         return zi_b
 
-    def get_jacobian_column(self, joint_data: JointData, link_number: int):
+    def get_jacobian_column(
+        self, joint_data: JointData, link_number: int
+    ) -> np.ndarray:
         """
         returns the jacobian column for the given link number
         """
@@ -179,7 +138,7 @@ class KinematicsSolver:
 
         return np.concatenate([np.cross(zi, pe - pi), zi])
 
-    def get_jacobian(self, joint_data: JointData):
+    def get_jacobian(self, joint_data: JointData) -> np.ndarray:
         """
         returns the jacobian matrix
         """
@@ -189,17 +148,17 @@ class KinematicsSolver:
 
         return jacobian
 
-    def get_inverse_jacobian(self, jacobian):
+    def get_inverse_jacobian(self, jacobian) -> np.ndarray:
         """
         returns the inverse jacobian matrix
         """
         return np.linalg.pinv(jacobian)
 
-    def loss(self, error: np.ndarray):
+    def loss(self, error: np.ndarray) -> float:
 
         return error.dot(error)
 
-    def get_error_vector(self, X, X_hat, R, R_hat):
+    def get_error_vector(self, X, X_hat, R, R_hat) -> np.ndarray:
         pos_error = X_hat - X
         R_hat = R_hat.transpose()
         rot_error = -0.5 * (
@@ -218,7 +177,7 @@ class KinematicsSolver:
         tol=1e-12,
         lr=1,
         verbose=True,
-    ):
+    ) -> JointData:
         """
         fast convergence on position, but slow on R.
         """
@@ -229,29 +188,23 @@ class KinematicsSolver:
         k = 1
         _loss = self.loss(self.get_error_vector(X, X_hat, R, R_hat))
         if verbose:
-            rospy.loginfo("solving ...")
+            print("solving ...")
         while _loss > tol:
 
             jacobian = self.get_jacobian(JointData.from_np_array(theta))
             inverse_jacobian = self.get_inverse_jacobian(jacobian)
             error = self.get_error_vector(X, X_hat, R, R_hat)
-
             err_theta = inverse_jacobian.dot(error)
             theta = theta - lr * err_theta
             if verbose:
-                rospy.loginfo(f"loss = {_loss}")
-                rospy.loginfo(f"X = {X}, Xh = {X_hat}")
-                # rospy.loginfo(f"error = {error[:3]}")
+                print(f"loss = {_loss}")
+                print(f"X = {X}, Xh = {X_hat}")
+                # print(f"error = {error[:3]}")
             X_hat, R_hat = self.forwards_kinematics(JointData.from_np_array(theta))
             _loss = self.loss(error)
             k += 1
             if k > 1000:
                 if verbose:
-                    rospy.logdebug("timeout")
+                    print("timeout")
                 raise RuntimeError()
-        return theta
-
-if __name__ == "__main__":
-    rospy.init_node("kinematics_solver")
-    KinematicsSolver()
-    rospy.spin()
+        return JointData.from_np_array(theta)

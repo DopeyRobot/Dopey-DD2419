@@ -1,0 +1,7 @@
+<launch>
+
+    <!-- publishes the state of the arm to /joint_states -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
+        <rosparam param="source_list">[/joint_states]</rosparam>
+    </node>
+</launch>
