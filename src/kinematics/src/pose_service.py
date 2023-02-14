@@ -64,7 +64,7 @@ class PoseService:
         joint_data = JointData.from_list(req.joints)
         time = req.time
         rospy.loginfo("moving to pose")
-        self.publish_data(joint_data, time)
+        self.publish_data(joint_data, time, len(req.joints) == 6)
         return EmptyResponse()
 
     def join_state_callback(self, state: JointState):

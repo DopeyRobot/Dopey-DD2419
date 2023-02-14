@@ -18,6 +18,17 @@ class JointData:
         self.joint5 = 0
         self.gripper = 0
 
+    def __str__(self) -> str:
+         
+        return    f"""
+            joint1 = {self.joint1}
+            joint2 = {self.joint2}
+            joint3 = {self.joint3}
+            joint4 = {self.joint4}
+            joint5 = {self.joint5}
+            gripper = {self.gripper}
+            """
+
     @staticmethod
     def from_joint_state(state: JointState):
         data = JointData()
@@ -157,16 +168,21 @@ class Trajectory:
         self.points = []
         self.orientations = []
         self.N = N
+        self.start_point = start_point
+        self.start_R = start_R
+        self.end_point = end_point
+        self.end_R = end_R
 
-        self._gen_trajectory(start_point, start_R, end_point, end_R)
-
-    def _gen_trajectory(self, start_point, start_R, end_point, end_R):
-        start_quat = rotation_to_ros_quaternion(start_R)
-        end_quat = rotation_to_ros_quaternion(end_R)
+    def _gen_trajectory(self, ):
+        start_quat = rotation_to_ros_quaternion(self.start_R)
+        end_quat = rotation_to_ros_quaternion(self.end_R)
 
         for i in range(self.N):
             t = i / (self.N - 1)
-            self.points.append((1 - t) * start_point + t * end_point)
+            point = (1 - t) * self.start_point + t * self.end_point
             npquat = quaternion_slerp(start_quat, end_quat, t)
             quat = Quaternion(npquat[0], npquat[1], npquat[2], npquat[3])
-            self.orientations.append((ros_quaternion_to_rotation(quat)))
+            R = ros_quaternion_to_rotation(quat)
+
+            yield point, R
+    

@@ -3,11 +3,10 @@ import numpy as np
 from kinematics_utils import JointData
 
 # link lengths of the robot in meters
-L12 = 18e-3
-L23 = 100e-3
-L34 = 97e-3
-L45 = 55e-3
-LEND = 50e-3
+D1 = 18e-3
+A2 = 100e-3
+A3 = 97e-3
+D5 = 105e-3
 PI_2 = np.pi / 2
 
 
@@ -34,11 +33,11 @@ class KinematicsSolver:
         # second matrix to test (seems to be the right one :) )
         matrix = np.array(
             [
-                [-PI_2, L12, 0.0, joint_data.joint1],
-                [0.0, 0.0, L23, joint_data.joint2 - PI_2],
-                [0.0, 0.0, L34, joint_data.joint3],
+                [-PI_2, D1, 0.0, joint_data.joint1],
+                [0.0, 0.0, A2, joint_data.joint2 - PI_2],
+                [0.0, 0.0, A3, joint_data.joint3],
                 [PI_2, 0.0, 0.0, joint_data.joint4 + PI_2],
-                [0.0, L45 + LEND, 0.0, joint_data.joint5],
+                [0.0, D5, 0.0, joint_data.joint5],
             ]
         )
 
@@ -155,13 +154,17 @@ class KinematicsSolver:
         return np.linalg.pinv(jacobian)
 
     def loss(self, error: np.ndarray) -> float:
+        pos_error = error[:3].dot(error[:3])
+        rot_error = error[3:].dot(error[3:])
+        # print(f"pos error = {pos_error}")
+        # print(f"rot_error = {rot_error}")
 
-        return error.dot(error)
+        return pos_error + rot_error
 
     def get_error_vector(self, X, X_hat, R, R_hat) -> np.ndarray:
         pos_error = X_hat - X
         R_hat = R_hat.transpose()
-        rot_error = -0.5 * (
+        rot_error = -0.001 * (
             np.cross(R_hat[:, 0], R[:, 0])
             + np.cross(R_hat[:, 1], R[:, 1])
             + np.cross(R_hat[:, 2], R[:, 2])
@@ -176,6 +179,7 @@ class KinematicsSolver:
         joint_data: JointData,
         tol=1e-12,
         lr=1,
+        max_iter=10,
         verbose=True,
     ) -> JointData:
         """
@@ -203,8 +207,9 @@ class KinematicsSolver:
             X_hat, R_hat = self.forwards_kinematics(JointData.from_np_array(theta))
             _loss = self.loss(error)
             k += 1
-            if k > 1000:
+            if k > max_iter:
                 if verbose:
                     print("timeout")
+                print(desired_pos)
                 raise RuntimeError()
         return JointData.from_np_array(theta)
