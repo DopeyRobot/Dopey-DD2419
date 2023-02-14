@@ -3,7 +3,7 @@ from sensor_msgs.msg import JointState
 import numpy as np
 from geometry_msgs.msg import Quaternion
 from tf.transformations import quaternion_from_matrix, quaternion_slerp
-
+import rospy
 
 class JointData:
     """
@@ -92,6 +92,16 @@ class JointData:
             self.gripper,
         ]
 
+        joint_state.name = [
+            "joint1",
+            "joint2",
+            "joint3",
+            "joint4",
+            "joint5",
+            "r_joint"
+        ]
+
+        joint_state.header.stamp = rospy.Time.now()
         return joint_state
 
 

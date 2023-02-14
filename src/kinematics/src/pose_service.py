@@ -62,8 +62,9 @@ class PoseService:
 
     def pose_service_callback(self, req: JointAngles):
         joint_data = JointData.from_list(req.joints)
+        time = req.time
         rospy.loginfo("moving to pose")
-        self.publish_data(joint_data)
+        self.publish_data(joint_data, time)
         return EmptyResponse()
 
     def join_state_callback(self, state: JointState):
@@ -89,12 +90,12 @@ class PoseService:
         self.publish_data(RefPoses.PICKUP_TRAY.value)
         return EmptyResponse()
 
-    def publish_data(self, joint_data: JointData, include_gripper: bool = False):
-        self.joint1_pub.publish(self.to_command_duration(joint_data.joint1))
-        self.joint2_pub.publish(self.to_command_duration(joint_data.joint2))
-        self.joint3_pub.publish(self.to_command_duration(joint_data.joint3))
-        self.joint4_pub.publish(self.to_command_duration(joint_data.joint4))
-        self.joint5_pub.publish(self.to_command_duration(joint_data.joint5))
+    def publish_data(self, joint_data: JointData, time:int = 2000, include_gripper: bool = False):
+        self.joint1_pub.publish(self.to_command_duration(joint_data.joint1, duration=time))
+        self.joint2_pub.publish(self.to_command_duration(joint_data.joint2, duration=time))
+        self.joint3_pub.publish(self.to_command_duration(joint_data.joint3, duration=time))
+        self.joint4_pub.publish(self.to_command_duration(joint_data.joint4, duration=time))
+        self.joint5_pub.publish(self.to_command_duration(joint_data.joint5, duration=time))
 
         if include_gripper:
             self.gripper_pub.publish(self.to_command_duration(joint_data.gripper))
