@@ -10,7 +10,7 @@ from buildmap import map_data
 
 # Define the start and goal locations
 start = [0, 0]
-goal = [20, 20]
+goal = [10, 10]
 
 # Initialize an empty list RRT to store the nodes in the tree.
 RRT = [start]
