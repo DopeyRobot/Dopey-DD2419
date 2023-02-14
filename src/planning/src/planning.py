@@ -14,13 +14,16 @@ class planning():
     def __init__(self):
 
         print('hello1')
-        rospy.init_node("planning")
-        self.publisher_goal = rospy.Publisher('motor_base_simple/goaLl', PoseStamped, queue_size=10)
+        
+
+        self.rate = rospy.Rate(10)
+
+        self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
-        subscriber = rospy.Subscriber('motor_base_simple/goaLl', PoseStamped, self.callback)
+        self.subscriber = rospy.Subscriber('move_base_simple/goal', PoseStamped, self.callback)
 
         self.tf_buffer = tf2_ros.Buffer()
-        tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.br = tf2_ros.TransformBroadcaster()
 
         pose_stamped = PoseStamped()
@@ -63,16 +66,18 @@ class planning():
             rospy.logerr("Failed to transform pose: %s", e)
 
     def main(self):
-        try:
-            while not rospy.is_shutdown():
-                rospy.spin()
-        except rospy.ROSInterruptException:
-            pass
+        while not rospy.is_shutdown():
+            self.rate.sleep()
+
 
 
 if __name__ == "__main__":
-    node = planning()        
-    node.main()
+    try:
+        rospy.init_node("planning") 
+        planning()      
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
 
     # move_base_simple/goal vill posestamped (koordinateran)
     # cmd_vel(motor_controller)
