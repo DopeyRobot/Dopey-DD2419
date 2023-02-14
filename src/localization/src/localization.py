@@ -13,7 +13,7 @@ import numpy as np
 import pdb
 
 #TODO: 
-# 1. Fix smoother odometry when the aruco marker is seen initially (it's smooth the second time it sees it)
+# 1. DONE. Fix smoother odometry when the aruco marker is seen initially (it's smooth the second time it sees it)
 # 2. Fix the transition matrix in _inverse_transform
 
 
@@ -42,19 +42,19 @@ class Localization:
         self.sendOld = False
         self.latest_t = None
 
-        #Publish static universe TF
-        # t = TransformStamped()
-        # t.header.frame_id = "map"
-        # t.child_frame_id = "odom"
-        # t.header.stamp = rospy.Time.now()
-        # t.transform.translation.x = 0
-        # t.transform.translation.y = 0
-        # t.transform.translation.z = 0
-        # t.transform.rotation.x = 0
-        # t.transform.rotation.y = 0
-        # t.transform.rotation.z = 0
-        # t.transform.rotation.w = 1
-        # self.brStatic.sendTransform(t)
+        #Init static TF between odom and base_link in order to find correct transform before odometry is init
+        t = TransformStamped()
+        t.header.frame_id = "odom"
+        t.child_frame_id = "base_link"
+        t.header.stamp = rospy.Time.now()
+        t.transform.translation.x = 0
+        t.transform.translation.y = 0
+        t.transform.translation.z = 0
+        t.transform.rotation.x = 0
+        t.transform.rotation.y = 0
+        t.transform.rotation.z = 0
+        t.transform.rotation.w = 1
+        self.brStatic.sendTransform(t)
 
 
         self.run()
@@ -83,7 +83,7 @@ class Localization:
             anchorPoseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(self.anchor)
             if transform_is_possible:
                 #transform = self.buffer.lookup_transform("odom", self.anchor.header.frame_id, self.anchor.header.stamp, rospy.Duration(2))
-                TransformStamp = self.buffer.lookup_transform("odom", self.anchor.header.frame_id, self.anchor.header.stamp, rospy.Duration(2))
+                TransformStamp = self.buffer.lookup_transform("odom", self.anchor.header.frame_id, self.anchor.header.stamp, rospy.Duration(20))
                 inversed_transform = self._inverse_transform(TransformStamp)
                 #anchor_odom_pose = self.buffer.transform(anchorPoseStamped, "odom", rospy.Duration(2))
                 anchor_univ_pose = tf2_geometry_msgs.do_transform_pose(anchorPoseStamped, inversed_transform)
@@ -109,7 +109,8 @@ class Localization:
 
     def _inverse_transform(self, transform):
         inverse_transform = transform
-        r = R.from_quat([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
+        #r = R.from_quat([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
+        r = R.from_quat([1,0,0,0])
         t = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
         T = np.zeros((4,4))
         T[:3,:3] = r.as_matrix()
