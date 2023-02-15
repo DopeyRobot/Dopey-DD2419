@@ -12,13 +12,13 @@ class IKService:
         self.solver = KinematicsSolver()
         # self.joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback)
         self.cur_joint_state = JointState()
-        rospy.wait_for_service("pose_service", 5.0)
+        # rospy.wait_for_service("pose_service", 5.0)
         # self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
 
         # while len(self.cur_joint_state.position) < 5:
         #     rospy.sleep(0.1)
 
-        sol1, sol2 = IKService.analytical_IK([0,0,0.32], -np.pi/2)
+        sol1, sol2 = IKService.analytical_IK([0,0,0.32],0)
         print(sol1)
         print(sol2)
         # self.pose_service.call(sol1.to_np_array(), 2000)
@@ -40,19 +40,19 @@ class IKService:
 
         theta1 = np.arctan2(yd, xd)
         d = np.hypot(xd, yd)
-        r4 = d - D5*np.cos(psi)
-        z4 = zd - D5*np.sin(psi)
+        r4 = d - D5*np.sin(psi)
+        z4 = zd - D5*np.cos(psi)
         s = np.hypot(z4-D1, r4)
-        beta = np.arctan2(s**2 + A2**2 - A3**2, 2*s*A2)
-        alpha = np.arctan2(z4-D1, r4)
+        beta = np.arctan2( 2*s*A2, s**2 + A2**2 - A3**2)
+        alpha = np.arctan2(r4, z4-D1)
 
-        theta2_1 = alpha + beta - np.pi/2
-        theta2_2 = alpha - beta - np.pi/2
-
-
+        theta2_1 =  (alpha + beta)
+        theta2_2 =  (alpha - beta)
 
 
-        theta3 = np.arctan2(s**2 - A2**2 - A3**2, 2*A2*A3)
+
+
+        theta3 = np.arctan2( s**2 - A2**2 - A3**2, 2*A2*A3)
         theta4_1 = psi - theta2_1 - theta3
         theta4_2 = psi - theta2_2 - theta3 
 
