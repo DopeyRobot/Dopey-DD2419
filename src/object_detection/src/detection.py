@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 from sensor_msgs.msg import PointCloud2
@@ -11,7 +11,7 @@ from tf2_ros import TransformListener, TransformBroadcaster, Buffer, TransformSt
 class Detection:
     def __init__(self):
         self.broadcaster = TransformBroadcaster()
-        self.buffer = Buffer(1200.0)
+        self.buffer = Buffer(rospy.Duration(1200.0))
         self.listener = TransformListener(self.buffer)
         self.cloud_sub = rospy.Subscriber(
             "/camera/depth/color/points", PointCloud2, self.cloud_callback
@@ -43,18 +43,20 @@ class Detection:
         norm_and_height = np.logical_and(norm_mask, height_mask)
         mean = np.mean(self.points[norm_and_height], axis=0)
 
-        transform = TransformStamped()
-        transform.header.stamp = rospy.Time.now()
-        transform.header.frame_id = "camera_color_optical_frame"
-        transform.child_frame_id = "object"
-        transform.transform.translation.x = mean[0]
-        transform.transform.translation.y = mean[1]
-        transform.transform.translation.z = mean[2]
-        transform.transform.rotation.x = 0
-        transform.transform.rotation.y = 0
-        transform.transform.rotation.z = 0
-        transform.transform.rotation.w = 1
-        self.broadcaster.sendTransform(transform)
+        if np.all(mean != np.nan):
+
+            transform = TransformStamped()
+            transform.header.stamp = rospy.Time.now()
+            transform.header.frame_id = "camera_color_optical_frame"
+            transform.child_frame_id = "object"
+            transform.transform.translation.x = mean[0]
+            transform.transform.translation.y = mean[1]
+            transform.transform.translation.z = mean[2]
+            transform.transform.rotation.x = 0
+            transform.transform.rotation.y = 0
+            transform.transform.rotation.z = 0
+            transform.transform.rotation.w = 1
+            self.broadcaster.sendTransform(transform)
 
     def run(self):
         while not rospy.is_shutdown():
