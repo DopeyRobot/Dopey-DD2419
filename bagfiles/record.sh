@@ -2,4 +2,4 @@
 EXCLUDE="/camera/(.*)|/usb_cam/(.*)"
 INCLUDE="/camera/color/image_raw /camera/depth/color/points /usb_cam/image_raw"
 cd /home/robot/dd2419_ws/bagfiles
-rosbag record -a -x $EXCLUDE -O milestone1 $INCLUDE
+rosbag record -a -x $EXCLUDE $INCLUDE

@@ -13,7 +13,6 @@ class CartesianController:
             "/motor/encoders", Encoders, self.encoder_callback
         )
         self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.twist_callback)
-
         self.f = 10
         self.b = 0.3
         self.r = 0.04921

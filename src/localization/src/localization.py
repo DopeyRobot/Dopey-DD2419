@@ -13,7 +13,6 @@ import numpy as np
 import pdb
 
 
-
 class Localization:
     def __init__(self) -> None:
         self.sub_anchor = rospy.Subscriber(
@@ -26,7 +25,7 @@ class Localization:
         #Anchor stuff
         self.anchor = None #In aruco_frame TF
         self.first_anchor = None
-        self.anchorID = 2
+        self.anchorID = 500
         
         #TF stuff
         self.aruco_frame = "camera_color_optical_frame"
@@ -71,7 +70,7 @@ class Localization:
         self.run()
 
     def anchor_callback(self, msg):
-        #rospy.loginfo("anchor callback")
+        #rospy.logdebug("anchor callback")
         for marker in msg.markers:
             if marker.id == self.anchorID:
                 anchor = PoseWithCovarianceStamped()
@@ -118,7 +117,7 @@ class Localization:
                 t = self._inverse_transform(t)
                 #To avoid redudant tf warnings
                 if self.latest_stamp != t.header.stamp:
-                    rospy.loginfo(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
+                    rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
                     self.brStatic.sendTransform(t)
                     self.latest_stamp = t.header.stamp
                     self.latest_t = t
@@ -161,13 +160,13 @@ class Localization:
     
     def run(self):
         while not rospy.is_shutdown():
+            #rospy.logdebug("Inside run")
             self.place_anchor()
             self.predict()
-            #self.update()
             self.rate.sleep()
         
 
 if __name__ == "__main__":
-    rospy.init_node("localization")
+    rospy.init_node("localization",log_level=rospy.DEBUG)
     Localization()
     rospy.spin()

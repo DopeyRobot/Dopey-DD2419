@@ -94,15 +94,13 @@ Visualization Manager:
       Value: true
     - Class: rviz/TF
       Enabled: true
-      Frame Timeout: 1500
+      Frame Timeout: 15
       Frames:
         All Enabled: false
+        aruco/detected 1:
+          Value: true
         base_link:
           Value: true
-        camera_accel_frame:
-          Value: false
-        camera_accel_optical_frame:
-          Value: false
         camera_bottom_screw_frame:
           Value: false
         camera_color_frame:
@@ -112,18 +110,6 @@ Visualization Manager:
         camera_depth_frame:
           Value: false
         camera_depth_optical_frame:
-          Value: false
-        camera_gyro_frame:
-          Value: false
-        camera_gyro_optical_frame:
-          Value: false
-        camera_infra1_frame:
-          Value: false
-        camera_infra1_optical_frame:
-          Value: false
-        camera_infra2_frame:
-          Value: false
-        camera_infra2_optical_frame:
           Value: false
         camera_link:
           Value: false
@@ -141,30 +127,20 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
+          aruco/detected 1:
+            {}
           odom:
             base_link:
               camera_bottom_screw_frame:
                 camera_link:
-                  camera_accel_frame:
-                    camera_accel_optical_frame:
-                      {}
                   camera_color_frame:
                     camera_color_optical_frame:
                       {}
                   camera_depth_frame:
                     camera_depth_optical_frame:
                       {}
-                  camera_gyro_frame:
-                    camera_gyro_optical_frame:
-                      {}
-                  camera_infra1_frame:
-                    camera_infra1_optical_frame:
-                      {}
-                  camera_infra2_frame:
-                    camera_infra2_optical_frame:
-                      {}
-              imu_link:
-                {}
+            imu_link:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -248,7 +224,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 10.993776321411133
+      Distance: 3.6023154258728027
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -256,17 +232,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.11565697193145752
-        Y: -0.49595049023628235
-        Z: 2.86102294921875e-06
+        X: -0.9082237482070923
+        Y: 0.10375151038169861
+        Z: 3.0994415283203125e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.18479761481285095
+      Pitch: 0.054797738790512085
       Target Frame: <Fixed Frame>
-      Yaw: 6.105426788330078
+      Yaw: 3.1204240322113037
     Saved: ~
 Window Geometry:
   ArUco:
