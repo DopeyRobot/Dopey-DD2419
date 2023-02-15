@@ -41,18 +41,17 @@ class Detection:
         norm_and_height = np.logical_and(norm_mask, height_mask)
         mean = np.mean(self.points[norm_and_height], axis=0)
 
-        if np.all(mean != np.nan):
-
+        if not np.any(np.isnan(mean)):
             pose = PoseStamped()
             pose.header.stamp = stamp
             pose.header.frame_id = "camera_color_optical_frame"
             pose.pose.position.x = mean[0]
             pose.pose.position.y = mean[1]
             pose.pose.position.z = mean[2]
-            pose.pose.orientation.x = 0
-            pose.pose.orientation.y = 0
-            pose.pose.orientation.z = 1
-            pose.pose.orientation.w = 1
+            pose.pose.orientation.x = 0.5
+            pose.pose.orientation.y = 0.5
+            pose.pose.orientation.z = 0.5
+            pose.pose.orientation.w = 0.5
 
             transformed_pose = self.buffer.transform(
                 pose, "map", rospy.Duration(2)
