@@ -14,12 +14,6 @@ import pdb
 
 
 
-
-#TODO: 
-# 1. DONE. Fix smoother odometry when the aruco marker is seen initially (it's smooth the second time it sees it)
-# 2. Fix the transition matrix in _inverse_transform
-
-
 class Localization:
     def __init__(self) -> None:
         self.sub_anchor = rospy.Subscriber(
@@ -59,6 +53,20 @@ class Localization:
         t.transform.rotation.w = 1
         self.brStatic.sendTransform(t)
 
+        rospy.sleep(1)
+        #init static TF between map and odom
+        t = TransformStamped()
+        t.header.frame_id = "map"
+        t.child_frame_id = "odom"
+        t.header.stamp = rospy.Time.now()
+        t.transform.translation.x = 0
+        t.transform.translation.y = 0
+        t.transform.translation.z = 0
+        t.transform.rotation.x = 0
+        t.transform.rotation.y = 0
+        t.transform.rotation.z = 0
+        t.transform.rotation.w = 1
+        self.brStatic.sendTransform(t)
 
         self.run()
 
@@ -108,7 +116,7 @@ class Localization:
                 
                 #transform map to odom
                 t = self._inverse_transform(t)
-            #To avoid redudant tf warnings
+                #To avoid redudant tf warnings
                 if self.latest_stamp != t.header.stamp:
                     rospy.loginfo(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
                     self.brStatic.sendTransform(t)
