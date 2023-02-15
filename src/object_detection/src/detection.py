@@ -6,6 +6,7 @@ from open3d import open3d as o3d
 from open3d_ros_helper import open3d_ros_helper as o3drh
 import numpy as np
 from tf2_ros import TransformListener, TransformBroadcaster, Buffer, TransformStamped
+from geometry_msgs.msg import PoseStamped
 
 
 class Detection:
@@ -33,9 +34,9 @@ class Detection:
         self.points = np.asarray(ds_cloud.points)
         self.colors = np.asarray(ds_cloud.colors)
 
-        self.filter_points()
+        self.filter_points(msg.header.stamp)
 
-    def filter_points(self):
+    def filter_points(self, stamp):
         norm_mask = np.linalg.norm(self.points, axis=1) < 0.9
         height_mask = self.points[:, 2] > 0.1
         norm_and_height = np.logical_and(norm_mask, height_mask)
@@ -43,23 +44,34 @@ class Detection:
 
         if np.all(mean != np.nan):
 
-            transform = TransformStamped()
-            transform.header.stamp = rospy.Time.now()
-            transform.header.frame_id = "camera_color_optical_frame"
-            transform.child_frame_id = "object"
-            transform.transform.translation.x = mean[0]
-            transform.transform.translation.y = mean[1]
-            transform.transform.translation.z = mean[2]
-            transform.transform.rotation.x = 0
-            transform.transform.rotation.y = 0
-            transform.transform.rotation.z = 0
-            transform.transform.rotation.w = 1
+            pose = PoseStamped()
+            pose.header.stamp = stamp
+            pose.header.frame_id = "camera_color_optical_frame"
+            pose.pose.position.x = mean[0]
+            pose.pose.position.y = mean[1]
+            pose.pose.position.z = mean[2]
+            pose.pose.orientation.x = 0
+            pose.pose.orientation.y = 0
+            pose.pose.orientation.z = 0
+            pose.pose.orientation.w = 1
 
             transformed_pose = self.buffer.transform(
-                transform, "map", rospy.Duration(2)
+                pose, "map", rospy.Duration(2)
             )
+            t = TransformStamped()
+            t.header.stamp = transformed_pose.header.stamp
 
-            self.broadcaster.sendTransform(transformed_pose)
+            t.transform.translation.x = transformed_pose.pose.position.x
+            t.transform.translation.y = transformed_pose.pose.position.y
+            t.transform.translation.z = transformed_pose.pose.position.z
+
+            t.transform.rotation.x = transformed_pose.pose.orientation.x
+            t.transform.rotation.y = transformed_pose.pose.orientation.y
+            t.transform.rotation.z = transformed_pose.pose.orientation.z
+            t.transform.rotation.w = transformed_pose.pose.orientation.w
+
+            transformed_pose.child_frame_id = "object"
+            self.broadcaster.sendTransform(t)
 
     def run(self):
         while not rospy.is_shutdown():
