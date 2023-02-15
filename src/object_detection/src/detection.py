@@ -19,8 +19,6 @@ class Detection:
         self.rate = rospy.Rate(10)
         self.points = np.array([])
         self.colors = np.array([])
-        self.red = np.array([1, 0, 0])
-        self.green = np.array([0, 0.7, 0.3])
 
         self.run()
 
@@ -56,7 +54,12 @@ class Detection:
             transform.transform.rotation.y = 0
             transform.transform.rotation.z = 0
             transform.transform.rotation.w = 1
-            self.broadcaster.sendTransform(transform)
+
+            transformed_pose = self.buffer.transform(
+                transform, "map", rospy.Duration(2)
+            )
+
+            self.broadcaster.sendTransform(transformed_pose)
 
     def run(self):
         while not rospy.is_shutdown():
