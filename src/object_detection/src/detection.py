@@ -6,8 +6,7 @@ from open3d import open3d as o3d
 from open3d_ros_helper import open3d_ros_helper as o3drh
 import numpy as np
 from tf2_ros import TransformListener, TransformBroadcaster, Buffer, TransformStamped
-from geometry_msgs.msg import PoseStamped
-
+from tf2_geometry_msgs import PoseStamped
 
 class Detection:
     def __init__(self):
@@ -52,7 +51,7 @@ class Detection:
             pose.pose.position.z = mean[2]
             pose.pose.orientation.x = 0
             pose.pose.orientation.y = 0
-            pose.pose.orientation.z = 0
+            pose.pose.orientation.z = 1
             pose.pose.orientation.w = 1
 
             transformed_pose = self.buffer.transform(
@@ -60,6 +59,7 @@ class Detection:
             )
             t = TransformStamped()
             t.header.stamp = transformed_pose.header.stamp
+            t.header.frame_id = "map"
 
             t.transform.translation.x = transformed_pose.pose.position.x
             t.transform.translation.y = transformed_pose.pose.position.y
@@ -70,7 +70,7 @@ class Detection:
             t.transform.rotation.z = transformed_pose.pose.orientation.z
             t.transform.rotation.w = transformed_pose.pose.orientation.w
 
-            transformed_pose.child_frame_id = "object"
+            t.child_frame_id = "object"
             self.broadcaster.sendTransform(t)
 
     def run(self):
