@@ -3,12 +3,13 @@
 ## Get access to Dopey remotely
 
 0. CONNECT TO INTERNET
-1. Plug screen, keyboard and mouse into Dopey
-2. `hostname -I` - get current IP address
-3. On client `ssh robot@<IP-address-from-above>` 
-4. If first time, accept everything
-5. Input password `Dopey5000`
-6. Congrats! You now have access to Dopey's mind (files)!
+1. Power Dopey on
+<!-- 1. Plug screen, keyboard and mouse into Dopey
+2. `hostname -I` - get current IP address -->
+2. On client `ssh robot@192.168.128.105` 
+3. If first time, accept everything
+4. Input password `Dopey5000`
+5. Congrats! You now have access to Dopey's mind (files)!
 
 
 ## Control dopey with keyboard or joystick
