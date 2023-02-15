@@ -69,22 +69,25 @@ class planning():
             pose_stamped.header.frame_id = self.currentframe
 
             ##SECTION NEEDS TO BE REPLACED WITH PATH PLANNING FUNCTION WITH PUBLISHES ONTO MOVE_BASE_SIMPLE/GOAL
-            point = Point() 
-            point.x = 1
-            point.y = 2
-            point.z = 3
+            # point = Point() 
+            # point.x = 1
+            # point.y = 2
+            # point.z = 0
 
-            pose_stamped.pose.position = point
-            self.publisher_goal.publish(pose_stamped)
+            # pose_stamped.pose.position = point
+            # self.publisher_goal.publish(pose_stamped)
 
             ##PUBLISH TWIST SECTION
             twist = TwistStamped() # maybe import a TwistStamped instead of a Twist 
             twist.header.stamp = self.transformedPose.header.stamp # take this from imported message
             twist.header.frame_id = self.transformedPose.header.frame_id # take this from subscribed and manipulated message
-            twist.twist.angular.z = 4 * math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
-            twist.twist.linear.x = 0.5 * math.sqrt(self.transformedPose.pose.position.x** 2 + self.transformedPose.pose.position.y ** 2)
+            twist.twist.angular.z = 0.4 * math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
+            twist.twist.linear.x = 0.05 * math.sqrt(self.transformedPose.pose.position.x** 2 + self.transformedPose.pose.position.y ** 2)
             self.publisher_twist.publish(twist)
+            print("Check 5: published twist")
             self.rate.sleep()
+
+            
 
 
 
