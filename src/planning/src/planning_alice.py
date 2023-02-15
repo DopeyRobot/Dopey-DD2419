@@ -15,15 +15,15 @@ class planning():
 
         print('Check 1: init file entered')
         self.tf_buffer = tf2_ros.Buffer()
-        # self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
-        # self.br = tf2_ros.TransformBroadcaster()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        self.br = tf2_ros.TransformBroadcaster()
         
         self.f = 10
         self.rate = rospy.Rate(self.f)
         self.transformedPose = PoseStamped() #init PoseStamped message type
         self.targetframe = "base_link"
-        self.currentframe = "map"
-        self.timeout = rospy.Duration(0.5)
+        self.currentframe = "odom"
+        self.timeout = rospy.Duration(2)
 
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.publisher_twist = rospy.Publisher('motor_controller/twist', TwistStamped, queue_size=10)
@@ -44,48 +44,19 @@ class planning():
 
         detectedTransformStamped = TransformStamped()
 
+        print("TimeStamp:", detectedPoseStamped.header.stamp)
+        print("Output CanTransform ",self.tf_buffer.can_transform(self.targetframe, detectedPoseStamped.header.frame_id, detectedPoseStamped.header.stamp, self.timeout))
 
         if self.tf_buffer.can_transform(self.targetframe, detectedPoseStamped.header.frame_id, detectedPoseStamped.header.stamp, self.timeout):
             print(f"Check 3 : transform found")
 
             rospy.loginfo(f"Transform between target frame: {self.targetframe} and current frame: {self.currentframe} found")
-            (trans, rot) = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, detectedPoseStamped.header.stamp, self.timeout)
-            print(f"trans:{trans}, rot:{rot}")
-            detectedTransformStamped.transform.translation = trans
-            detectedTransformStamped.transform.rotation = rot
+            detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, detectedPoseStamped.header.stamp, self.timeout)
             # tf2_geometry_msgs.do_transform_point(detectedPoseStamped, detectedTransformStamped)
             self.transformedPose = tf2_geometry_msgs.do_transform_pose(detectedPoseStamped, detectedTransformStamped)
 
             print(f"Check 4: pose transformed")
 
-
-
-
-
-        # try:
-        #     print('hello2')
-        #     transform_is_possible = self.tf_buffer.can_transform(self.targetframe, self.robotframe, pose_stamped.header.stamp, self.timeout)
-        #     rospy.loginfo(f"Transform: {transform_is_possible}")
-        #     transform = self.tf_buffer.lookup_transform("base_link", pose_stamped.header.frame_id, pose_stamped.header.stamp, self.timeout)
-        #     print('hello3')
-        #     transformed_position = tf2_geometry_msgs.do_transform_point(pose_stamped.pose.position, transform)
-        #     transformed_orientation = tf2_geometry_msgs.do_transform_quaternion(pose_stamped.pose.orientation, transform)
-            
-        #     transformed_pose_stamped = PoseStamped()
-        #     transformed_pose_stamped.header.stamp = pose_stamped.header.stamp
-        #     transformed_pose_stamped.header.frame_id = "robot_frame"
-        #     transformed_pose_stamped.pose.position = transformed_position.point
-            
-        #     self.publisher_goal.publish(transformed_pose_stamped)
-        #     msg_twist = Twist() 
-        #     msg_twist.angular.z = 4 * math.atan2(transformed_position.point.y, transformed_position.point.x)
-        #     msg_twist.linear.x = 0.5 * math.sqrt(transformed_position.point.x ** 2 + transformed_position.point.y ** 2)
-
-        #     self.publisher_twist.publish(msg_twist)
-        #     print(msg_twist)
-            
-        # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-        #     rospy.logerr("Failed to transform pose: %s", e)
 
     def run(self):
         # Put in run file, because later when obstacles are introduced, the new position to be navigated to will be updated continuously
