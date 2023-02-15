@@ -14,6 +14,7 @@ import pdb
 
 
 
+
 #TODO: 
 # 1. DONE. Fix smoother odometry when the aruco marker is seen initially (it's smooth the second time it sees it)
 # 2. Fix the transition matrix in _inverse_transform
@@ -81,27 +82,32 @@ class Localization:
     def place_anchor(self):
         if self.anchor:
             transform_is_possible = self.buffer.can_transform("odom", self.aruco_frame, self.anchor.header.stamp, rospy.Duration(2))
-            rospy.loginfo(f"Transform universe aruco_frame possible: {transform_is_possible}")
+            
             anchorPoseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(self.anchor)
             if transform_is_possible:
-                #transform = self.buffer.lookup_transform("odom", self.anchor.header.frame_id, self.anchor.header.stamp, rospy.Duration(2))
-                TransformStamp = self.buffer.lookup_transform("odom", self.anchor.header.frame_id, self.anchor.header.stamp, rospy.Duration(20))
-                inversed_transform = self._inverse_transform(TransformStamp)
-                #anchor_odom_pose = self.buffer.transform(anchorPoseStamped, "odom", rospy.Duration(2))
-                anchor_univ_pose = tf2_geometry_msgs.do_transform_pose(anchorPoseStamped, inversed_transform)
+                
+                #transform aruco_frame to odom
+                transform2odom = self.buffer.lookup_transform("odom", self.anchor.header.frame_id, self.anchor.header.stamp, rospy.Duration(20))
+                
+                anchor_odom_pose = tf2_geometry_msgs.do_transform_pose(anchorPoseStamped, transform2odom)
+                
+                #transform odom to map
                 t = TransformStamped()
-                t.header.frame_id = "map"
-                t.child_frame_id = "odom"
+                t.header.frame_id = "odom"
+                t.child_frame_id = "map"
                 t.header.stamp = self.anchor.header.stamp
 
-                t.transform.translation.x = anchor_univ_pose.pose.position.x
-                t.transform.translation.y = anchor_univ_pose.pose.position.y
-                t.transform.translation.z = anchor_univ_pose.pose.position.z
+                t.transform.translation.x = anchor_odom_pose.pose.position.x
+                t.transform.translation.y = anchor_odom_pose.pose.position.y
+                t.transform.translation.z = anchor_odom_pose.pose.position.z
 
-                t.transform.rotation.x = anchor_univ_pose.pose.orientation.x
-                t.transform.rotation.y = anchor_univ_pose.pose.orientation.y
-                t.transform.rotation.z = anchor_univ_pose.pose.orientation.z
-                t.transform.rotation.w = anchor_univ_pose.pose.orientation.w
+                t.transform.rotation.x = anchor_odom_pose.pose.orientation.x
+                t.transform.rotation.y = anchor_odom_pose.pose.orientation.y
+                t.transform.rotation.z = anchor_odom_pose.pose.orientation.z
+                t.transform.rotation.w = anchor_odom_pose.pose.orientation.w
+                
+                #transform map to odom
+                t = self._inverse_transform(t)
             #To avoid redudant tf warnings
                 if self.latest_stamp != t.header.stamp:
                     rospy.loginfo(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
@@ -109,16 +115,24 @@ class Localization:
                     self.latest_stamp = t.header.stamp
                     self.latest_t = t
 
+
     def _inverse_transform(self, transform):
-        #pdb.set_trace()
+       
         inverse_transform = transform
+        old_parent = transform.header.frame_id
+        old_child = transform.child_frame_id
+        inverse_transform.header.frame_id = old_child
+        inverse_transform.child_frame_id = old_parent
         r = R.from_quat([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
         t = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
+
+        
         T = np.zeros((4,4))
         T[:3,:3] = r.as_matrix()
         T[:3,3] = t
         T[3,3] = 1
         inversed_T = np.linalg.inv(T)
+        
         inversed_r = R.from_matrix(inversed_T[:3,:3])
         inversed_t = inversed_T[:3,3]
         inverse_transform.transform.rotation.x = inversed_r.as_quat()[0]
