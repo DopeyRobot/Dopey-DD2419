@@ -22,7 +22,7 @@ class planning():
         self.rate = rospy.Rate(self.f)
         self.transformedPose = PoseStamped() #init PoseStamped message type
         self.targetframe = "base_link"
-        self.currentframe = "odom"
+        self.currentframe = "map"
         self.timeout = rospy.Duration(2)
 
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
@@ -77,11 +77,20 @@ class planning():
             # self.publisher_goal.publish(pose_stamped)
 
             ##PUBLISH TWIST SECTION
-            twist = TwistStamped() # maybe import a TwistStamped instead of a Twist 
-            twist.header.stamp = self.transformedPose.header.stamp # take this from imported message
-            twist.header.frame_id = self.transformedPose.header.frame_id # take this from subscribed and manipulated message
-            twist.twist.angular.z = 0.4 * math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
-            twist.twist.linear.x = 0.05 * math.sqrt(self.transformedPose.pose.position.x** 2 + self.transformedPose.pose.position.y ** 2)
+
+            Kp_angular = 0.4
+            Kp_linear = 0.05
+
+            twist = TwistStamped()  
+            twist.header.stamp = self.transformedPose.header.stamp 
+            twist.header.frame_id = self.transformedPose.header.frame_id 
+
+            desired_angular = Kp_angular * math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
+            desired_velocity = Kp_linear * math.sqrt(self.transformedPose.pose.position.x** 2 + self.transformedPose.pose.position.y ** 2)
+
+            twist.twist.linear.x = desired_velocity 
+            twist.twist.angular.z = desired_angular
+            
             self.publisher_twist.publish(twist)
             print("Check 5: published twist")
             self.rate.sleep()
