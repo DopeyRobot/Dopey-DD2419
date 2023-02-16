@@ -22,7 +22,7 @@ class planning():
         self.rate = rospy.Rate(self.f)
         self.transformedPose = PoseStamped() #init PoseStamped message type
         self.targetframe = "base_link"
-        self.currentframe = "map"
+        self.currentframe = "odom"
         self.timeout = rospy.Duration(2)
 
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
@@ -55,6 +55,8 @@ class planning():
             self.transformedPose = tf2_geometry_msgs.do_transform_pose(detectedPoseStamped, detectedTransformStamped)
 
             print(f"Check 4: pose transformed")
+        else:
+            print('no transform')
 
 
     def run(self):
@@ -78,12 +80,14 @@ class planning():
 
             ##PUBLISH TWIST SECTION
 
-            Kp_angular = 0.4
-            Kp_linear = 0.05
+            Kp_angular = 0.01
+            Kp_linear = 0.1
 
             twist = TwistStamped()  
             twist.header.stamp = self.transformedPose.header.stamp 
             twist.header.frame_id = self.transformedPose.header.frame_id 
+
+            print(self.transformedPose.pose.position.y)
 
             desired_angular = Kp_angular * math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
             desired_velocity = Kp_linear * math.sqrt(self.transformedPose.pose.position.x** 2 + self.transformedPose.pose.position.y ** 2)
@@ -92,7 +96,7 @@ class planning():
             twist.twist.angular.z = desired_angular
             
             self.publisher_twist.publish(twist)
-            print("Check 5: published twist")
+            #print("Check 5: published twist")
             self.rate.sleep()
 
             
