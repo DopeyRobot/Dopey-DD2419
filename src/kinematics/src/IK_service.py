@@ -10,57 +10,51 @@ class IKService:
 
     def __init__(self) -> None:
         self.solver = KinematicsSolver()
-        # self.joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback)
+        self.joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback)
         self.cur_joint_state = JointState()
-        # rospy.wait_for_service("pose_service", 5.0)
-        # self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
+        rospy.wait_for_service("pose_service", 5.0)
+        self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
 
-        # while len(self.cur_joint_state.position) < 5:
-        #     rospy.sleep(0.1)
+        while len(self.cur_joint_state.position) < 5:
+            rospy.sleep(0.1)
 
-        sol1, sol2 = IKService.analytical_IK([0,0,0.32],0)
-        print(sol1)
-        print(sol2)
-        # self.pose_service.call(sol1.to_np_array(), 2000)
+        sol = IKService.analytical_IK([-100e-3,30e-3,170e-3],np.pi/2)
+        print(sol)
+        self.pose_service.call(sol.to_np_array(), 2000)
 
-        pos1 = self.solver.forwards_kinematics(sol1)
-        pos2 = self.solver.forwards_kinematics(sol2)
+        # pos1 = self.solver.forwards_kinematics(sol)
         
-        print(pos1)
-        print(pos2)
+        # print(pos1)
 
     def joint_state_callback(self, msg):
         self.cur_joint_state = msg
 
     def analytical_IK(desired_pos, desired_wrist_pitch, desired_theta5 = 0.0):
-        xd = desired_pos[0]
-        yd = desired_pos[1]
-        zd = desired_pos[2]
         psi = desired_wrist_pitch
-
-        theta1 = np.arctan2(yd, xd)
-        d = np.hypot(xd, yd)
-        r4 = d - D5*np.sin(psi)
+        xd, yd, zd = desired_pos
+        theta1 = np.arctan2(yd, xd)%(2*np.pi) - np.pi
+        rd = np.hypot(xd, yd)
         z4 = zd - D5*np.cos(psi)
-        s = np.hypot(z4-D1, r4)
-        beta = np.arctan2( 2*s*A2, s**2 + A2**2 - A3**2)
+        r4 = rd - D5*np.sin(psi)
+
         alpha = np.arctan2(r4, z4-D1)
-
-        theta2_1 =  (alpha + beta)
-        theta2_2 =  (alpha - beta)
-
-
-
-
-        theta3 = np.arctan2( s**2 - A2**2 - A3**2, 2*A2*A3)
-        theta4_1 = psi - theta2_1 - theta3
-        theta4_2 = psi - theta2_2 - theta3 
+        S = np.hypot(z4-D1, r4)
+        cb = (S**2 + A2**2 - A3**2)/(2*S*A2)
+        c3 = (S*cb-A2)/(A3)
+        print(cb)
+        print(c3)
+        beta= np.arccos(cb)
+        theta2 = alpha - beta
+        theta3 = np.arccos(c3)
+        theta4 = (psi - theta2 - theta3)%(2*np.pi)
+        theta5 = desired_theta5
 
         return JointData.from_np_array(
-            np.array([theta1, theta2_1 ,theta3, theta4_1, desired_theta5])
-        ),JointData.from_np_array(
-            np.array([theta1, theta2_2, theta3, theta4_2, desired_theta5])
-        )
+            -np.array([-theta1, theta2, theta3, theta4, theta5])
+            )
+
 if __name__ == "__main__":
+    rospy.init_node("IK_ser")
     IKService()
+    rospy.spin()
 

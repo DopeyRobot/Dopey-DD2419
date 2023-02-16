@@ -6,7 +6,7 @@ from kinematics_utils import JointData
 D1 = 18e-3
 A2 = 100e-3
 A3 = 97e-3
-D5 = 105e-3
+D5 = 135e-3
 PI_2 = np.pi / 2
 
 
