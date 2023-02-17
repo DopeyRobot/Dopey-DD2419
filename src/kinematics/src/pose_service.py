@@ -6,7 +6,7 @@ from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
 from std_msgs.msg import Float64
 import numpy as np
 from kinematics_utils import RefPoses, JointData
-from kinematics.srv import JointAngles
+from kinematics.srv import JointAngles, GripStrength
 from hiwonder_servo_msgs.msg import CommandDuration
 
 
@@ -30,7 +30,7 @@ class PoseService:
             "gripper/open", Empty, self.open_gripper_callback
         )
         self.close_gripper_service = rospy.Service(
-            "gripper/close", Empty, self.close_gripper_callback
+            "gripper/close", GripStrength, self.close_gripper_callback
         )
 
         self.pose_service = rospy.Service(
@@ -82,7 +82,7 @@ class PoseService:
 
     def pickup_f_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Moving to front pickup position")
-        self.publish_data(RefPoses.PICKUP_F.value)
+        self.publish_data(RefPoses.PICKUP_F.value, include_gripper=True)
         return EmptyResponse()
 
     def pickup_t_callback(self, req: EmptyRequest) -> EmptyResponse:
@@ -116,12 +116,34 @@ class PoseService:
 
     def close_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Closing gripper")
-        self.gripper_pub.publish(
-            self.to_command_duration(
-                RefPoses.CLOSE_GRIPPER.value.gripper, duration=1000
+        
+        if req.strength == "cube":
+            self.gripper_pub.publish(
+                self.to_command_duration(
+                    RefPoses.CLOSE_GRIPPER_CUBE.value.gripper, duration=1000
+                )
             )
-        )
+        
+        elif req.strength == "ball":
+            self.gripper_pub.publish(
+                self.to_command_duration(
+                    RefPoses.CLOSE_GRIPPER_BALL.value.gripper, duration=1000
+                )
+            )       
 
+        elif req.strength == "plush":
+            self.gripper_pub.publish(
+                self.to_command_duration(
+                    RefPoses.CLOSE_GRIPPER_PLUSH.value.gripper, duration=1000
+                )
+            )
+        
+        else:
+            self.gripper_pub.publish(
+                self.to_command_duration(
+                    RefPoses.CLOSE_GRIPPER.value.gripper, duration=1000
+                )
+            )
         return EmptyResponse()
 
     @staticmethod
