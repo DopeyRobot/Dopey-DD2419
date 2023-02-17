@@ -121,18 +121,28 @@ class RefPoses(Enum):
     Enum to carry references poses for the robot in joint space:
     - HOME: robot in home position
     - PICKUP_R: robot in position to pick up an object from the right
+    - PREPICK_R high view of the right side
     - PICKUP_F: robot in position to pick up an object from the front
+    - PREPICK_F: high view of front side
     - PICKUP_TRAY: robot in position to pick up an object from the tray
     - OPEN_GRIPPER: contains open gripper position
     - CLOSE_GRIPPER: contains closed gripper position
+        - _CUBE : close the gripper hard enough for the cube
+        - _BALL : close the gripper hard enough for the ball
+        - _PLUSH : close the gripper hard enough for the plush
     """
 
-    HOME = JointData.from_list(positions=[0, 0, 0, 0, 0, 0])
+    HOME = JointData.from_list(positions=[1.57, 0.91, -1.6, -1.2, 0, 0])
     PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
-    PICKUP_F = JointData.from_list(positions=[1.57, -1, -0.8, -1.3, 0, -0.2])
+    PREPICK_R = JointData.from_list(positions=[0 -0.2, -1.2, -1.75, 0.0, -1.5])
+    PICKUP_F = JointData.from_list(positions=[1.57, -0.9, -1.15, -1.1, 0, -1.5])
+    PREPICK_F = JointData.from_list(positions=[1.57, -0.2, -1.2, -1.75, 0.0, -1.5])
     PICKUP_TRAY = JointData.from_list(positions=[-1.57, 0.7, -1.57, -1.5, 0, -0.2])
     OPEN_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, -1.5])
     CLOSE_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])
+    CLOSE_GRIPPER_CUBE = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])
+    CLOSE_GRIPPER_BALL = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.2])
+    CLOSE_GRIPPER_PLUSH = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])
 
 
 def ros_quaternion_to_rotation(quaternion: Quaternion):
@@ -164,6 +174,9 @@ def rotation_to_ros_quaternion(rotation: np.ndarray) -> Quaternion:
 
 
 class Trajectory:
+    """
+    Interpolating between poses
+    """
     def __init__(self, start_point, start_R, end_point, end_R, N=100) -> None:
         self.points = []
         self.orientations = []
