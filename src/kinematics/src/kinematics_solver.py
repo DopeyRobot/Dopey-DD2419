@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-from kinematics_utils import JointData
+from kinematics_utils import JointData, RefPoses
 
 # link lengths of the robot in meters
 D1 = 18e-3
@@ -18,19 +18,6 @@ class KinematicsSolver:
         """ "
         columns are alpha, d, a, theta
         """
-
-        ## first matrix to test
-        # matrix = np.array(
-        #     [
-        #         [-PI_2, L12, 0.0, joint_data.joint1],
-        #         [0.0, 0.0, L23, joint_data.joint2 - PI_2],
-        #         [0.0, 0.0, L34, joint_data.joint3],
-        #         [0.0, 0.0, L45, joint_data.joint4],
-        #         [joint_data.joint5, 0.0, LEND, 0.0],
-        #     ]
-        # )
-
-        # second matrix to test (seems to be the right one :) )
         matrix = np.array(
             [
                 [-PI_2, D1, 0.0, joint_data.joint1],
@@ -40,17 +27,6 @@ class KinematicsSolver:
                 [0.0, D5, 0.0, joint_data.joint5],
             ]
         )
-
-        ## third matrix to test
-        # matrix = np.array(
-        #     [
-        #         [-PI_2, L12, 0.0, joint_data.joint1],
-        #         [0.0, 0.0, L23, joint_data.joint2],
-        #         [0.0, 0.0, L34, joint_data.joint3],
-        #         [PI_2, 0.0, 0.0, joint_data.joint4],
-        #         [0.0, L45 + LEND, 0.0, joint_data.joint5],
-        #     ]
-        # )
 
         return matrix
 
@@ -112,6 +88,38 @@ class KinematicsSolver:
 
         return pe_b[:3]
 
+    def analytical_IK(self, desired_pos, desired_wrist_pitch, desired_theta5 = 0.0):
+        """
+        Solves the analytical IK sometimes, desired pos in robot base frame.
+        """
+            
+        try:
+            psi = desired_wrist_pitch
+            xd, yd, zd = desired_pos
+            theta1 = np.arctan2(yd, xd)%(2*np.pi) - np.pi
+            rd = np.hypot(xd, yd)
+            z4 = zd - D5*np.cos(psi)
+            r4 = rd - D5*np.sin(psi)
+
+            alpha = np.arctan2(r4, z4-D1)
+            S = np.hypot(z4-D1, r4)
+            cb = (S**2 + A2**2 - A3**2)/(2*S*A2)
+            c3 = (S*cb-A2)/(A3)
+
+            beta= np.arccos(cb)
+            theta2 = alpha - beta
+            theta3 = np.arccos(c3)
+            theta4 = (psi - theta2 - theta3)%(2*np.pi)
+            theta5 = desired_theta5
+
+            return JointData.from_np_array(
+                -np.array([-theta1, theta2, theta3, theta4, theta5])
+                )
+        except:
+            if self.verbose:
+                print("Could not find pose")
+            return None
+
     def get_link_normal(self, joint_data: JointData, link_number: int) -> np.ndarray:
         """
         returns the normal vector of the given link number
@@ -171,6 +179,7 @@ class KinematicsSolver:
         )
 
         return np.concatenate([pos_error, rot_error])
+
 
     def solve_next_position(
         self,
