@@ -13,15 +13,13 @@ class planning():
 
     def __init__(self):
 
-        print('Check 1: init file entered')
-
-        self.Kp = 0.04
-        self.Ki = 0.02
+        self.Kp = 0.4
+        self.Ki = 0.2
         self.Kd = 0.01
         self.integral_error = 0.0
         self.prev_error = 0.0
         self.angle_threshold = 0.1
-        self.distance_threshold = 0
+        self.distance_threshold = 0.1
 
 
         self.tf_buffer = tf2_ros.Buffer()
@@ -33,7 +31,7 @@ class planning():
         self.rate = rospy.Rate(self.f)
         self.transformedPose = PoseStamped() #init PoseStamped message type
         self.targetframe = "base_link"
-        self.currentframe = "odom"
+        self.currentframe = "map"
         self.timeout = rospy.Duration(2)
 
 
@@ -48,7 +46,7 @@ class planning():
     def callback(self, msg):
 
         ##INPUT MSG: POSE STAMPED
-        print(f"Check 2 : callback entered")
+        #print(f"Check 2 : callback entered")
         detectedPoseStamped = PoseStamped()
         detectedPoseStamped.header.stamp = msg.header.stamp
         detectedPoseStamped.header.frame_id = msg.header.frame_id
@@ -58,32 +56,23 @@ class planning():
         detectedTransformStamped = TransformStamped()
 
 
-        print("TimeStamp:", detectedPoseStamped.header.stamp)
-        print("Output CanTransform ",self.tf_buffer.can_transform(self.targetframe, detectedPoseStamped.header.frame_id, detectedPoseStamped.header.stamp, self.timeout))
+        #print("TimeStamp:", detectedPoseStamped.header.stamp)
+        #print("Output CanTransform ",self.tf_buffer.can_transform(self.targetframe, detectedPoseStamped.header.frame_id, detectedPoseStamped.header.stamp, self.timeout))
 
 
         if self.tf_buffer.can_transform(self.targetframe, detectedPoseStamped.header.frame_id, detectedPoseStamped.header.stamp, self.timeout):
-            print(f"Check 3 : transform found")
 
-            rospy.loginfo(f"Transform between target frame: {self.targetframe} and current frame: {self.currentframe} found")
+
+            #rospy.loginfo(f"Transform between target frame: {self.targetframe} and current frame: {self.currentframe} found")
             detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, detectedPoseStamped.header.stamp, self.timeout)
             # tf2_geometry_msgs.do_transform_point(detectedPoseStamped, detectedTransformStamped)
             self.transformedPose = tf2_geometry_msgs.do_transform_pose(detectedPoseStamped, detectedTransformStamped)
 
-            print(f"Check 4: pose transformed")
+            #print(f"Check 4: pose transformed")
 
         else:
             print('no transform')
 
-
-    def run(self):
-
-        while not rospy.is_shutdown():
-            pose_stamped = self.get_new_nav_goal()
-            self.publisher_goal.publish(pose_stamped)
-            self.publish_twist()
-
-            self.rate.sleep()
 
 
     def get_new_nav_goal(self):
@@ -115,32 +104,34 @@ class planning():
         error = math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
 
         # if the angle is greater than 0.1 radians, rotate in place
-        if abs(error) > self.angle_threshold:
+        '''if abs(error) > self.angle_threshold:
+            print('true')
+            twist.twist.angular.z = 0.5
+            twist.twist.linear.x = 0.0'''
 
-            twist.twist.angular.z = 0.2
-            twist.twist.linear.x = 0.0
+        
+        # calculate proportional control output
+        proportional_output = self.Kp * error
 
-        else:
-            # calculate proportional control output
-            proportional_output = self.Kp * error
+        # calculate integral control output
+        self.integral_error += error
+        integral_output = self.Ki * self.integral_error
 
-            # calculate integral control output
-            self.integral_error += error
-            integral_output = self.Ki * self.integral_error
+        print(self.integral_error)
 
-            # calculate derivative control output
-            # derivative_error = error - self.prev_error
-            # derivative_output = self.Kd * derivative_error
+        # calculate derivative control output
+        # derivative_error = error - self.prev_error
+        # derivative_output = self.Kd * derivative_error
 
-            # calculate total control output (proportional + integral + derivative)
-            total_output = proportional_output + integral_output 
+        # calculate total control output (proportional + integral + derivative)
+        total_output = proportional_output 
 
-            # update previous error for next iteration
-            self.prev_error = error
+        # update previous error for next iteration
+        self.prev_error = error
 
-            # publish to twist
-            twist.twist.angular.z = total_output
-            twist.twist.linear.x = 0.05 * math.sqrt(self.transformedPose.pose.position.x**2 + self.transformedPose.pose.position.y**2)
+        # publish to twist
+        twist.twist.angular.z = total_output
+        twist.twist.linear.x = 0.05 * math.sqrt(self.transformedPose.pose.position.x**2 + self.transformedPose.pose.position.y**2)
         
         self.publisher_twist.publish(twist)
 
@@ -152,6 +143,16 @@ class planning():
         twist.twist.angular.z = 0.0
         twist.twist.linear.x = 0.0
         self.publisher_twist.publish(twist)
+
+
+    def run(self):
+
+        while not rospy.is_shutdown():
+            pose_stamped = self.get_new_nav_goal()
+            self.publisher_goal.publish(pose_stamped)
+            self.publish_twist()
+
+            self.rate.sleep()
 
 
 if __name__ == "__main__":
