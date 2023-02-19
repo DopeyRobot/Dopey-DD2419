@@ -21,6 +21,9 @@ class planning():
         self.angle_threshold = 0.3
         self.distance_threshold = 0.1
         self.first_rot = False
+        self.error = 0.0
+        self.detectedPoseStamped = PoseStamped()
+        self.detectedTransformStamped = TransformStamped()
 
         print('Check 1: init file entered')
         self.tf_buffer = tf2_ros.Buffer()
@@ -42,65 +45,54 @@ class planning():
 
 
 
-
     def callback(self, msg):
         ##INPUT MSG: POSE STAMPED
         print(f"Check 2 : callback entered")
-        detectedPoseStamped = PoseStamped()
-        detectedPoseStamped.header.stamp = msg.header.stamp
-        detectedPoseStamped.header.frame_id = msg.header.frame_id
-        detectedPoseStamped.pose = msg.pose
+        
+        self.detectedPoseStamped.header.stamp = msg.header.stamp
+        self.detectedPoseStamped.header.frame_id = msg.header.frame_id
+        self.detectedPoseStamped.pose = msg.pose
 
-        detectedTransformStamped = TransformStamped()
-
-        print("TimeStamp:", detectedPoseStamped.header.stamp)
-        print("Output CanTransform ",self.tf_buffer.can_transform(self.targetframe, detectedPoseStamped.header.frame_id, detectedPoseStamped.header.stamp, self.timeout))
-
-        if self.tf_buffer.can_transform(self.targetframe, detectedPoseStamped.header.frame_id, detectedPoseStamped.header.stamp, self.timeout):
+        if self.tf_buffer.can_transform(self.targetframe, self.detectedPoseStamped.header.frame_id, self.detectedPoseStamped.header.stamp, self.timeout):
             print(f"Check 3 : transform found")
 
             rospy.loginfo(f"Transform between target frame: {self.targetframe} and current frame: {self.currentframe} found")
-            detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, detectedPoseStamped.header.stamp, self.timeout)
-            # tf2_geometry_msgs.do_transform_point(detectedPoseStamped, detectedTransformStamped)
-            self.transformedPose = tf2_geometry_msgs.do_transform_pose(detectedPoseStamped, detectedTransformStamped)
+            detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, self.detectedPoseStamped.header.stamp, self.timeout)
+            self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, detectedTransformStamped)
 
             print(f"Check 4: pose transformed")
+    
+        print("TimeStamp:", self.detectedPoseStamped.header.stamp)
+        print("Output CanTransform ",self.tf_buffer.can_transform(self.targetframe, self.detectedPoseStamped.header.frame_id, self.detectedPoseStamped.header.stamp, self.timeout))
+
 
 
     def run(self):
         # Put in run file, because later when obstacles are introduced, the new position to be navigated to will be updated continuously
         # Publishing is done post transformation from map into base frame 
         while not rospy.is_shutdown():
-            
-            ##PUBLISH NAV GOAL COORDINATE
-            pose_stamped = PoseStamped()
-            pose_stamped.header.stamp = rospy.Time.now()
-            pose_stamped.header.frame_id = self.currentframe
 
-            ##SECTION NEEDS TO BE REPLACED WITH PATH PLANNING FUNCTION WITH PUBLISHES ONTO MOVE_BASE_SIMPLE/GOAL
-            # point = Point() 
-            # point.x = 1
-            # point.y = 2
-            # point.z = 0
-
-            # pose_stamped.pose.position = point
-            # self.publisher_goal.publish(pose_stamped)
+            detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, self.detectedPoseStamped.header.stamp, self.timeout)
+            self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, detectedTransformStamped)
 
             ##PUBLISH TWIST SECTION
             twist = TwistStamped()  
             twist.header.stamp = self.transformedPose.header.stamp 
             twist.header.frame_id = self.transformedPose.header.frame_id 
 
-            error = math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
             error_dist = math.sqrt(self.transformedPose.pose.position.x**2 + self.transformedPose.pose.position.y**2)
-            print(error)
-            if error > 0.1 and not self.first_rot:
+            self.error = math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
+            print(abs(self.error))
+
+            if abs(self.error) > 0.1 and not self.first_rot:
                 twist.twist.angular.z = 0.2
                 twist.twist.linear.x = 0.0
                 self.publisher_twist.publish(twist)
             
             elif not self.first_rot:
-                self.first_rot = True
+                twist.twist.angular.z = 0.0
+                twist.twist.linear.x = 0.0
+                self.publisher_twist.publish(twist)
 
 
             
