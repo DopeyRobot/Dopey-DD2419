@@ -16,8 +16,8 @@ from torchvision.datasets import CocoDetection
 import utils
 from detector import Detector
 
-NUM_CATEGORIES = 15
-VALIDATION_ITERATION = 100
+NUM_CATEGORIES = 8
+VALIDATION_ITERATION = 10000000
 NUM_ITERATIONS = 10000
 LEARNING_RATE = 1e-4
 WEIGHT_POS = 1
@@ -76,20 +76,20 @@ def train(device: str = "cpu") -> None:
     wandb.watch(detector)
 
     dataset = CocoDetection(
-        root="./dd2419_coco/training",
-        annFile="./dd2419_coco/annotations/training.json",
+        root="./data/",
+        annFile="./annotations/merged.json",
         transforms=detector.input_transform,
     )
-    val_dataset = CocoDetection(
-        root="./dd2419_coco/validation",
-        annFile="./dd2419_coco/annotations/validation.json",
-        transforms=detector.input_transform,
-    )
+    # val_dataset = CocoDetection(
+    #     root="./dd2419_coco/validation",
+    #     annFile="./dd2419_coco/annotations/validation.json",
+    #     transforms=detector.input_transform,
+    # )
 
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=BATCH_SIZE, shuffle=True
     )
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=BATCH_SIZE)
+    # val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=BATCH_SIZE)
 
     # training params
     wandb.config.max_iterations = NUM_ITERATIONS
@@ -158,8 +158,8 @@ def train(device: str = "cpu") -> None:
             )
 
             # Validate every N iterations
-            if current_iteration % VALIDATION_ITERATION == 0:
-                validate(detector, val_dataloader, current_iteration, device)
+            # if current_iteration % VALIDATION_ITERATION == 0:
+            #     validate(detector, val_dataloader, current_iteration, device)
 
             # generate visualization every N iterations
             if current_iteration % 250 == 0 and show_test_images:
