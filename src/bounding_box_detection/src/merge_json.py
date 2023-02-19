@@ -1,14 +1,14 @@
 import json
 
 JSON_PATHS = [
-    "c0.json",
-    "c1.json",
-    "c2.json",
-    "c3.json",
-    "c4.json",
-    "c5.json",
-    "c6.json",
-    "c7.json",
+    "./annotations/c0.json",
+    "./annotations/c1.json",
+    "./annotations/c2.json",
+    "./annotations/c3.json",
+    "./annotations/c4.json",
+    "./annotations/c5.json",
+    "./annotations/c6.json",
+    "./annotations/c7.json",
 ]
 
 CATEGORY_IDS = {
@@ -35,7 +35,7 @@ CATEGORIES = [
 MERGED_JSON_PATH = "merged.json"
 
 
-def update_file_paths(json_data: dict, image_path: str) -> None:
+def update_images(json_data: dict, image_path: str) -> None:
     """Update the file paths in the json file."""
     for image in json_data["images"]:
         image["file_name"] = image_path + "/" + image["file_name"]
@@ -96,7 +96,7 @@ def merge_json(json_paths: list, merged_json_path: str) -> None:
     for json_path in json_paths:
         with open(json_path, "r", encoding="utf-8") as f:
             json_data = json.load(f)
-        update_file_paths(json_data, json_path.split(".")[0])
+        update_images(json_data, json_path.split(".")[0])
         offset_image_ids(json_data, image_offset)
         offset_annotation_ids(
             json_data,
