@@ -12,7 +12,6 @@ from PIL import Image
 from pycocotools.cocoeval import COCOeval
 from torch import nn
 from torchvision.datasets import CocoDetection
-
 import utils
 from detector import Detector
 
@@ -178,11 +177,11 @@ def train(device: str = "cpu") -> None:
                 validate(detector, val_dataloader, current_iteration, device)
 
             # generate visualization every N iterations
-            if current_iteration % 250 == 0 and show_test_images:
+            if current_iteration % VALIDATION_ITERATION == 0 and show_test_images:
                 detector.eval()
                 with torch.no_grad():
                     out = detector(test_images).cpu()
-                    bbs = detector.decode_output(out, 0.5)
+                    bbs = detector.decode_output(out, 0.5, scale_bb=False)
 
                     for i, test_image in enumerate(test_images):
                         figure, ax = plt.subplots(1)
@@ -250,7 +249,12 @@ def validate(
             total_pos_mse += pos_mse
             total_neg_mse += neg_mse
             total_class_loss += class_loss
-            loss += WEIGHT_POS * pos_mse + WEIGHT_REG * reg_mse + WEIGHT_NEG * neg_mse
+            loss += (
+                WEIGHT_POS * pos_mse
+                + WEIGHT_REG * reg_mse
+                + WEIGHT_NEG * neg_mse
+                + WEIGHT_CLASS * class_loss
+            )
             imgs_bbs = detector.decode_output(val_out, topk=100)
             for img_bbs in imgs_bbs:
                 for img_bb in img_bbs:

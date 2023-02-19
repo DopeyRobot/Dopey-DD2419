@@ -59,7 +59,7 @@ class Detector(nn.Module):
         self.img_height = 480.0
         self.img_width = 640.0
 
-        self.raw_image_size = (1280, 70)
+        self.raw_image_size = (1280, 720)
         self.x_resize_factor = self.raw_image_size[0] / self.img_width
         self.y_resize_factor = self.raw_image_size[1] / self.img_height
 
@@ -77,11 +77,14 @@ class Detector(nn.Module):
         """
         features = self.features(inp)
         out = self.head(features)  # Linear (i.e., no) activation
-
         return out
 
     def decode_output(
-        self, out: torch.Tensor, threshold: Optional[float] = None, topk: int = 100
+        self,
+        out: torch.Tensor,
+        threshold: Optional[float] = None,
+        topk: int = 100,
+        scale_bb=True,
     ) -> List[List[BoundingBox]]:
         """Convert output to list of bounding boxes.
 
@@ -113,6 +116,7 @@ class Detector(nn.Module):
             # find cells with bounding box center
             if threshold is not None:
                 bb_indices = torch.nonzero(o[4, :, :] >= threshold)
+                print(torch.max(o[4, :, :]))
             else:
                 _, flattened_indices = torch.topk(o[4, :, :].flatten(), topk)
                 bb_indices = np.array(
@@ -136,22 +140,38 @@ class Detector(nn.Module):
                     - width / 2.0
                 ).item()
 
-                img_bbs.append(
-                    {
-                        "width": width * self.x_resize_factor,
-                        "height": height * self.y_resize_factor,
-                        "x": x * self.x_resize_factor,
-                        "y": y * self.y_resize_factor,
-                        "category_id": class_id.item(),
-                        "score": o[4, bb_index[0], bb_index[1]].item(),
-                    }
-                )
+                if scale_bb:
+
+                    img_bbs.append(
+                        {
+                            "width": width * self.x_resize_factor,
+                            "height": height * self.y_resize_factor,
+                            "x": x * self.x_resize_factor,
+                            "y": y * self.y_resize_factor,
+                            "category_id": class_id.item(),
+                            "score": o[4, bb_index[0], bb_index[1]].item(),
+                        }
+                    )
+                else:
+
+                    img_bbs.append(
+                        {
+                            "width": width,
+                            "height": height,
+                            "x": x,
+                            "y": y,
+                            "category_id": class_id.item(),
+                            "score": o[4, bb_index[0], bb_index[1]].item(),
+                        }
+                    )
             bbs.append(img_bbs)
 
         return bbs
 
     def input_transform(
-        self, image: Image, anns: List, image_size=(1280, 720)
+        self,
+        image: Image,
+        anns: List,
     ) -> Tuple[torch.Tensor]:
         """Prepare image and targets on loading.
 
