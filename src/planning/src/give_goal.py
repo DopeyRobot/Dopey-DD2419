@@ -14,13 +14,15 @@ class planning():
     def __init__(self):
 
         self.Kp = 0.04
-        self.Ki = 0.02
+        self.Ki = 0.0009
         self.Kd = 0.01
         self.integral_error = 0.0
+        self.integral_error_dist = 0.0
         self.prev_error = 0.0
-        self.angle_threshold = 0.3
+        self.angle_threshold = 0.1
         self.distance_threshold = 0.1
         self.first_rot = False
+        self.first_lin = False
         self.error = 0.0
         self.detectedPoseStamped = PoseStamped()
         self.detectedTransformStamped = TransformStamped()
@@ -48,7 +50,6 @@ class planning():
     def callback(self, msg):
         ##INPUT MSG: POSE STAMPED
         print(f"Check 2 : callback entered")
-        
         self.detectedPoseStamped.header.stamp = msg.header.stamp
         self.detectedPoseStamped.header.frame_id = msg.header.frame_id
         self.detectedPoseStamped.pose = msg.pose
@@ -57,8 +58,8 @@ class planning():
             print(f"Check 3 : transform found")
 
             rospy.loginfo(f"Transform between target frame: {self.targetframe} and current frame: {self.currentframe} found")
-            detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, self.detectedPoseStamped.header.stamp, self.timeout)
-            self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, detectedTransformStamped)
+            self.detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, self.detectedPoseStamped.header.stamp, self.timeout)
+            self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, self.detectedTransformStamped)
 
             print(f"Check 4: pose transformed")
     
@@ -71,9 +72,9 @@ class planning():
         # Put in run file, because later when obstacles are introduced, the new position to be navigated to will be updated continuously
         # Publishing is done post transformation from map into base frame 
         while not rospy.is_shutdown():
-
-            detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, self.detectedPoseStamped.header.stamp, self.timeout)
-            self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, detectedTransformStamped)
+  
+            self.detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, self.detectedPoseStamped.header.stamp, self.timeout)
+            self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, self.detectedTransformStamped)
 
             ##PUBLISH TWIST SECTION
             twist = TwistStamped()  
@@ -82,20 +83,46 @@ class planning():
 
             error_dist = math.sqrt(self.transformedPose.pose.position.x**2 + self.transformedPose.pose.position.y**2)
             self.error = math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
-            print(abs(self.error))
+            print('error dist', error_dist)
 
-            if abs(self.error) > 0.1 and not self.first_rot:
-                twist.twist.angular.z = 0.2
+            proportional_output = self.Kp * abs(self.error)
+            proportional_output_dist = self.Kp * error_dist
+
+            self.integral_error += self.error
+            integral_output = self.Ki * self.integral_error
+
+            self.integral_error_dist += error_dist
+            integral_output_dist = self.Ki * self.integral_error_dist
+
+            total_output = proportional_output + integral_output
+            total_output_dist = proportional_output_dist + integral_output_dist
+            print('error: ', abs(self.error))
+
+            if abs(self.error) > self.angle_threshold :
+                twist.twist.angular.z = total_output 
                 twist.twist.linear.x = 0.0
                 self.publisher_twist.publish(twist)
-            
-            elif not self.first_rot:
+             
+            else:
+                print('Correct angle')
+                self.angle_threshold = 0.5
                 twist.twist.angular.z = 0.0
                 twist.twist.linear.x = 0.0
                 self.publisher_twist.publish(twist)
 
+                if error_dist > 0.1:
+                    twist.twist.angular.z = 0.0
+                    twist.twist.linear.x = total_output_dist
+                    self.publisher_twist.publish(twist)
+                else:
+                    print('Correct pose')
+                    self.angle_threshold = 0.1
+                    twist.twist.angular.z = 0.0
+                    twist.twist.linear.x = 0.0
+                    self.publisher_twist.publish(twist)
 
-            
+                
+
             self.rate.sleep()
 
             
