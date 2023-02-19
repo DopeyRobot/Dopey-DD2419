@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple, TypedDict
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from PIL import Image
 from torchvision import models, transforms
 
@@ -45,7 +46,7 @@ class Detector(nn.Module):
         self.features = models.mobilenet_v2(pretrained=True).features
         # output of mobilenet_v2 will be 1280x15x20 for 480x640 input images
 
-        self.head = nn.Conv2d(in_channels=1280, out_channels=5, kernel_size=1)
+        self.head = nn.Conv2d(in_channels=1280, out_channels=13, kernel_size=1)
         # 1x1 Convolution to reduce channels to out_channels without changing H and W
 
         # 1280x15x20 -> 5x15x20, where each element 5 channel tuple corresponds to
@@ -57,6 +58,10 @@ class Detector(nn.Module):
         self.out_cells_y = 15
         self.img_height = 480.0
         self.img_width = 640.0
+
+        self.raw_image_size = (1280, 70)
+        self.x_resize_factor = self.raw_image_size[0] / self.img_width
+        self.y_resize_factor = self.raw_image_size[1] / self.img_height
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -117,6 +122,7 @@ class Detector(nn.Module):
             # loop over all cells with bounding box center
             for bb_index in bb_indices:
                 bb_coeffs = o[0:4, bb_index[0], bb_index[1]]
+                class_id = torch.argmax(o[5:, bb_index[0], bb_index[1]])
 
                 # decode bounding box size and position
                 width = self.img_width * abs(bb_coeffs[2].item())
@@ -132,10 +138,11 @@ class Detector(nn.Module):
 
                 img_bbs.append(
                     {
-                        "width": width,
-                        "height": height,
-                        "x": x,
-                        "y": y,
+                        "width": width * self.x_resize_factor,
+                        "height": height * self.y_resize_factor,
+                        "x": x * self.x_resize_factor,
+                        "y": y * self.y_resize_factor,
+                        "category_id": class_id.item(),
                         "score": o[4, bb_index[0], bb_index[1]].item(),
                     }
                 )
@@ -165,8 +172,6 @@ class Detector(nn.Module):
                     Shape (5, self.out_cells_y, self.out_cells_x).
         """
         # Convert PIL.Image to torch.Tensor
-        x_resize_factor = image_size[0] / self.img_width
-        y_resize_factor = image_size[1] / self.img_height
 
         target_size = (
             int(self.img_height),
@@ -186,12 +191,17 @@ class Detector(nn.Module):
 
         # If there is no bb, the first 4 channels will not influence the loss
         # -> can be any number (will be kept at 0)
-        target = torch.zeros(5, self.out_cells_y, self.out_cells_x)
+        target = torch.zeros(13, self.out_cells_y, self.out_cells_x)
         for ann in anns:
-            x = ann["bbox"][0] / x_resize_factor
-            y = ann["bbox"][1] / y_resize_factor
-            width = ann["bbox"][2] / x_resize_factor
-            height = ann["bbox"][3] / y_resize_factor
+            x = ann["bbox"][0] / self.x_resize_factor
+            y = ann["bbox"][1] / self.y_resize_factor
+            width = ann["bbox"][2] / self.x_resize_factor
+            height = ann["bbox"][3] / self.y_resize_factor
+
+            class_id = int(ann["category_id"])
+            one_hot_encoding = F.one_hot(
+                torch.tensor([class_id]), num_classes=8
+            ).squeeze()
 
             x_center = x + width / 2.0
             y_center = y + height / 2.0
@@ -212,5 +222,6 @@ class Detector(nn.Module):
             target[1, y_ind, x_ind] = y_cell_pos
             target[2, y_ind, x_ind] = rel_width
             target[3, y_ind, x_ind] = rel_height
+            target[5:, y_ind, x_ind] = one_hot_encoding
 
         return image, target
