@@ -143,7 +143,9 @@ class Detector(nn.Module):
 
         return bbs
 
-    def input_transform(self, image: Image, anns: List) -> Tuple[torch.Tensor]:
+    def input_transform(
+        self, image: Image, anns: List, image_size=(1280, 720)
+    ) -> Tuple[torch.Tensor]:
         """Prepare image and targets on loading.
 
         This function is called before an image is added to a batch.
@@ -163,6 +165,14 @@ class Detector(nn.Module):
                     Shape (5, self.out_cells_y, self.out_cells_x).
         """
         # Convert PIL.Image to torch.Tensor
+        x_resize_factor = image_size[0] / self.img_width
+        y_resize_factor = image_size[1] / self.img_height
+
+        target_size = (
+            int(self.img_height),
+            int(self.img_width),
+        )
+        image = transforms.Resize(target_size)(image)
         image = transforms.ToTensor()(image)
         image = transforms.Normalize(
             mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
@@ -178,10 +188,10 @@ class Detector(nn.Module):
         # -> can be any number (will be kept at 0)
         target = torch.zeros(5, self.out_cells_y, self.out_cells_x)
         for ann in anns:
-            x = ann["bbox"][0]
-            y = ann["bbox"][1]
-            width = ann["bbox"][2]
-            height = ann["bbox"][3]
+            x = ann["bbox"][0] / x_resize_factor
+            y = ann["bbox"][1] / y_resize_factor
+            width = ann["bbox"][2] / x_resize_factor
+            height = ann["bbox"][3] / y_resize_factor
 
             x_center = x + width / 2.0
             y_center = y + height / 2.0
