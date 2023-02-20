@@ -24,6 +24,7 @@ WEIGHT_NEG = 1
 WEIGHT_REG = 1
 WEIGHT_CLASS = 1
 BATCH_SIZE = 8
+N_TEST_IMAGES = 16
 
 
 def compute_loss(
@@ -60,13 +61,9 @@ def compute_loss(
         target_batch[neg_indices[0], 4, neg_indices[1], neg_indices[2]],
     )
 
-    pred_class_vector = prediction_batch[
-        pos_indices[0], 5:, pos_indices[1], pos_indices[2]
-    ]
-    target_class_vector = target_batch[
-        pos_indices[0], 5:, pos_indices[1], pos_indices[2]
-    ]
-    class_loss = nn.functional.cross_entropy(pred_class_vector, target_class_vector)
+    pred_class_vector = prediction_batch[:, 5:, :, :]
+    target_class_vector = target_batch[:, 5:, :, :]
+    class_loss = nn.CrossEntropyLoss()(pred_class_vector, target_class_vector)
 
     return reg_mse, pos_mse, neg_mse, class_loss
 
@@ -121,8 +118,8 @@ def train(device: str = "cpu") -> None:
     directory = "./test_images"
     if not os.path.exists(directory):
         os.makedirs(directory)
-    for file_name in sorted(os.listdir(directory)):
-        if file_name.endswith(".jpg"):
+    for file_name in sorted(os.listdir(directory))[:N_TEST_IMAGES]:
+        if file_name.endswith(".jpeg") or file_name.endswith(".jpg"):
             file_path = os.path.join(directory, file_name)
             test_image = Image.open(file_path)
             torch_image, _ = detector.input_transform(test_image, [])
