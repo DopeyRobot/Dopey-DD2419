@@ -7,6 +7,16 @@ import torch
 
 from detector import BoundingBox
 
+CLASS_DICT = {
+    0 : "Binky",
+    1: "Hugo",
+    2: "Slush",
+    3: "Muddles",
+    4:"Kiki",
+    5:"Oakie",
+    6:"Cube",
+    7:"Ball"
+}
 
 def add_bounding_boxes(
     ax: plt.Axes, bbs: List[BoundingBox], category_dict: Dict[int, str] = None
@@ -39,7 +49,7 @@ def add_bounding_boxes(
         plt.text(
             bb["x"],
             bb["y"],
-            str(bb["category_id"]),
+            CLASS_DICT[bb["category_id"]],
         )
 
 

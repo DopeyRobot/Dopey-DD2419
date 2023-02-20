@@ -116,7 +116,6 @@ class Detector(nn.Module):
             # find cells with bounding box center
             if threshold is not None:
                 bb_indices = torch.nonzero(o[4, :, :] >= threshold)
-                print(torch.max(o[4, :, :]))
             else:
                 _, flattened_indices = torch.topk(o[4, :, :].flatten(), topk)
                 bb_indices = np.array(

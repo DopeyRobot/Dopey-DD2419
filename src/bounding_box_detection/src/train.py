@@ -22,7 +22,7 @@ LEARNING_RATE = 1e-4
 WEIGHT_POS = 1
 WEIGHT_NEG = 1
 WEIGHT_REG = 1
-WEIGHT_CLASS = 1
+WEIGHT_CLASS = 10
 BATCH_SIZE = 8
 N_TEST_IMAGES = 16
 
@@ -114,6 +114,7 @@ def train(device: str = "cpu") -> None:
     # load test images
     # these will be evaluated in regular intervals
     test_images = []
+    orig_test_images = []
     show_test_images = False
     directory = "./test_images"
     if not os.path.exists(directory):
@@ -122,6 +123,7 @@ def train(device: str = "cpu") -> None:
         if file_name.endswith(".jpeg") or file_name.endswith(".jpg"):
             file_path = os.path.join(directory, file_name)
             test_image = Image.open(file_path)
+            orig_test_images.append(test_image)
             torch_image, _ = detector.input_transform(test_image, [])
             test_images.append(torch_image)
 
@@ -178,16 +180,16 @@ def train(device: str = "cpu") -> None:
                 detector.eval()
                 with torch.no_grad():
                     out = detector(test_images).cpu()
-                    bbs = detector.decode_output(out, 0.5, scale_bb=False)
+                    bbs = detector.decode_output(out, 0.5, scale_bb=True)
 
-                    for i, test_image in enumerate(test_images):
+                    for i, test_image in enumerate(orig_test_images):
                         figure, ax = plt.subplots(1)
-                        plt.imshow(test_image.cpu().permute(1, 2, 0))
+                        plt.imshow(test_image)
                         plt.imshow(
                             out[i, 4, :, :],
                             interpolation="nearest",
-                            extent=(0, 640, 480, 0),
-                            alpha=0.7,
+                            extent=(0, 1280, 720, 0),
+                            alpha=0.3,
                         )
 
                         # add bounding boxes
