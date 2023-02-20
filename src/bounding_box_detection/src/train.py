@@ -236,7 +236,6 @@ def validate(
             total_pos_mse
         ) = total_reg_mse = total_neg_mse = total_class_loss = loss = 0
         image_id = ann_id = 0
-        accuracy = 0
         for val_img_batch, val_target_batch in val_dataloader:
             val_img_batch = val_img_batch.to(device)
             val_target_batch = val_target_batch.to(device)
