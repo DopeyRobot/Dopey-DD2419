@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import rospy
+from geometry_msgs.msg import TransformStamped
 from robp_msgs.msg import Encoders
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point, TwistStamped, TransformStamped
@@ -12,7 +13,7 @@ class planning():
 
     def __init__(self):
 
-        self.Kp = 0.04
+        self.Kp = 0.004
         self.Ki = 0.0009
         self.Kd = 0.01
         self.integral_error = 0.0
@@ -30,7 +31,7 @@ class planning():
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.br = tf2_ros.TransformBroadcaster()
-        
+
         self.f = 10
         self.rate = rospy.Rate(self.f)
         self.transformedPose = PoseStamped() #init PoseStamped message type
@@ -61,7 +62,7 @@ class planning():
             self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, self.detectedTransformStamped)
 
             print(f"Check 4: pose transformed")
-    
+
         print("TimeStamp:", self.detectedPoseStamped.header.stamp)
         print("Output CanTransform ",self.tf_buffer.can_transform(self.targetframe, self.detectedPoseStamped.header.frame_id, self.detectedPoseStamped.header.stamp, self.timeout))
 
@@ -71,7 +72,7 @@ class planning():
         # Put in run file, because later when obstacles are introduced, the new position to be navigated to will be updated continuously
         # Publishing is done post transformation from map into base frame 
         while not rospy.is_shutdown():
-  
+
             self.detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, self.detectedPoseStamped.header.stamp, self.timeout)
             self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, self.detectedTransformStamped)
 
@@ -84,7 +85,7 @@ class planning():
             self.error = math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
             print('error dist', error_dist)
 
-            proportional_output = self.Kp * abs(self.error)
+            proportional_output = self.Kp * self.error
             proportional_output_dist = self.Kp * error_dist
 
             self.integral_error += self.error
@@ -94,14 +95,14 @@ class planning():
             integral_output_dist = self.Ki * self.integral_error_dist
 
             total_output = proportional_output + integral_output
-            total_output_dist = proportional_output_dist + integral_output_dist
+            total_output_dist = proportional_output_dist 
             print('error: ', abs(self.error))
 
             if abs(self.error) > self.angle_threshold :
                 twist.twist.angular.z = total_output 
                 twist.twist.linear.x = 0.0
                 self.publisher_twist.publish(twist)
-             
+
             else:
                 print('Correct angle')
                 self.angle_threshold = 0.5
@@ -120,11 +121,12 @@ class planning():
                     twist.twist.linear.x = 0.0
                     self.publisher_twist.publish(twist)
 
-                
+
 
             self.rate.sleep()
 
-            
+
+
 if __name__ == "__main__":
     try:
         rospy.init_node("planning") 
@@ -132,8 +134,3 @@ if __name__ == "__main__":
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
-
-
-# Wrap run() with tf2_ros.TransformException exception
-# use ospy.Time.now() for the header.stamp in twist
-# loop to break 
