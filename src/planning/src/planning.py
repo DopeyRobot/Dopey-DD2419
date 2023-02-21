@@ -78,9 +78,6 @@ class planning():
         # Publishing is done post transformation from map into base frame 
         while not rospy.is_shutdown():
 
-            self.detectedTransformStamped = self.tf_buffer.lookup_transform(self.targetframe, self.currentframe, self.detectedPoseStamped.header.stamp, self.timeout)
-            self.transformedPose = tf2_geometry_msgs.do_transform_pose(self.detectedPoseStamped, self.detectedTransformStamped)
-
             ##PUBLISH TWIST SECTION
             twist = TwistStamped()  
             twist.header.stamp = self.transformedPose.header.stamp 
@@ -100,7 +97,7 @@ class planning():
             integral_output_dist = self.Ki * self.integral_error_dist
 
             total_output = proportional_output + integral_output
-            total_output_dist = proportional_output_dist 
+            total_output_dist = proportional_output_dist + integral_output_dist
             print('error: ', abs(self.error))
 
             if abs(self.error) > self.angle_threshold:
