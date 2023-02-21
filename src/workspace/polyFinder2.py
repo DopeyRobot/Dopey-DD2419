@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 class Workspace():
     def __init__(self):
+        self.verbose = 0
         self.f = 10
         self.rate = rospy.Rate(self.f)
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
@@ -19,34 +20,47 @@ class Workspace():
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
 
-        self.p = [-1.4, 2] ##REPLACE WITH CURRENT LOCATION OF THE ROBOT
+        self.p = [500,500] ##REPLACE WITH CURRENT LOCATION OF THE ROBOT
         self.pinf = [10000, self.p[1]]
         self.run()
 
     def direction(self, A, B, C):
-        dir = (C[1] - A[1])*(B[0] - A[0]) - (B[1]- A[1])* (C[0]- A[0])
+        # find the orientation of 3 points
+        # 0 : collinear points
+        # 1 : clockwise 
+        # 2 : counterclockwise 
+        dir = (B[1]- A[1])*(C[0] - B[0]) - (B[0]-A[0])*(C[1]-B[1])
+        # dir = (C[1] - A[1])*(B[0] - A[0]) - (B[1]- A[1])* (C[0]- A[0])
+        # if self.verbose: 
+        #     print(f"Given Orientation value:{dir}")
         if dir == 0:
             #collinear 
+            if self.verbose:
+                print(f"{A}, {B}, {C}: collinear, given orientation value: {dir}")
             return 0
         elif dir > 0:
-            #counterclockwise 
+            #clockwise
+            if self.verbose:
+                print(f"{A}, {B}, {C}: clockwise, given orientation value: {dir}") 
             return 1
         else:
+            if self.verbose:
+                print(f"{A}, {B}, {C}: anticlockwise, given orientation value: {dir}")
             return 2
     
     def checkonline(self, p1, p2, p3):
-        #check if p1, lies on line segment with points p2, p3
-
-        if (p1[0] <= max(p2[0], p3[0]) and p1[0] <= min(p2[0], p3[0]) and p1[1] <= max(p2[1], p3[1]) and p1[1] <= min(p2[1], p3[1])):
-            return True        
-        
-        # if (p1[0]== p2[0] or p1[0] == p3[0]) and (p1[1] == p2[1] or p1[1] == p3[1]):
-        #     return True
-        else:
-            return False
+        # given collinear points p1, p2, p3, check if p2, lies on line segment p1p3
+        if ((p2[0] <= max(p1[0], p3[0])) and (p2[0] >= min(p1[0], p3[0])) and
+            (p2[1] <= max(p1[1], p3[1])) and (p2[1] >= min(p1[1], p3[1]))):
+            if self.verbose:
+                print(f"given collinear points: p2={p2} lies on p1= {p1} and p3= {p3}")
+            return True
+        return False
 
     
     def checkintersection(self, A, B, C, D):
+        if self.verbose:
+            print("Intersection exists")
         #ABCD points [x,y]
         #AB on line 1, CD on line 2
         # True if intersect
@@ -56,42 +70,64 @@ class Workspace():
         d4 = self.direction(C, D, B)
 
         if d1 != d2 and d3 != d4:
+            if self.verbose:
+                print(f"Intersection Reason: Different orientations for {A}, {B}, {C} and {A}, {B}, {D} || {C}, {D}, {A} and {C}, {D}, {B}")
             # different orientations imply intersection
             return True
-        if d1 == 0 and self.checkonline(C, A, B):
-            #if collinear, check if C is on AB
+        if d1 == 0 and self.checkonline(A, B, C):
+            # A, B, C collinear and B lies on segment AC
+            if self.verbose:
+                print(f"Intersection Reason: {A}, {B}, {C} collinear and {B} lies on {A}-{C} segement")
             return True
-        if d2 == 0 and self.checkonline(D, A, B):
+        if d2 == 0 and self.checkonline(A, B, D):
+            if self.verbose:
+                print(f"Intersection Reason: {A}, {B}, {D} collinear and {B} lies on {A}-{D} segement")
             return True
-        if d3 == 0 and self.checkonline(A, C, D):
+        if d3 == 0 and self.checkonline(C, D, A):
+            if self.verbose:
+                print(f"Intersection Reason: {C}, {D}, {A} collinear and {C} lies on {D}-{A} segement")
             return True
-        if d4 == 0 and self.checkonline(B, C, D):
+        if d4 == 0 and self.checkonline(C, D, B):
+            if self.verbose:
+                print(f"Intersection Reason: {C}, {D}, {B} collinear and {C} lies on {D}-{B} segement")
             return True
-
+        # return False if none of the cases are true
         return False
     
     def checkinsidepoly(self):
         n_edges = len(self.vertices)
-        print(self.vertices)
-        print(n_edges)
+        if self.verbose:
+            print("\n\n") 
+            print(f"vertices: {self.vertices}")
+            print(f"number of edges: {n_edges}")
         if n_edges < 3:
             return False
         i = 0
         count = 0
+        if self.verbose:
+            print(f"Current position of robot:{self.p}")
         while True:
             #find point of edge of polygon
             edge1 = self.vertices[i]
             edge2 = self.vertices[i + 1]
-            print(edge2)
-            if self.checkintersection(self.p, self.pinf, edge1, edge2):
-                #intersection exists
+            if self.verbose:
+                print(f"edge{i}:", edge1)
+                print(f"edge{i+1}:", edge2)
+                
+            if self.checkintersection(edge1, edge2, self.p, self.pinf):
+                #if the point is on the edge then its definitely inside aka return True
                 if self.direction(edge1, self.p, edge2) == 0:
                     return self.checkonline(self.p, edge1, edge2)
                 count += 1
-            print("before mod i:", i)
-            print("(i+1) % n_edges:", (i+1) % n_edges)
-            i = (i+2) % n_edges
-            print("after mod i:", i)
+                if self.verbose:
+                    print("intersection count:", count)
+            else:
+                if self.verbose:
+                    print("No intersection")
+
+            i = (i+1) % (n_edges-1)
+            if self.verbose:
+                print("new i:", i)
             if i == 0:
                 #break if it exceeds the edge count
                 break
