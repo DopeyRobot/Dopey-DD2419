@@ -8,15 +8,16 @@ import torch
 from detector import BoundingBox
 
 CLASS_DICT = {
-    0 : "Binky",
+    0: "Binky",
     1: "Hugo",
     2: "Slush",
     3: "Muddles",
-    4:"Kiki",
-    5:"Oakie",
-    6:"Cube",
-    7:"Ball"
+    4: "Kiki",
+    5: "Oakie",
+    6: "Cube",
+    7: "Ball",
 }
+
 
 def add_bounding_boxes(
     ax: plt.Axes, bbs: List[BoundingBox], category_dict: Dict[int, str] = None
@@ -45,12 +46,12 @@ def add_bounding_boxes(
         )
         ax.add_patch(rect)
 
-        # if category_dict is not None:
-        plt.text(
-            bb["x"],
-            bb["y"],
-            CLASS_DICT[bb["category_id"]],
-        )
+        if category_dict is not None:
+            plt.text(
+                bb["x"],
+                bb["y"],
+                CLASS_DICT[bb["category_id"]],
+            )
 
 
 def save_model(model: torch.nn.Module, path: str) -> None:
