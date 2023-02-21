@@ -228,15 +228,15 @@ class Detector(nn.Module):
                     A.PixelDropout(dropout_prob=0.002, p=0.1, per_channel=True),
                     A.ColorJitter(p=0.2),
                     A.Downscale(scale_min=0.85, scale_max=0.95, p=0.1),
-                    transforms.ToTensor(),
-                    transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                    ),
                 ],
                 bbox_params=A.BboxParams(format="coco"),
             )
             transformed = transform(image=image, bboxes=bboxes)
             image = transformed["image"]
+            image = transforms.ToTensor()(image)
+            image = transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            )(image)
             bboxes = transformed["bboxes"]
 
         # Convert bounding boxes to target format
