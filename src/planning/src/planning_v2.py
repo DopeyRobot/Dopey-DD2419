@@ -19,8 +19,6 @@ class planning_v2():
         ## Max angular velocity (rad/s)
         self.max_angular_velocity = 0.05
             
-
-
         sub_odom = rospy.Subscriber("/motor/encoders", Odometry, self.get_odom)
         sub_goal = rospy.Subscriber('move_base_simple/goal', PoseStamped, self.get_goal) 
         self.pub_twist = rospy.Publisher("/motor_controller/twist", TwistStamped, queue_size = 10)
@@ -43,7 +41,6 @@ class planning_v2():
 
 
     def get_goal(self, msg):
-        print('goal')
         self.goal = msg
         self.goal.pose.position.x = msg.pose.position.x
         self.goal.pose.position.y = msg.pose.position.y
@@ -52,21 +49,30 @@ class planning_v2():
     def run(self):
 
         while not rospy.is_shutdown():
-            
+    
             inc_x = self.goal.pose.position.x -self.x
             inc_y = self.goal.pose.position.y -self.y
+            print(self.theta)
 
+            distance_to_goal = (((inc_x)**2 +(inc_y)**2)**0.5)
             angle_to_goal = atan2(inc_y, inc_x)
             desired_heading = angle_to_goal - self.theta
-
-            self.twist.twist.angular.z = 4 * desired_heading
-            if self.twist.twist.angular.z > self.max_angular_velocity:
-                self.twist.twist.angular.z = self.max_angular_velocity
-
-            self.twist.twist.linear.x = 0.5 * sqrt(inc_x ** 2 + inc_y ** 2)
-            if self.twist.twist.linear.x > self.max_linear_velocity:
-                self.twist.twist.linear.x = self.max_linear_velocity
+            if abs(desired_heading) > 0.1:
+                self.twist.twist.linear.x = 0.0
+                self.twist.twist.angular.z = 0.1 #* desired_heading / abs(desired_heading)
             
+            else:
+                self.twist.twist.linear.x = 0.0
+                self.twist.twist.angular.z = 0.0
+
+                if distance_to_goal > 0.1:
+                    self.twist.twist.angular.z = 0.0
+                    self.twist.twist.linear.x = 0.2
+                else:
+                    self.twist.twist.linear.x = 0.0
+                    self.twist.twist.angular.z = 0.0
+
+                
             self.pub_twist.publish(self.twist)
 
         self.rate.sleep()
@@ -91,5 +97,13 @@ if __name__ == "__main__":
             else:
                 self.twist.twist.linear.x = 0.5
                 self.twist.twist.angular.z = 0.0
-                self.pub_twist.publish(self.twist)'''
+                self.pub_twist.publish(self.twist)
+                
+                            self.twist.twist.angular.z = 4 * desired_heading
+            if self.twist.twist.angular.z > self.max_angular_velocity:
+                self.twist.twist.angular.z = self.max_angular_velocity
+
+            self.twist.twist.linear.x = 0.5 * sqrt(inc_x ** 2 + inc_y ** 2)
+            if self.twist.twist.linear.x > self.max_linear_velocity:
+                self.twist.twist.linear.x = self.max_linear_velocity'''
         
