@@ -197,10 +197,16 @@ class Detector(nn.Module):
         labels = []
 
         for ann in anns:
-            x = ann["bbox"][0] / self.x_resize_factor
-            y = ann["bbox"][1] / self.y_resize_factor
-            width = ann["bbox"][2] / self.x_resize_factor
-            height = ann["bbox"][3] / self.y_resize_factor
+            if validation:
+                x = ann["bbox"][0] / self.x_resize_factor
+                y = ann["bbox"][1] / self.y_resize_factor
+                width = ann["bbox"][2] / self.x_resize_factor
+                height = ann["bbox"][3] / self.y_resize_factor
+            else:
+                x = ann["bbox"][0] 
+                y = ann["bbox"][1] 
+                width = ann["bbox"][2] 
+                height = ann["bbox"][3] 
             bboxes.append([x, y, width, height])
             labels.append(ann["category_id"])
 
@@ -229,15 +235,16 @@ class Detector(nn.Module):
                     A.ColorJitter(p=0.2),
                     A.Downscale(scale_min=0.85, scale_max=0.95, p=0.1),
                 ],
-                bbox_params=A.BboxParams(format="coco", label_fields=labels),
+                bbox_params=A.BboxParams(format="coco", label_fields=["class_labels"]),
             )
-            transformed = transform(image=np.asarray(image), bboxes=bboxes)
+            transformed = transform(image=np.asarray(image), bboxes = bboxes, class_labels=labels)
             image = transformed["image"]
             image = transforms.ToTensor()(image)
             image = transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
             )(image)
             bboxes = transformed["bboxes"]
+            labels= transformed["class_labels"]
 
         # Convert bounding boxes to target format
 
