@@ -202,7 +202,7 @@ class Detector(nn.Module):
             width = ann["bbox"][2] / self.x_resize_factor
             height = ann["bbox"][3] / self.y_resize_factor
             bboxes.append([x, y, width, height])
-            labels.append(int(ann["category_id"]))
+            labels.append(ann["category_id"])
 
         target_size = (
             int(self.img_height),
@@ -229,7 +229,7 @@ class Detector(nn.Module):
                     A.ColorJitter(p=0.2),
                     A.Downscale(scale_min=0.85, scale_max=0.95, p=0.1),
                 ],
-                bbox_params=A.BboxParams(format="coco"),
+                bbox_params=A.BboxParams(format="coco", label_fields=labels),
             )
             transformed = transform(image=np.asarray(image), bboxes=bboxes)
             image = transformed["image"]
@@ -250,7 +250,7 @@ class Detector(nn.Module):
         target = torch.zeros(13, self.out_cells_y, self.out_cells_x)
         for bbox, label in zip(bboxes, labels):
             x, y, width, height = bbox
-            one_hot_encoding = F.one_hot(torch.tensor([label]), num_classes=8).squeeze()
+            one_hot_encoding = F.one_hot(torch.tensor([int(label)]), num_classes=8).squeeze()
 
             x_center = x + width / 2.0
             y_center = y + height / 2.0
