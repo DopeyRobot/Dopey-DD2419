@@ -235,7 +235,9 @@ class Detector(nn.Module):
                 ],
                 bbox_params=A.BboxParams(format="coco"),
             )
-            image, bboxes = transform(image=np.asarray(image), bboxes=bboxes)
+            transformed = transform(image=image, bboxes=bboxes)
+            image = transformed["image"]
+            bboxes = transformed["bboxes"]
 
         # Convert bounding boxes to target format
 
