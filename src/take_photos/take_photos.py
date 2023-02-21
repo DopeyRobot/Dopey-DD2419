@@ -32,7 +32,7 @@ def image_callback(msg):
         print(e)
     else:
         # Save your OpenCV2 image as a jpeg 
-        cv2.imwrite(f'./src/take_photos/photos/dp_img{datetime.now().strftime("%f_%m_%d_%Y_%H_%M_%S")}.jpeg', cv2_img)
+        cv2.imwrite(f'./src/take_photos/photos/dp_img{datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f%")}.jpeg', cv2_img)
         
         counter += 1
 
