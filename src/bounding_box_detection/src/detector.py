@@ -227,13 +227,13 @@ class Detector(nn.Module):
             transform = A.Compose(
                 [
                     A.Resize(*target_size),
-                    A.GaussianBlur(blur_limit=(3, 5), p=0.1),
-                    A.MotionBlur((3, 15), p=0.1),
-                    A.ISONoise(intensity=(0.10, 1.0), p=0.1),
+                    A.MotionBlur((7, 17), p=0.15),
+                    A.ISONoise(intensity=(0.10, 1.0), p=0.2),
                     A.HorizontalFlip(p=0.5),
                     A.PixelDropout(dropout_prob=0.002, p=0.1, per_channel=True),
-                    A.ColorJitter(p=0.2),
+                    A.ColorJitter(p=0.2, hue = 0.05),
                     A.Downscale(scale_min=0.85, scale_max=0.95, p=0.1),
+                    A.augmentations.geometric.Affine(shear={"x": (-10, 10), "y": (0, 0)}, p=0.15, fit_output=False, mode=4),
                 ],
                 bbox_params=A.BboxParams(format="coco", label_fields=["class_labels"]),
             )

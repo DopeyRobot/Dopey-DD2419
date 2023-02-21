@@ -194,7 +194,7 @@ def train(device: str = "cpu") -> None:
                         )
 
                         # add bounding boxes
-                        utils.add_bounding_boxes(ax, bbs[i])
+                        utils.add_bounding_boxes(ax, bbs[i], utils.CLASS_DICT)
 
                         wandb.log(
                             {"test_img_{i}".format(i=i): figure}, step=current_iteration
