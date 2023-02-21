@@ -102,7 +102,7 @@ class planning():
 
             if abs(self.error) > self.angle_threshold:
                 twist.twist.angular.z = total_output 
-                twist.twist.linear.x = total_output_dist
+                twist.twist.linear.x = 0
                 if twist.twist.angular.z > self.max_angular_velocity:
                     total_output = self.max_angular_velocity
                 if twist.twist.linear.x > self.max_linear_velocity:
