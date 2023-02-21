@@ -13,13 +13,15 @@ class planning():
 
     def __init__(self):
 
-        self.Kp = 0.0007
-        self.Ki = 0.002
+        self.Kp = -0.13
+        self.Kp_dist = 0.02
+        self.Ki = 0.001
+        self.Ki_dist = 0.0002
         self.Kd = 0.03
         self.integral_error = 0.0
         self.integral_error_dist = 0.0
         self.prev_error = 0.0
-        self.angle_threshold = 0.1
+        self.angle_threshold = 0.2
         self.distance_threshold = 0.1
         self.first_rot = False
         self.first_lin = False
@@ -28,7 +30,7 @@ class planning():
         self.detectedTransformStamped = TransformStamped()
 
         ## Max linear velocity (m/s)
-        self.max_linear_velocity = 0.05
+        self.max_linear_velocity = 0.0001
         ## Max angular velocity (rad/s)
         self.max_angular_velocity = 0.05
 
@@ -37,7 +39,7 @@ class planning():
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.br = tf2_ros.TransformBroadcaster()
 
-        self.f = 4
+        self.f = 50
         self.rate = rospy.Rate(self.f)
         self.transformedPose = PoseStamped() #init PoseStamped message type
         self.targetframe = "base_link"
@@ -77,7 +79,6 @@ class planning():
         # Put in run file, because later when obstacles are introduced, the new position to be navigated to will be updated continuously
         # Publishing is done post transformation from map into base frame 
         while not rospy.is_shutdown():
-
             ##PUBLISH TWIST SECTION
             twist = TwistStamped()  
             twist.header.stamp = self.transformedPose.header.stamp 
@@ -85,34 +86,44 @@ class planning():
 
             error_dist = math.sqrt(self.transformedPose.pose.position.x**2 + self.transformedPose.pose.position.y**2)
             self.error = math.atan2(self.transformedPose.pose.position.y, self.transformedPose.pose.position.x)
-            #print('error dist', error_dist)
+            print('error dist', error_dist)
 
             proportional_output = self.Kp * self.error
-            proportional_output_dist = self.Kp * error_dist
+            proportional_output_dist = self.Kp_dist * error_dist
 
             self.integral_error += self.error
             integral_output = self.Ki * self.integral_error
 
             self.integral_error_dist += error_dist
-            integral_output_dist = self.Ki * self.integral_error_dist
+            integral_output_dist = self.Ki_dist * self.integral_error_dist
 
-            total_output = proportional_output + integral_output
+            total_output = proportional_output #+ integral_output
             total_output_dist = proportional_output_dist + integral_output_dist
-            print('error: ', abs(self.error))
-
+            print('error: ', self.error)
+      
             if abs(self.error) > self.angle_threshold:
                 twist.twist.angular.z = total_output 
+                print("output = ", total_output)
                 twist.twist.linear.x = 0
-                if twist.twist.angular.z > self.max_angular_velocity:
-                    total_output = self.max_angular_velocity
-                if twist.twist.linear.x > self.max_linear_velocity:
-                    total_output_dist = self.max_linear_velocity
-                    
+                self.publisher_twist.publish(twist)
+
+            elif error_dist > self.distance_threshold:
+                    print('Correct angle')
+                    self.angle_threshold = 0.5
+                    twist.twist.linear.x = total_output_dist
+                    twist.twist.angular.z = 0.0
+                    self.publisher_twist.publish(twist)
             else:
-                print('Correct angle')
-                twist.twist.linear.x = 0.0
-                twist.twist.angular.z = 0.0
-                rospy.sleep(10)
+                twist.twist.angular.z = 0
+                twist.twist.linear.x = 0
+                total_output = 0
+                total_output_dist = 0
+                self.publisher_twist.publish(twist)
+
+
+
+    
+                    
        
             self.publisher_twist.publish(twist)
             self.rate.sleep()

@@ -106,4 +106,37 @@ if __name__ == "__main__":
             self.twist.twist.linear.x = 0.5 * sqrt(inc_x ** 2 + inc_y ** 2)
             if self.twist.twist.linear.x > self.max_linear_velocity:
                 self.twist.twist.linear.x = self.max_linear_velocity'''
-        
+                '''
+            if abs(self.error) > self.angle_threshold :
+                twist.twist.angular.z = total_output 
+                twist.twist.linear.x = 0.0
+                self.publisher_twist.publish(twist)
+
+            else:
+                print('Correct angle')
+                self.angle_threshold = 0.5
+                twist.twist.angular.z = 0.0
+                twist.twist.linear.x = 0.0
+                self.publisher_twist.publish(twist)
+
+                if error_dist > 0.1:
+                    twist.twist.angular.z = 0.0
+                    twist.twist.linear.x = total_output_dist
+                    self.publisher_twist.publish(twist)
+                else:
+                    print('Correct pose')
+                    self.angle_threshold = 0.1
+                    twist.twist.angular.z = 0.0
+                    twist.twist.linear.x = 0.0
+                    self.publisher_twist.publish(twist)
+
+                                    if error_dist > 0.1:
+                    twist.twist.angular.z = 0.0
+                    twist.twist.linear.x = total_output_dist
+                    if twist.twist.linear.x > self.max_linear_velocity:
+                        total_output_dist = self.max_linear_velocity
+                    else:
+                        print('Correct pose')
+                        self.angle_threshold = 0.1
+                        twist.twist.angular.z = 0.0
+                        twist.twist.linear.x = 0.0
