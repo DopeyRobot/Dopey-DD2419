@@ -201,7 +201,7 @@ class Detector(nn.Module):
             y = ann["bbox"][1] / self.y_resize_factor
             width = ann["bbox"][2] / self.x_resize_factor
             height = ann["bbox"][3] / self.y_resize_factor
-            bboxes.append(x, y, width, height)
+            bboxes.append([x, y, width, height])
             labels.append(int(ann["category_id"]))
 
         target_size = (
@@ -231,7 +231,7 @@ class Detector(nn.Module):
                 ],
                 bbox_params=A.BboxParams(format="coco"),
             )
-            transformed = transform(image=image, bboxes=bboxes)
+            transformed = transform(image=np.asarray(image), bboxes=bboxes)
             image = transformed["image"]
             image = transforms.ToTensor()(image)
             image = transforms.Normalize(
