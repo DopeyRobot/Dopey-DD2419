@@ -21,6 +21,9 @@ transform = A.Compose(
         A.PixelDropout(dropout_prob=0.002, p=0.1, per_channel=True),
         A.ColorJitter(p=0.2),
         A.Downscale(scale_min=0.85, scale_max=0.95, p=0.1),
+        A.augmentations.geometric.Affine(
+            shear={"x": (-20, 20), "y": (0, 0)}, p=1, fit_output=True, mode=4
+        ),
     ],
     bbox_params=A.BboxParams(format="coco", label_fields=["class_labels"]),
 )
