@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
 from torchvision import models, transforms
+import albumentations as A
 
 
 class BoundingBox(TypedDict):
@@ -171,6 +172,7 @@ class Detector(nn.Module):
         self,
         image: Image,
         anns: List,
+        validation: bool = False,
     ) -> Tuple[torch.Tensor]:
         """Prepare image and targets on loading.
 
@@ -191,16 +193,45 @@ class Detector(nn.Module):
                     Shape (5, self.out_cells_y, self.out_cells_x).
         """
         # Convert PIL.Image to torch.Tensor
+        bboxes = []
+        labels = []
+
+        for ann in anns:
+            x = ann["bbox"][0] / self.x_resize_factor
+            y = ann["bbox"][1] / self.y_resize_factor
+            width = ann["bbox"][2] / self.x_resize_factor
+            height = ann["bbox"][3] / self.y_resize_factor
+            bboxes.append(x, y, width, height)
+            labels.append(int(ann["category_id"]))
 
         target_size = (
             int(self.img_height),
             int(self.img_width),
         )
-        image = transforms.Resize(target_size)(image)
-        image = transforms.ToTensor()(image)
-        image = transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )(image)
+
+        if validation:
+            image = transforms.Resize(target_size)(image)
+
+            image = transforms.ToTensor()(image)
+            image = transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            )(image)
+
+        else:
+            transform = A.Compose(
+                [
+                    A.Resize(*target_size),
+                    A.GaussianBlur(blur_limit=(3, 5), p=0.1),
+                    A.MotionBlur((3, 15), p=0.1),
+                    A.ISONoise(intensity=(0.10, 1.0), p=0.1),
+                    A.HorizontalFlip(p=0.5),
+                    A.PixelDropout(dropout_prob=0.002, p=0.1, per_channel=True),
+                    A.ColorJitter(p=0.2),
+                    A.Downscale(scale_min=0.85, scale_max=0.95, p=0.1),
+                ],
+                bbox_params=A.BboxParams(format="coco"),
+            )
+            image, bboxes = transform(image=image, bboxes=bboxes)
 
         # Convert bounding boxes to target format
 
@@ -211,16 +242,9 @@ class Detector(nn.Module):
         # If there is no bb, the first 4 channels will not influence the loss
         # -> can be any number (will be kept at 0)
         target = torch.zeros(13, self.out_cells_y, self.out_cells_x)
-        for ann in anns:
-            x = ann["bbox"][0] / self.x_resize_factor
-            y = ann["bbox"][1] / self.y_resize_factor
-            width = ann["bbox"][2] / self.x_resize_factor
-            height = ann["bbox"][3] / self.y_resize_factor
-
-            class_id = int(ann["category_id"])
-            one_hot_encoding = F.one_hot(
-                torch.tensor([class_id]), num_classes=8
-            ).squeeze()
+        for bbox, label in zip(bboxes, labels):
+            x, y, width, height = bbox
+            one_hot_encoding = F.one_hot(torch.tensor([label]), num_classes=8).squeeze()
 
             x_center = x + width / 2.0
             y_center = y + height / 2.0

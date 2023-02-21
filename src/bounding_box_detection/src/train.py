@@ -14,6 +14,7 @@ from torch import nn
 from torchvision.datasets import CocoDetection
 import utils
 from detector import Detector
+from functools import partial
 
 NUM_CATEGORIES = 8
 VALIDATION_ITERATION = 100
@@ -84,12 +85,12 @@ def train(device: str = "cpu") -> None:
     dataset = CocoDetection(
         root="./data/",
         annFile="./annotations/train.json",
-        transforms=detector.input_transform,
+        transforms=partial(detector.input_transform, validation=False),
     )
     val_dataset = CocoDetection(
         root="./data/",
         annFile="./annotations/val.json",
-        transforms=detector.input_transform,
+        transforms=partial(detector.input_transform, validation=True),
     )
 
     dataloader = torch.utils.data.DataLoader(
