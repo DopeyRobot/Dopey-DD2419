@@ -125,7 +125,7 @@ def train(device: str = "cpu") -> None:
             file_path = os.path.join(directory, file_name)
             test_image = Image.open(file_path)
             orig_test_images.append(test_image)
-            torch_image, _ = detector.input_transform(test_image, [])
+            torch_image, _ = detector.input_transform(test_image, [], validation=True)
             test_images.append(torch_image)
 
     if test_images:
