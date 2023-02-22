@@ -73,7 +73,10 @@ class OdometryCustom:
         odom.pose.pose.position.x = self.x
         odom.pose.pose.position.y = self.y
         odom.pose.pose.position.z = 0.0
-        odom.pose.pose.orientation = q
+        odom.pose.pose.orientation.x = q[0]
+        odom.pose.pose.orientation.y = q[1]
+        odom.pose.pose.orientation.z = q[2]
+        odom.pose.pose.orientation.w = q[3]
 
         odom.child_frame_id = "base_link"
         odom.twist.twist.linear.x = vdt*math.cos(self.yaw)/self.f

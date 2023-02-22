@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import Twist
 from robp_msgs.msg import DutyCycles, Encoders
 import math
 import numpy as np
@@ -12,14 +12,14 @@ class CartesianController:
         self.encoder_sub = rospy.Subscriber(
             "/motor/encoders", Encoders, self.encoder_callback
         )
-        self.twist_sub = rospy.Subscriber(twist_topic, TwistStamped, self.twist_callback)
+        self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.twist_callback)
 
         self.f = 10
         self.b = 0.3
         self.r = 0.04921
         self.ticks_per_rev = 3072
 
-        self.twist = TwistStamped()
+        self.twist = Twist()
         self.encoders = Encoders()
 
         self.int_error_left = 0
@@ -43,8 +43,8 @@ class CartesianController:
 
     def run(self):
         while not rospy.is_shutdown():
-            desired_w = self.twist.twist.angular.z
-            desired_v = self.twist.twist.linear.x
+            desired_w = self.twist.angular.z
+            desired_v = self.twist.linear.x
 
             w_left, w_right = self.translate_encoders()
 
