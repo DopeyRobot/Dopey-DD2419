@@ -32,7 +32,9 @@ class PoseService:
         self.close_gripper_service = rospy.Service(
             "gripper/close", GripStrength, self.close_gripper_callback
         )
-
+        self.pickup_routine_service = rospy.Service(
+            "pickup/full", Empty, self.pickup_routine_callback
+        )
         self.pose_service = rospy.Service(
             "pose_service", JointAngles, self.pose_service_callback
         )
@@ -90,6 +92,30 @@ class PoseService:
         self.publish_data(RefPoses.PICKUP_TRAY.value)
         return EmptyResponse()
 
+    def pickup_routine_callback(self, req:EmptyRequest) -> EmptyResponse:
+        rospy.loginfo("pickup routine started")
+        self.publish_data(RefPoses.HOME.value)
+        rospy.sleep(2)
+        rospy.loginfo("moving to front pickup zone")
+        self.publish_data(RefPoses.PREPICK_F.value)
+        rospy.sleep(2)
+        self.open_gripper_callback(EmptyRequest())
+        rospy.sleep(2)
+        rospy.loginfo("moving to pick")
+        self.publish_data(RefPoses.PICKUP_F.value)
+        rospy.sleep(2)
+        rospy.loginfo("closing gripper")
+        grip_req = GripStrength
+        grip_req.strength = "cube"
+        self.close_gripper_callback(grip_req)
+        rospy.sleep(2)
+        rospy.loginfo("going back home")
+        self.publish_data(RefPoses.HOME.value)
+        rospy.sleep(2)
+        return EmptyResponse()
+
+
+
     def publish_data(self, joint_data: JointData, time:int = 2000, include_gripper: bool = False):
         self.joint1_pub.publish(self.to_command_duration(joint_data.joint1, duration=time))
         self.joint2_pub.publish(self.to_command_duration(joint_data.joint2, duration=time))
@@ -114,7 +140,7 @@ class PoseService:
 
         return EmptyResponse()
 
-    def close_gripper_callback(self, req: EmptyRequest) -> EmptyResponse:
+    def close_gripper_callback(self, req: GripStrength) -> EmptyResponse:
         rospy.loginfo("Closing gripper")
         
         if req.strength == "cube":
