@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<launch>
+	<param name="/use_sim_time" value="true" />
+
+	<!-- run rviz -->
+	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find launch)/config/main.rviz" />
+
+	<!-- Initiating robot description and internal tf frame realstions -->
+	<param name="robot_description" command="$(find xacro)/xacro --inorder '$(find realsense2_description)/urdf/test_d435_camera.urdf.xacro' use_nominal_extrinsics:=false"/>
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+	<!-- <node name="static_tf" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 map odom" /> -->
+
+	<!-- launch the controller node -->
+	<node pkg="controller" type="controller.py" name="cartesian_controller_node" output="screen" />
+	<!-- launch the odometry node -->
+	<!-- <node pkg="odometry" type="odometry.py" name="odometry_node" output="screen" /> -->
+	<node pkg="localization" type="localization.py" name="localization_node" output="screen" />
+	
+	<!-- launch the aruco detector and RViz dissplayer node -->
+	<!-- <node pkg="aruco_detection" type="display_markers.py" name="display_markers_node" output="screen" /> -->
+
+	<node name="aruco" pkg="aruco_ros" type="marker_publisher">
+		<remap from="/camera_info" to="/camera/color/camera_info"/>
+		<remap from="/image" to="/camera/color/image_raw"/>
+		
+		<param name="image_is_rectified" value="True"/>
+		<param name="marker_size"        value="0.157"/> <!-- in m -->
+		<param name="reference_frame"    value="camera_color_optical_frame"/>   <!-- frame in which the marker pose will be refered -->
+		<param name="camera_frame"       value="camera_color_optical_frame"/>
+	</node>
+	
+</launch>
