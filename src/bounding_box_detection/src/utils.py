@@ -16,6 +16,7 @@ CLASS_DICT = {
     5: "Oakie",
     6: "Cube",
     7: "Ball",
+    8: "Box",
 }
 
 
