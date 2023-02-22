@@ -164,7 +164,7 @@ class Workspace():
             ## insert code for stopping motors/dutycycle
         else:
             # print("outside polygon")
-            # rospy.loginfo("Warning: robot outside workspace")
+            rospy.loginfo("Warning: robot outside workspace")
             self.dutyoff = True
 
         
@@ -188,9 +188,11 @@ class Workspace():
             duty_message = DutyCycles()
             posestamped_message = PoseStamped()
             if self.dutyoff:
-                posestamped_message.pose = self.robo_posestamped.pose
+                posestamped_message.pose = self.robo_posestamped.pose.pose
                 posestamped_message.header = self.robo_posestamped.header
+                posestamped_message.header.frame_id = "odom"
                 self.publisher_goal.publish(posestamped_message)
+                rospy.loginfo("new goal to avoid out")
                 # publish zero duty cycle 
             self.rate.sleep()
     
