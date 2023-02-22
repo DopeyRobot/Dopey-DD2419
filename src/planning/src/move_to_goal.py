@@ -17,6 +17,7 @@ class move_to_goal():
 
         self.Kp_ang = -0.05
         self.Ki_ang = -0.0003
+        self.Ki_ang = 0.3
         self.Kd_ang = 0.03
         self.Kp_dist = 0.06
         self.Ki_dist = 0.0002
