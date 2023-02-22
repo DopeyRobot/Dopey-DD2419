@@ -17,7 +17,7 @@ class Workspace():
         self.rate = rospy.Rate(self.f)
         self.publisher_dutycycle = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
-        self.subscriber_robopos = rospy.Subscriber("/estimated_pose", Odometry, self.callback)
+        self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.callback)
         self.frame_id = "map"
         self.vertices_df = pd.read_csv("~/Dopey_ws/Dopey-DD2419/src/workspace/example_workspace.tsv", sep="\t")
         self.vertices = self.vertices_df.values
