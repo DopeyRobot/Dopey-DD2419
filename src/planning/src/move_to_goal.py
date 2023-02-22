@@ -35,6 +35,7 @@ class move_to_goal():
         self.goal_pose = PoseStamped()
         #self.transformed_goal_pose = TransformStamped()
         self.transformed_goal_pose = PoseStamped()
+        self.goal = Point()
         self.transformed_goal_pose.pose.position.x = 100
         self.transformed_goal_pose.pose.position.y = 100
 
@@ -73,16 +74,26 @@ class move_to_goal():
         self.goal_theta -= math.pi
 
 
-
     def odom_callback(self, msg):
         self.odom = msg
         odom_q = self.odom.pose.pose.orientation
         (_, _, self.odom_theta) = euler_from_quaternion([odom_q.x, odom_q.y, odom_q.z, odom_q.w])
 
+    def get_goal(self,msg):
+
+        self.goal.x = 1
+        self.goal.y = 1
+
+        self.publisher_goal.publish(self.goal)
+
 
     def run(self):
 
         while not rospy.is_shutdown():
+
+            self.goal.x = 1
+            self.goal.y = 1
+            self.publisher_goal.publish(self.goal)
 
             self.error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
             self.error_ang = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
@@ -104,24 +115,16 @@ class move_to_goal():
 
             total_output_dist = proportional_output_dist #+ integral_output_dist
 
-            #print('error dist', self.error_dist)
-            #print(self.goal_theta)
-            #print('error: ', abs(error_ang2))
-   
             if not self.arrived2point:
                 if abs(self.error_ang) > self.threshold_ang:
-           
                     self.twist.angular.z = total_output_ang 
-
                     self.twist.linear.x = 0
     
                 elif self.error_dist > self.threshold_dist:
-          
                     self.twist.linear.x = total_output_dist
                     self.twist.angular.z = 0.0
 
                 else:
-          
                     self.twist.angular.z = 0
                     self.twist.linear.x = 0
                     total_output_ang = 0
