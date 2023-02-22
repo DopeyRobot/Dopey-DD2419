@@ -26,7 +26,7 @@ class Detection:
         # Convert ROS -> Open3D
         cloud = o3drh.rospc_to_o3dpc(msg)
 
-        # Downsample the point cloud to 2 cm
+        # Downsample the point cloud to 2 cm between points
         ds_cloud = cloud.voxel_down_sample(voxel_size=0.02)
 
 
@@ -43,8 +43,7 @@ class Detection:
         points = self.points[norm_and_height]
         cloud = o3d.geometry.PointCloud()
         cloud.points = o3d.utility.Vector3dVector(points)
-        labels = np.array(cloud.cluster_dbscan(eps=0.02, min_points=10)
-        )
+        labels = np.array(cloud.cluster_dbscan(eps=0.02, min_points=10))
         clusters = range(labels.max()+1)
 
         for cluster in clusters:
