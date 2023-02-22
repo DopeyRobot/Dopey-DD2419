@@ -28,8 +28,9 @@ class Workspace():
         self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
-        self.p = [2, 0] ##REPLACE WITH CURRENT LOCATION OF THE ROBOT
-        self.pinf = [10000, self.p[1]]
+        self.p = None
+        self.navgoal_pos = None
+        # self.pinf = [10000, self.p[1]]
         
         self.navgoalnew = False
         self.run()
@@ -39,6 +40,7 @@ class Workspace():
         self.navgoal.pose = navgoalmsg.pose.pose
         self.navgoal.header = navgoalmsg.header
         self.navgoal.header.frame_id = "odom"
+        self.navgoal_pos = [self.navgoal.pose.position.x, self.navgoal.pose.position.y]
     
     def checkpointinsidepoly(self, point_interest, point_infinity):
         # return 1 if inside polygon
@@ -254,24 +256,24 @@ class Workspace():
             point_type.x = vertice[0]
             point_type.y = vertice[1]
             point_list.append(point_type)
-        navgoal_pos = [self.navgoal.pose.position.x, self.navgoal.pose.position.y]
-        if (self.checkpointinsidepoly(navgoal_pos, [1000, navgoal_pos[1]])):
-            # navgoal inside polygon
-            if (self.checkpointinsidepoly(self.p, [1000, self.p[1]])):
-                self.dutyoff = False
-                if self.verbose:
-                    print("robot inside workspace")
-                ## insert code for stopping motors/dutycycle
+        if not (self.navgoal_pos is None or self.p is None): # fix since it should be done independently
+            if (self.checkpointinsidepoly(self.navgoal_pos, [1000, self.navgoal_pos[1]])):
+                # navgoal inside polygon
+                if (self.checkpointinsidepoly(self.p, [1000, self.p[1]])):
+                    self.dutyoff = False
+                    if self.verbose:
+                        print("robot inside workspace")
+                    ## insert code for stopping motors/dutycycle
+                else:
+                    if self.verbose:
+                        print("robot outside polygon")
+                    rospy.loginfo("Warning: robot outside workspace")
+                    self.dutyoff = True
             else:
+                #navgoal outside poly, publish new navgoal
+                self.navgoalnew = True
                 if self.verbose:
-                    print("robot outside polygon")
-                rospy.loginfo("Warning: robot outside workspace")
-                self.dutyoff = True
-        else:
-            #navgoal outside poly, publish new navgoal
-            self.navgoalnew = True
-            if self.verbose:
-                print("navgoal outside workspace")
+                    print("navgoal outside workspace")
 
         
         return point_list
