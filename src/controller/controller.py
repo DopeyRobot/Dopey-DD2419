@@ -108,7 +108,7 @@ class CartesianController:
         self.twist = data
 
         if self.verbose:
-            rospy.loginfo("Twist received: {}".format(self.twist.linear.x))
+            rospy.loginfo("Twist received: {}".format(self.twist.twist.linear.x))
 
 
 if __name__ == "__main__":
