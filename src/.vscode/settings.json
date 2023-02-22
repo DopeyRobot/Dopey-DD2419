@@ -3,5 +3,10 @@
         "/home/robot/dopey_ws/devel/lib/python3/dist-packages",
         "/home/robot/dd2419_ws/devel/lib/python3/dist-packages",
         "/opt/ros/noetic/lib/python3/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/robot/dopey_ws/devel/lib/python3/dist-packages",
+        "/home/robot/dd2419_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages"
     ]
 }
