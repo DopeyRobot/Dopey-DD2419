@@ -16,9 +16,9 @@ class move_to_goal():
     def __init__(self):
 
         self.Kp_ang = -0.05
-        self.Ki_ang = -0.0003
+        self.Ki_ang = -0.0002
         self.Kd_ang = 0.03
-        self.Kp_dist = 0.06
+        self.Kp_dist = 0.08
         self.Ki_dist = 0.0002
         self.Kp_ang2 = 0.03
         self.Ki_ang2 = 0.0
@@ -31,7 +31,8 @@ class move_to_goal():
         self.prev_error_ang = 0.0
         self._prev_error_dist = 0.0
 
-        self.threshold_ang = 0.1
+        self.threshold_ang1 = 0.3
+        self.threshold_ang2 = 0.1
         self.threshold_dist = 0.1
  
         self.goal_theta = 0.0
@@ -81,15 +82,16 @@ class move_to_goal():
 
         while not rospy.is_shutdown():
             if self.goal_pose:
+
                 self.goal_pose.header.frame_id = self.currentframe
                 self.goal_pose.header.stamp = rospy.Time.now()
                 self.transformed_goal_pose = self.tf_buffer.transform(self.goal_pose, self.targetframe, self.timeout)
-                rot_q = self.transformed_goal_pose.pose.orientation
+
+                rot_q = self.goal_pose.pose.orientation
                 (_, _, self.goal_theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
+
                 self.error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 self.error_ang = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
-
-                self.goal_theta -= (self.goal_theta + math.pi % 2*math.pi) -math.pi
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
@@ -111,49 +113,38 @@ class move_to_goal():
                 total_output_ang2 = proportional_output_ang2
 
                 total_output_dist = proportional_output_dist #+ integral_output_dist
-
-                #print('error dist', self.error_dist)
-                #print(self.goal_theta)
-                #print('error: ', abs(error_ang2))
-
-                
-
+            
                 if not self.arrived2point:
-                    if abs(self.error_ang) > self.threshold_ang:
-                        # rospy.loginfo("HERE1")
+                    if abs(self.error_ang) > self.threshold_ang1:
                         self.twist.angular.z = total_output_ang 
                         self.twist.linear.x = 0
         
                     elif self.error_dist > self.threshold_dist:
-                        # rospy.loginfo("HERE2")
+                        rospy.loginfo("Correct angle!")
                         self.twist.linear.x = total_output_dist
                         self.twist.angular.z = 0.0
 
                     else:
-                        # rospy.loginfo("HERE3")
+                        rospy.loginfo("Correct pose!")
                         self.twist.angular.z = 0
                         self.twist.linear.x = 0
                         total_output_ang = 0
                         total_output_dist = 0
                         self.arrived2point = True
                 else:
-                    if abs(error_ang2) > self.threshold_ang:
-                        # rospy.loginfo("HERE4")
-                        print(self.goal_theta-self.odom_theta)
+                    if abs(error_ang2) > self.threshold_ang2:
                         self.twist.linear.x = 0.0
                         self.twist.angular.z = total_output_ang2
                         self.rot_clear2 = False
 
                     else:
-                        # rospy.loginfo("HERE5")
+                        rospy.loginfo("Done")
                         self.twist.linear.x = 0.0
                         self.twist.angular.z = 0.0
 
 
                 self.publisher_twist.publish(self.twist)
             self.rate.sleep()
-
-
 
 if __name__ == "__main__":
     try:
