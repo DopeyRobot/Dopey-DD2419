@@ -3,7 +3,10 @@ Panels:
     Help Height: 114
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /Global Options1
+        - /TF1
+        - /TF1/Frames1
       Splitter Ratio: 0.7439024448394775
     Tree Height: 224
   - Class: rviz/Selection
@@ -94,6 +97,28 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        aruco/detected 1:
+          Value: true
+        base_link:
+          Value: true
+        camera_bottom_screw_frame:
+          Value: false
+        camera_color_frame:
+          Value: false
+        camera_color_optical_frame:
+          Value: false
+        camera_depth_frame:
+          Value: false
+        camera_depth_optical_frame:
+          Value: false
+        camera_link:
+          Value: false
+        imu_link:
+          Value: false
+        map:
+          Value: true
+        odom:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -101,7 +126,21 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          aruco/detected 1:
+            {}
+          odom:
+            base_link:
+              camera_bottom_screw_frame:
+                camera_link:
+                  camera_color_frame:
+                    camera_color_optical_frame:
+                      {}
+                  camera_depth_frame:
+                    camera_depth_optical_frame:
+                      {}
+            imu_link:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -161,7 +200,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: odom
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
@@ -185,7 +224,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 3.2615222930908203
+      Distance: 3.6023154258728027
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -193,17 +232,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.11741483211517334
-        Y: -0.022481471300125122
-        Z: 0
+        X: -0.9082237482070923
+        Y: 0.10375151038169861
+        Z: 3.0994415283203125e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6047976613044739
+      Pitch: 0.054797738790512085
       Target Frame: <Fixed Frame>
-      Yaw: 2.577242612838745
+      Yaw: 3.1204240322113037
     Saved: ~
 Window Geometry:
   ArUco:
