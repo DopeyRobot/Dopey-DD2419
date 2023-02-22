@@ -11,22 +11,119 @@ import matplotlib.pyplot as plt
 
 class Workspace():
     def __init__(self):
-        self.verbose = 0
+        self.verbose = 1
         self.f = 10
         self.rate = rospy.Rate(self.f)
+        self.navgoal = PoseStamped() #does that work?
         self.publisher_dutycycle = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
         self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.odom_callback)
         self.frame_id = "map"
-        self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
+
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
         self.dutyoff = False
+        self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
         self.p = [2, 0] ##REPLACE WITH CURRENT LOCATION OF THE ROBOT
         self.pinf = [10000, self.p[1]]
+        
+        self.navgoalnew = False
         self.run()
+    
+    def navgoal_callback(self, navgoalmsg):
+        self.navgoal = PoseStamped()
+        self.navgoal.pose = navgoalmsg.pose.pose
+        self.navgoal.header = navgoalmsg.header
+        self.navgoal.header.frame_id = "odom"
+    
+    def checkpointinsidepoly(self, point_interest, point_infinity):
+        # return 1 if inside polygon
+        n_edges = len(self.vertices)
+        if self.verbose:
+            print("\n\n") 
+            print(f"vertices: {self.vertices}")
+            print(f"number of edges: {n_edges}")
+        if n_edges < 3:
+            return False
+        i = 0
+        count = 0
+        if self.verbose:
+            print(f"Current position of robot:{point_interest}")
+        while True:
+            #find point of edge of polygon
+            edge1 = self.vertices[i]
+            edge2 = self.vertices[i + 1]
+            if self.verbose:
+                print(f"edge{i}:", edge1)
+                print(f"edge{i+1}:", edge2)
+                
+            if self.checkintersection(edge1, edge2, point_interest, point_infinity):
+                #if the point is on the edge then its definitely inside aka return True
+                if self.direction(edge1, point_interest, edge2) == 0:
+                    return self.checkonline(point_interest, edge1, edge2)
+                count += 1
+                if self.verbose:
+                    print("intersection count:", count)
+            else:
+                if self.verbose:
+                    print("No intersection")
+
+            i = (i+1) % (n_edges-1)
+            if self.verbose:
+                print("new i:", i)
+            if i == 0:
+                #break if it exceeds the edge count
+                break
+            # return 1 if odd number of intersection => inside
+            # return 0 if even number of intersections => outside 
+        return count & 1
+    
+
+        #subscribe to navgoal message & set boolean true if its outside, then overwrite new navgoal
+        navgoal_point = [self.navgoal.pose.position.x, self.navgoal.pose.position.y]
+        n_edges = len(self.vertices)
+        if self.verbose:
+            print("\n\n") 
+            print(f"vertices: {self.vertices}")
+            print(f"number of edges: {n_edges}")
+        if n_edges < 3:
+            return False
+        i = 0
+        count = 0
+        if self.verbose:
+            print(f"Current position of navgoal:{navgoal_point}")
+        while True:
+            #find point of edge of polygon
+            edge1 = self.vertices[i]
+            edge2 = self.vertices[i + 1]
+            if self.verbose:
+                print(f"edge{i}:", edge1)
+                print(f"edge{i+1}:", edge2)
+            pinf = [10000, ]
+            if self.checkintersection(edge1, edge2, navgoal_point, self.pinf):
+                #if the point is on the edge then its definitely inside aka return True
+                if self.direction(edge1, navgoal_point, edge2) == 0:
+                    return self.checkonline(navgoal_point, edge1, edge2)
+                count += 1
+                if self.verbose:
+                    print("intersection count:", count)
+            else:
+                if self.verbose:
+                    print("No intersection")
+
+            i = (i+1) % (n_edges-1)
+            if self.verbose:
+                print("new i:", i)
+            if i == 0:
+                #break if it exceeds the edge count
+                break
+            # return 1 if odd number of intersection => inside
+            # return 0 if even number of intersections => outside 
+        return count & 1
     
     def odom_callback(self, msg):
         self.robo_posestamped = msg
@@ -103,7 +200,7 @@ class Workspace():
         # return False if none of the cases are true
         return False
     
-    def checkinsidepoly(self):
+    # def checkroboinsidepoly(self):
         n_edges = len(self.vertices)
         if self.verbose:
             print("\n\n") 
@@ -157,15 +254,24 @@ class Workspace():
             point_type.x = vertice[0]
             point_type.y = vertice[1]
             point_list.append(point_type)
-        
-        if (self.checkinsidepoly()):
-            self.dutyoff = False
-            # print("inside polygon")
-            ## insert code for stopping motors/dutycycle
+        navgoal_pos = [self.navgoal.pose.position.x, self.navgoal.pose.position.y]
+        if (self.checkpointinsidepoly(navgoal_pos, [1000, navgoal_pos[1]])):
+            # navgoal inside polygon
+            if (self.checkpointinsidepoly(self.p, [1000, self.p[1]])):
+                self.dutyoff = False
+                if self.verbose:
+                    print("robot inside workspace")
+                ## insert code for stopping motors/dutycycle
+            else:
+                if self.verbose:
+                    print("robot outside polygon")
+                rospy.loginfo("Warning: robot outside workspace")
+                self.dutyoff = True
         else:
-            # print("outside polygon")
-            rospy.loginfo("Warning: robot outside workspace")
-            self.dutyoff = True
+            #navgoal outside poly, publish new navgoal
+            self.navgoalnew = True
+            if self.verbose:
+                print("navgoal outside workspace")
 
         
         return point_list
@@ -184,16 +290,17 @@ class Workspace():
             #print(poly_points)
             self.publisher_vertices.publish(poly_points)
 
-            # Duty Cycle Publisher
-            duty_message = DutyCycles()
+            # Nav Goal Publisher
             posestamped_message = PoseStamped()
-            if self.dutyoff:
+            if self.navgoalnew or self.dutyoff:
                 posestamped_message.pose = self.robo_posestamped.pose.pose
                 posestamped_message.header = self.robo_posestamped.header
                 posestamped_message.header.frame_id = "odom"
                 self.publisher_goal.publish(posestamped_message)
                 rospy.loginfo("new goal to avoid out")
                 # publish zero duty cycle 
+            
+            #Publish new navgoal 
             self.rate.sleep()
     
         
