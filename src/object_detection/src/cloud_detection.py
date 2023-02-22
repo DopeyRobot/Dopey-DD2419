@@ -37,8 +37,8 @@ class Detection:
         self.filter_points(msg.header.stamp)
 
     def filter_points(self, stamp):
-        norm_mask = np.linalg.norm(self.points, axis=1) < 0.9
-        height_mask = self.points[:, 1] < 0.04
+        norm_mask = np.linalg.norm(self.points, axis=1) < 0.5
+        height_mask = self.points[:, 1] < 0.101
         norm_and_height = np.logical_and(norm_mask, height_mask)
         points = self.points[norm_and_height]
         cloud = o3d.geometry.PointCloud()
@@ -64,7 +64,7 @@ class Detection:
                 pose.pose.orientation.w = 0.5
 
                 transformed_pose = self.buffer.transform(
-                    pose, "map", rospy.Duration(2)
+                    pose, "map", rospy.Duration(1)
                 )
                 t = TransformStamped()
                 t.header.stamp = transformed_pose.header.stamp
