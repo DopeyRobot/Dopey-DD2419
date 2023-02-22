@@ -1,0 +1,4 @@
+float64[] joints
+int32 time
+---
+std_msgs/Empty resp
