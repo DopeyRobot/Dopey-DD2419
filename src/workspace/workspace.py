@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import PolygonStamped, Point32
+from geometry_msgs.msg import PolygonStamped, Point32, PoseStamped
 from nav_msgs.msg import Odometry
 from robp_msgs.msg import DutyCycles
 import tf2_ros
 import math
 import pandas as pd
 import numpy as np
-from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
 
 class Workspace():
@@ -17,20 +16,22 @@ class Workspace():
         self.rate = rospy.Rate(self.f)
         self.publisher_dutycycle = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
-        self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.callback)
+        self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.odom_callback)
         self.frame_id = "map"
-        self.vertices_df = pd.read_csv("~/Dopey_ws/Dopey-DD2419/src/workspace/example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
         self.dutyoff = False
-
+        self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
+        self.robo_posestamped = Odometry()
         self.p = [2, 0] ##REPLACE WITH CURRENT LOCATION OF THE ROBOT
         self.pinf = [10000, self.p[1]]
         self.run()
     
-    def callback(self, msg):
+    def odom_callback(self, msg):
+        self.robo_posestamped = msg
         self.p[0] = msg.pose.pose.position.x
-        self.p[1] = msg.pose.pose.posiion.y
+        self.p[1] = msg.pose.pose.position.y
 
     def direction(self, A, B, C):
         # find the orientation of 3 points
@@ -159,11 +160,11 @@ class Workspace():
         
         if (self.checkinsidepoly()):
             self.dutyoff = False
-            print("inside polygon")
+            # print("inside polygon")
             ## insert code for stopping motors/dutycycle
         else:
-            print("outside polygon")
-            rospy.loginfo("Warning: robot outside workspace")
+            # print("outside polygon")
+            # rospy.loginfo("Warning: robot outside workspace")
             self.dutyoff = True
 
         
@@ -185,10 +186,11 @@ class Workspace():
 
             # Duty Cycle Publisher
             duty_message = DutyCycles()
+            posestamped_message = PoseStamped()
             if self.dutyoff:
-                duty_message.duty_cycle_left = 0
-                duty_message.duty_cycle_right = 0
-                self.publisher_dutycycle.publish(duty_message)
+                posestamped_message.pose = self.robo_posestamped.pose
+                posestamped_message.header = self.robo_posestamped.header
+                self.publisher_goal.publish(posestamped_message)
                 # publish zero duty cycle 
             self.rate.sleep()
     
