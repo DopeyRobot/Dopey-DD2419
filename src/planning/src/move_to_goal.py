@@ -110,18 +110,18 @@ class move_to_goal():
    
             if not self.arrived2point:
                 if abs(self.error_ang) > self.threshold_ang:
-                    print('HERE1')
+           
                     self.twist.angular.z = total_output_ang 
 
                     self.twist.linear.x = 0
     
                 elif self.error_dist > self.threshold_dist:
-                    print('HERE2')
+          
                     self.twist.linear.x = total_output_dist
                     self.twist.angular.z = 0.0
 
                 else:
-                    print('HERE3')
+          
                     self.twist.angular.z = 0
                     self.twist.linear.x = 0
                     total_output_ang = 0
@@ -129,14 +129,14 @@ class move_to_goal():
                     self.arrived2point = True
             else:
                 if abs(error_ang2) > self.threshold_ang:
-                    print('HERE4')
+                 
                     print(self.goal_theta-self.odom_theta)
                     self.twist.linear.x = 0.0
                     self.twist.angular.z = total_output_ang2
                     self.rot_clear2 = False
 
                 else:
-                    print('HERE5')
+        
                     self.twist.linear.x = 0.0
                     self.twist.angular.z = 0.0
 
