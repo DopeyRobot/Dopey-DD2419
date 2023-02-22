@@ -38,7 +38,7 @@ class move_to_goal():
         self.goal_theta = 0.0
         self.odom_theta = 0.0
         self.goal_pose = None
-        self.transformed_goal_pose = None #PoseStamped()
+        self.transformed_goal_pose = None 
 
         self.twist = Twist()  
         self.odom = Odometry()
