@@ -39,6 +39,7 @@ class IKService:
         if sol is not None:
             self.pose_service(sol.to_np_array(), 2000)
         else:
+            rospy.loginfo("couldn't solve pose")
             return
 
 if __name__ == "__main__":
