@@ -209,7 +209,7 @@ def train(device: str = "cpu") -> None:
     print("\nTraining completed (max iterations reached)")
 
     model_path = "{}.pt".format(run_name)
-    utils.save_model(detector, model_path)
+    torch.save(detector, model_path)
     wandb.save(model_path)
 
     print("Model weights saved at {}".format(model_path))
