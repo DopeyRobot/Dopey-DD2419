@@ -96,7 +96,13 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        aruco/detected 2:
+          Value: true
         base_link:
+          Value: true
+        camera_accel_frame:
+          Value: true
+        camera_accel_optical_frame:
           Value: true
         camera_bottom_screw_frame:
           Value: false
@@ -108,6 +114,18 @@ Visualization Manager:
           Value: false
         camera_depth_optical_frame:
           Value: false
+        camera_gyro_frame:
+          Value: true
+        camera_gyro_optical_frame:
+          Value: true
+        camera_infra1_frame:
+          Value: true
+        camera_infra1_optical_frame:
+          Value: true
+        camera_infra2_frame:
+          Value: true
+        camera_infra2_optical_frame:
+          Value: true
         camera_link:
           Value: false
         imu_link:
@@ -124,18 +142,32 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
+          aruco/detected 2:
+            {}
           odom:
             base_link:
               camera_bottom_screw_frame:
                 camera_link:
+                  camera_accel_frame:
+                    camera_accel_optical_frame:
+                      {}
                   camera_color_frame:
                     camera_color_optical_frame:
                       {}
                   camera_depth_frame:
                     camera_depth_optical_frame:
                       {}
-            imu_link:
-              {}
+                  camera_gyro_frame:
+                    camera_gyro_optical_frame:
+                      {}
+                  camera_infra1_frame:
+                    camera_infra1_optical_frame:
+                      {}
+                  camera_infra2_frame:
+                    camera_infra2_optical_frame:
+                      {}
+              imu_link:
+                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -211,7 +243,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: map
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Tools:
@@ -235,7 +267,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 9.355915069580078
+      Distance: 12.224857330322266
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -251,9 +283,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.054797738790512085
+      Pitch: -0.07020224630832672
       Target Frame: <Fixed Frame>
-      Yaw: 3.1204240322113037
+      Yaw: 2.480421304702759
     Saved: ~
 Window Geometry:
   ArUco:

@@ -19,8 +19,7 @@ class IMUState:
         
         #self.imu = None
 
-        encoder = EncoderState()
-        self.dt = encoder.dt
+        self.dt = EncoderState(None).dt
         self.v = None
         self.w = None
 

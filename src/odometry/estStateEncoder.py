@@ -27,7 +27,7 @@ class EncoderState:
 
         #Estimation 
         self.G = np.eye(2)
-        self.R = np.eye(2)*1 #TODO Fill this in
+        self.R = np.eye(2)*0.0001 #TODO Fill this in
 
 
 

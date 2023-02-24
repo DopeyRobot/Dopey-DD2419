@@ -14,8 +14,9 @@ from sensor_msgs.msg import Imu
 import numpy as np
 
 class OdometryFusion:
-    def __init__(self) -> None:
-        self.odom_publisher = rospy.Publisher("/odometry", Odometry)
+    def __init__(self,verbose=False) -> None:
+        self.verbose = verbose
+        self.odom_publisher = rospy.Publisher("/odometry", Odometry,queue_size=10)
 
         self.sub_encoder = rospy.Subscriber(
             "/motor/encoders", Encoders, self.encoder_callback
@@ -25,18 +26,24 @@ class OdometryFusion:
             "/imu/data", Imu, self.imu_callback
         )
 
-        self.imu = None
+        self.old_stamp = Encoders().header.stamp
+
+        self.imu = Imu()#None TODO
         self.encoders = None
 
         #self.rate = rospy.Rate(self.f)
         #self.run()
-        self.mu_pred_t = None #TODO init
-        self.sigma_pred_t = None #TODO init
-        self.mu_t = np.array([0,0]) #TODO init
-        self.sigma_t = np.eye(2)*10 #TODO init
+        self.mu_pred_t = None 
+        self.sigma_pred_t = None 
+        self.mu_t = np.array([0,0]) # init
+        self.sigma_t = np.eye(2)*1 # init Large uncertainty
         self.f = EncoderState(None).f
+        self.dt = EncoderState(None).dt
 
-        
+        self.x = 0
+        self.y = 0
+        self.yaw = 0
+
     
     def encoder_callback(self, msg):
         self.encoders = msg
@@ -50,6 +57,8 @@ class OdometryFusion:
 
 
     def fusion(self):
+        if self.verbose:
+            rospy.loginfo("Fusion")
         encoderState = EncoderState(self.encoders)
         encoderState.encoder2velocities()
         imuState = IMUState(self.imu)
@@ -74,7 +83,7 @@ class OdometryFusion:
         vdt = v*self.dt
         wdt = w*self.dt
 
-        self.x += vdt * math.cos(self.yaw)
+        self.x += vdt * math.cos(self.yaw) #Don't ask me why it is negative, it just works XD
         self.y += vdt * math.sin(self.yaw)
         self.yaw += wdt
 
@@ -86,7 +95,7 @@ class OdometryFusion:
         t.header.frame_id = "odom"
         t.header.stamp = self.encoders.header.stamp
         t.child_frame_id = "base_link"
-        
+
         t.transform.translation.x = self.x
         t.transform.translation.y = self.y
         q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.yaw)

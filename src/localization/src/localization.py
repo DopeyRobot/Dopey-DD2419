@@ -23,11 +23,11 @@ from odometryFusion import OdometryFusion
 
 
 class Localization:
-    def __init__(self) -> None:
+    def __init__(self,verbose=False) -> None:
         self.sub_anchor = rospy.Subscriber(
             "/aruco/markers", MarkerArray, self.anchor_callback
         )
-
+        self.verbose = verbose
         # self.odom = OdometryCustom()
         self.odom = OdometryFusion()
 
@@ -35,7 +35,7 @@ class Localization:
         #Anchor stuff
         self.anchor = None #In aruco_frame TF
         self.first_anchor = None
-        self.anchorID = 500
+        self.anchorID = 2
         #self.test = OdometryPublisher()
         #TF stuff
         self.aruco_frame = "camera_color_optical_frame"
@@ -127,7 +127,8 @@ class Localization:
                 t = self._inverse_transform(t)
                 #To avoid redudant tf warnings
                 if self.latest_stamp != t.header.stamp:
-                    rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
+                    if self.verbose:
+                        rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
                     self.brStatic.sendTransform(t)
                     self.latest_stamp = t.header.stamp
                     self.latest_t = t
