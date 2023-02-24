@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import PolygonStamped, Point32, PoseStamped
+from geometry_msgs.msg import PolygonStamped, Point32, PoseStamped, Pose
 from nav_msgs.msg import Odometry
 from robp_msgs.msg import DutyCycles
 import tf2_ros
@@ -11,16 +11,18 @@ import matplotlib.pyplot as plt
 
 class Workspace():
     def __init__(self):
-        self.verbose = 1
+        self.verbose = 0
         self.f = 10
         self.rate = rospy.Rate(self.f)
+        self.robot_position = None
+        self.navgoal_position = None
         self.navgoal = PoseStamped() #does that work?
         self.publisher_dutycycle = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
         self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.odom_callback)
         self.frame_id = "map"
-        # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
-        self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
 
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
@@ -29,8 +31,7 @@ class Workspace():
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
 
-        self.robot_position = None
-        self.navgoal_position = None
+
         self.robot_inside = True #will approach
         self.navgoal_inside = True #will aproach
         self.pinf = [10000, 10000] #point can be anywhere
@@ -39,16 +40,16 @@ class Workspace():
         self.run()
     
     def navgoal_callback(self, navgoalmsg):
+        rospy.loginfo("navgoal cb")
         self.navgoal = PoseStamped()
-        self.navgoal.pose = navgoalmsg.pose.pose
+        self.navgoal.pose = navgoalmsg.pose
         self.navgoal.header = navgoalmsg.header
         self.navgoal.header.frame_id = "odom"
-        self.navgoal_position = [self.navgoal.pose.position.x, self.navgoal.pose.position.y]\
+        self.navgoal_position = [self.navgoal.pose.position.x, self.navgoal.pose.position.y]
 
     def odom_callback(self, msg):
         self.robo_posestamped = msg
-        self.robot_position[0] = msg.pose.pose.position.x
-        self.robot_position[1] = msg.pose.pose.position.y
+        self.robot_position = [msg.pose.pose.position.x, msg.pose.pose.position.y]
         
     def direction(self, A, B, C):
         # find the orientation of 3 points
@@ -214,11 +215,11 @@ class Workspace():
             point_list.append(point_type)
         return point_list
     
-    def polygoncentroid(self):
-        #centroid of non self intersecting polygon
-        for vertice in self.vertices_list:
-            xc =
-        return xc, yc
+    # def polygoncentroid(self):
+    #     #centroid of non self intersecting polygon
+    #     for vertice in self.vertices_list:
+        
+    #     return xc, yc
 
 
 
@@ -261,29 +262,28 @@ class Workspace():
 
 
             ## CHECK
-            self.robot_inside = self.checkpointinsidepoly(self.robot_position, self.pinf) #check robot position before boolean
-            if self.robot_inside:
-                #Robot inside poly
-                self.navgoal_inside = self.checkpointinsidepoly(self.navgoal_position, self.pinf) #check navgoal before boolean 
-                if not self.navgoal_inside:
-                    #Navgoal outside poly
-                    ########### METHOD ONE:: PUBLISH POSITION OF ROBOT AS NEW NAVGOAL ############################
-                    posestamped_message = PoseStamped()
-                    posestamped_message.pose = self.robo_posestamped.pose.pose
-                    posestamped_message.header = self.robo_posestamped.header
-                    posestamped_message.header.frame_id = "odom"
-                    self.publisher_goal.publish(posestamped_message)
-                    rospy.loginfo("Navgoal outside workspace: New Navgoal generated.")
+            if self.verbose:
+                print(f"robot position:{self.robot_position} navgoal position:{self.navgoal_position}")
+            if self.robot_position is not None  and self.navgoal_position is not None:
+                self.robot_inside = self.checkpointinsidepoly(self.robot_position, self.pinf) #check robot position before boolean
+                if self.robot_inside:
+                    if self.verbose:
+                        print("Robot Inside True")
+                    #Robot inside poly
+                    self.navgoal_inside = self.checkpointinsidepoly(self.navgoal_position, self.pinf) #check navgoal before boolean 
+                    if not self.navgoal_inside:
+                        #Navgoal outside poly
+                        ########### METHOD ONE:: PUBLISH POSITION OF ROBOT AS NEW NAVGOAL ############################
+                        posestamped_message = PoseStamped()
+                        posestamped_message.pose = self.robo_posestamped.pose.pose
+                        posestamped_message.header = self.robo_posestamped.header
+                        posestamped_message.header.frame_id = "odom"
+                        self.publisher_goal.publish(posestamped_message)
+                        rospy.loginfo("Navgoal outside workspace: New Navgoal generated.")
 
-                    ########### METHOD TWO:: PUBLISH POSITION OF ROBOT AS NEW NAVGOAL ############################
-                else:
-                    pass
-                
-            else:
-                #Robot outside poly
-                pass
+                        ########### METHOD TWO:: PUBLISH POSITION OF ROBOT AS NEW NAVGOAL ############################
             self.rate.sleep()
-    
+
 
 if __name__ == '__main__': 
     try:
