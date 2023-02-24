@@ -13,6 +13,7 @@ class OdometryPublisher:
         self.sub_goal = rospy.Subscriber(
             "/motor/encoders", Encoders, self.encoder_callback
         )
+        rospy.loginfo("Odometry publisher initialized")
         self.odom_publisher = rospy.Publisher("/odometry", Odometry)
         self.ticks_per_rev = 3072
         self.r = 0.04921

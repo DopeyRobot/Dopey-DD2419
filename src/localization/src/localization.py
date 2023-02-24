@@ -6,11 +6,20 @@ import tf_conversions
 import tf2_ros
 import math
 import tf2_geometry_msgs
-from localization.src.odometryLoc import OdometryCustom
+from odometryLoc import OdometryCustom
 
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import pdb
+
+## Import module from other package/directory
+import sys
+sys.path.append("/home/robot/dopey_ws/src/odometry") #this needs to be changed for the actual Dopey Robot
+from odometryFusion import OdometryFusion
+#from odometry.odometryFusion import OdometryFusion
+
+
+
 
 
 class Localization:
@@ -19,14 +28,15 @@ class Localization:
             "/aruco/markers", MarkerArray, self.anchor_callback
         )
 
-        self.odom = OdometryCustom()
-        self.rate = rospy.Rate(self.odom.f)
+        # self.odom = OdometryCustom()
+        self.odom = OdometryFusion()
 
+        self.rate = rospy.Rate(self.odom.f)
         #Anchor stuff
         self.anchor = None #In aruco_frame TF
         self.first_anchor = None
         self.anchorID = 500
-        
+        #self.test = OdometryPublisher()
         #TF stuff
         self.aruco_frame = "camera_color_optical_frame"
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
