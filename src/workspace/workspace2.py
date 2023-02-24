@@ -40,7 +40,6 @@ class Workspace():
         self.run()
     
     def navgoal_callback(self, navgoalmsg):
-        rospy.loginfo("navgoal cb")
         self.navgoal = PoseStamped()
         self.navgoal.pose = navgoalmsg.pose
         self.navgoal.header = navgoalmsg.header
@@ -123,6 +122,7 @@ class Workspace():
     def checkpointinsidepoly(self, point_interest, point_infinity):
         # return 1 if inside polygon
         n_edges = len(self.vertices)
+        point_infinity[1] = point_interest[1]
         if self.verbose:
             print("\n\n") 
             print(f"vertices: {self.vertices}")
@@ -160,7 +160,7 @@ class Workspace():
                 break
             # return 1 if odd number of intersection => inside
             # return 0 if even number of intersections => outside 
-        return count & 1
+        return count % 2
 
     def checkpointinsidepoly2(self, point_interest, point_infinity):
         # return 1 if inside polygon
@@ -263,12 +263,12 @@ class Workspace():
 
             ## CHECK
             if self.verbose:
-                print(f"robot position:{self.robot_position} navgoal position:{self.navgoal_position}")
+                rospy.loginfo(f"robot position:{self.robot_position} navgoal position:{self.navgoal_position}")
             if self.robot_position is not None  and self.navgoal_position is not None:
                 self.robot_inside = self.checkpointinsidepoly(self.robot_position, self.pinf) #check robot position before boolean
                 if self.robot_inside:
                     if self.verbose:
-                        print("Robot Inside True")
+                        rospy.loginfo("Robot Inside True")
                     #Robot inside poly
                     self.navgoal_inside = self.checkpointinsidepoly(self.navgoal_position, self.pinf) #check navgoal before boolean 
                     if not self.navgoal_inside:
