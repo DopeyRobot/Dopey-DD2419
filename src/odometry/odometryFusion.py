@@ -13,6 +13,10 @@ from sensor_msgs.msg import Imu
 
 import numpy as np
 
+#TODO:
+#Record rosbag that's running everything except for the localization node. 
+#Run the localization node and tune Q and R
+
 class OdometryFusion:
     def __init__(self,verbose=False) -> None:
         self.verbose = verbose
