@@ -1,0 +1,7 @@
+float64 x
+float64 y
+float64 z
+float64 wrist_pitch
+float64 gripper_rotation
+---
+std_msgs/Empty resp
