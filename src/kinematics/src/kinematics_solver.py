@@ -113,7 +113,7 @@ class KinematicsSolver:
             theta5 = desired_theta5
 
             return JointData.from_np_array(
-                -np.array([-theta1, theta2, theta3, theta4, theta5])
+                -np.array([-theta1, theta2, theta3, theta4, -theta1+np.pi/2])
                 )
         except:
             if self.verbose:
