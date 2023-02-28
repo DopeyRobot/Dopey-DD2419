@@ -16,6 +16,7 @@ CLASS_DICT = {
     5: "Oakie",
     6: "Cube",
     7: "Ball",
+    8: "Box",
 }
 
 
@@ -78,3 +79,16 @@ def load_model(model: torch.nn.Module, path: str, device: str) -> torch.nn.Modul
     state_dict = torch.load(path, map_location=device)
     model.load_state_dict(state_dict)
     return model
+
+
+def load_state_dict_and_save_as_full(model_class: torch.nn.Module, path: str) -> None:
+    """Load model weights from disk and save as full model.
+
+    Args:
+        model: The model to load the weights into.
+        path: The path from which to load the model weights.
+    """
+    model = model_class()
+    state_dict = torch.load(path)
+    model.load_state_dict(state_dict)
+    torch.save(model, path)
