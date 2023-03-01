@@ -23,7 +23,8 @@ class BoundingBoxNode:
         self.image_publisher = rospy.Publisher(self.out_image_topic, Image, queue_size=10)
         self.bridge = CvBridge()
         self.bb_publisher = None
-        self.f = 30
+        self.f = 60
+        self.verbose = False
         self.rate = rospy.Rate(self.f)
         self.model = Detector()
         self.model.load_state_dict(torch.load(self.model_path))
@@ -46,7 +47,8 @@ class BoundingBoxNode:
     def run(self):
         while not rospy.is_shutdown():
             if self.image is not None:
-                start = time.time()
+                if self.verbose:
+                    start = time.time()
                 torch_image, _ = self.model.input_transform(self.image.copy(), [], validation=True)
                 if self.cuda:
                     torch_image = torch_image.to("cuda")
@@ -59,7 +61,9 @@ class BoundingBoxNode:
                     self.image_publisher.publish(ros_img)
                 else:
                     self.image_publisher.publish(self.ros_img)
-                print(f"full inference time = {time.time() - start}")
+                
+                if self.verbose:
+                    rospy.loginfo(f"full inference time = {time.time() - start}")
             
             self.rate.sleep()
         
