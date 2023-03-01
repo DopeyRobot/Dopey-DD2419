@@ -23,7 +23,7 @@ class BoundingBox(TypedDict):
         width: Width of bounding box in pixel
         height: Height of bounding box in pixel
         score: Confidence score of bounding box.
-        category: Category (not implemented yet!)
+        category: Category 
     """
 
     x: int
@@ -31,7 +31,8 @@ class BoundingBox(TypedDict):
     width: int
     height: int
     score: float
-    category: int
+    category_id: int
+
 
 
 class Detector(nn.Module):
