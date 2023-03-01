@@ -259,7 +259,6 @@ def validate(
                 for img_bb in img_bbs:
                     coco_pred.dataset["annotations"].append(
                         {
-                            # TODO not hardcode image sizes lol
                             "id": ann_id,
                             "bbox": [
                                 img_bb["x"],
@@ -270,7 +269,7 @@ def validate(
                             "area": img_bb["width"] * img_bb["height"],
                             "category_id": img_bb[
                                 "category_id"
-                            ],  # TODO replace with predicted category id
+                            ],  
                             "score": img_bb["score"],
                             "image_id": val_dataloader.dataset.ids[image_id],
                         }
