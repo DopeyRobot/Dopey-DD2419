@@ -20,6 +20,8 @@ class aruco_dectection:
     def aruco_callback(self, msg):
         transforms_list = []
         for detected_marker in msg.markers:
+            if detected_marker.id == 500: # skip marker 500
+                continue
             detected_aruco_pose = PoseStamped()
             detected_aruco_pose.pose = detected_marker.pose.pose
             detected_aruco_pose.header.frame_id = self.aruco_markers_frame
