@@ -7,8 +7,8 @@ import tf_conversions
 import tf2_ros
 import math
 
-from estStateIMU import IMUState
-from estStateEncoder import EncoderState
+from odometry.estStateIMU import IMUState
+from odometry.estStateEncoder import EncoderState
 from sensor_msgs.msg import Imu
 
 import numpy as np

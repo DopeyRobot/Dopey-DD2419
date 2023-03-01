@@ -8,7 +8,7 @@ import math
 from nav_msgs.msg import Odometry
 import numpy as np
 from sensor_msgs.msg import Imu
-from estStateEncoder import EncoderState
+from odometry.estStateEncoder import EncoderState
 
 class IMUState:
     def __init__(self,imuData) -> None:
