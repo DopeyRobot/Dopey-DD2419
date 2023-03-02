@@ -18,7 +18,7 @@ from functools import partial
 
 NUM_CATEGORIES = 8
 VALIDATION_ITERATION = 100
-NUM_ITERATIONS = 10000
+NUM_ITERATIONS = 20000
 LEARNING_RATE = 1e-4
 WEIGHT_POS = 1
 WEIGHT_NEG = 1
@@ -84,12 +84,12 @@ def train(device: str = "cpu") -> None:
 
     dataset = CocoDetection(
         root="./data/",
-        annFile="./annotations/train.json",
+        annFile="./annotations/train2.json",
         transforms=partial(detector.input_transform, validation=False),
     )
     val_dataset = CocoDetection(
         root="./data/",
-        annFile="./annotations/val.json",
+        annFile="./annotations/val2.json",
         transforms=partial(detector.input_transform, validation=True),
     )
 

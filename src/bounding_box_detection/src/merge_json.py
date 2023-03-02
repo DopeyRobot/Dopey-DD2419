@@ -157,7 +157,27 @@ def verify_merged_json(json_paths: list, merged_json_path: str) -> None:
             else:
                 print(f"Not found {image['file_name']} for {json_path}")
 
+def merge_two_jsons(json_ref:str, json_other:str, output_path:str):
+    with open(json_ref, "r", encoding="utf-8") as f:
+        json_data = json.load(f)
+    with open(json_other, "r", encoding="utf-8") as f:
+        json_data_other = json.load(f)
+    merged_images = json_data["images"]+json_data_other["images"]
+    merged_annotations = json_data["annotations"]+json_data_other["annotations"]
+    merged_categories = json_data["categories"]
+
+    merged_json_data = {
+        "images": merged_images,
+        "annotations": merged_annotations,
+        "categories": merged_categories,
+    }
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(merged_json_data, f, ensure_ascii=False, indent="\t")
+
+    
+
+
 
 if __name__ == "__main__":
-    merge_json(JSON_PATHS, MERGED_JSON_PATH)
-    verify_merged_json(JSON_PATHS, MERGED_JSON_PATH)
+    merge_two_jsons("src/bounding_box_detection/src/annotations/new_dataset_21_02.json", "src/bounding_box_detection/src/annotations/merged.json", "src/bounding_box_detection/src/annotations/othermerged.json")

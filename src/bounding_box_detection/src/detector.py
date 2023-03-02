@@ -38,7 +38,7 @@ class BoundingBox(TypedDict):
 class Detector(nn.Module):
     """Baseline module for object detection."""
 
-    def __init__(self) -> None:
+    def __init__(self, n_classes = 9) -> None:
         """Create the module.
 
         Define all trainable layers.
@@ -48,7 +48,7 @@ class Detector(nn.Module):
         self.features = models.mobilenet_v2(pretrained=True).features
         # output of mobilenet_v2 will be 1280x15x20 for 480x640 input images
 
-        self.head = nn.Conv2d(in_channels=1280, out_channels=13, kernel_size=1)
+        self.head = nn.Conv2d(in_channels=1280, out_channels=5+n_classes, kernel_size=1)
         # 1x1 Convolution to reduce channels to out_channels without changing H and W
 
         # 1280x15x20 -> 5x15x20, where each element 5 channel tuple corresponds to
@@ -60,6 +60,7 @@ class Detector(nn.Module):
         self.out_cells_y = 15
         self.img_height = 480.0
         self.img_width = 640.0
+        self.n_classes = n_classes
 
         self.raw_image_size = (1280, 720)
         self.x_resize_factor = self.raw_image_size[0] / self.img_width
@@ -255,10 +256,10 @@ class Detector(nn.Module):
 
         # If there is no bb, the first 4 channels will not influence the loss
         # -> can be any number (will be kept at 0)
-        target = torch.zeros(13, self.out_cells_y, self.out_cells_x)
+        target = torch.zeros(5+self.n_classes, self.out_cells_y, self.out_cells_x)
         for bbox, label in zip(bboxes, labels):
             x, y, width, height = bbox
-            one_hot_encoding = F.one_hot(torch.tensor([int(label)]), num_classes=8).squeeze()
+            one_hot_encoding = F.one_hot(torch.tensor([int(label)]), num_classes=self.n_classes).squeeze()
 
             x_center = x + width / 2.0
             y_center = y + height / 2.0
