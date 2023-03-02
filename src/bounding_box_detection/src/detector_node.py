@@ -41,7 +41,7 @@ class BoundingBoxNode:
 
     def image_callback(self, msg):
         self.ros_img = msg
-        image = cv2.cvtColor(self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough'), cv2.COLOR_BGR2RGB)
+        image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
         self.image = PILImage.fromarray(image)
         self.array_image = np.asarray(image)
     def run(self):
