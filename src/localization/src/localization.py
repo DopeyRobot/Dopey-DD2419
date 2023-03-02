@@ -6,7 +6,7 @@ import tf_conversions
 import tf2_ros
 import math
 import tf2_geometry_msgs
-from odometryLoc import Odometry
+from odometryLoc import OdometryCustom
 
 from scipy.spatial.transform import Rotation as R
 import numpy as np
@@ -19,7 +19,7 @@ class Localization:
             "/aruco/markers", MarkerArray, self.anchor_callback
         )
 
-        self.odom = Odometry()
+        self.odom = OdometryCustom()
         self.rate = rospy.Rate(self.odom.f)
 
         #Anchor stuff

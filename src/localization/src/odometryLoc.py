@@ -5,12 +5,14 @@ from robp_msgs.msg import Encoders
 import tf_conversions
 import tf2_ros
 import math
+from nav_msgs.msg import Odometry
 
-class Odometry:
+class OdometryCustom:
     def __init__(self) -> None:
         self.sub_goal = rospy.Subscriber(
             "/motor/encoders", Encoders, self.encoder_callback
         )
+        self.odom_publisher = rospy.Publisher("/odometry", Odometry)
         self.ticks_per_rev = 3072
         self.r = 0.04921
         self.B = 0.3
@@ -46,6 +48,7 @@ class Odometry:
     def step(self):
         #while not rospy.is_shutdown():
         br = tf2_ros.TransformBroadcaster()
+        odom = Odometry()
 
         t = TransformStamped()
         t.header.frame_id = "odom"
@@ -66,6 +69,22 @@ class Odometry:
         t.transform.rotation.y = q[1]
         t.transform.rotation.z = q[2]
         t.transform.rotation.w = q[3]
+
+        odom.pose.pose.position.x = self.x
+        odom.pose.pose.position.y = self.y
+        odom.pose.pose.position.z = 0.0
+        odom.pose.pose.orientation.x = q[0]
+        odom.pose.pose.orientation.y = q[1]
+        odom.pose.pose.orientation.z = q[2]
+        odom.pose.pose.orientation.w = q[3]
+
+        odom.child_frame_id = "base_link"
+        odom.twist.twist.linear.x = vdt*math.cos(self.yaw)/self.f
+        odom.twist.twist.linear.y = vdt*math.sin(self.yaw)/self.f
+        odom.twist.twist.angular.z = wdt/self.f
+
+        self.odom_publisher.publish(odom)
+
 
         #to avoid redundat tf warnings
         if self.old_stamp != t.header.stamp:

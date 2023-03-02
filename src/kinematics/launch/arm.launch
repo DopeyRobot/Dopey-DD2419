@@ -1,0 +1,9 @@
+<launch>
+	<param name="robot_description" textfile="$(find armpi_fpv)/urdf/armpi_fpv.urdf"/>
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+        <param name="tf_prefix" value="arm" />
+    </node>
+
+	<node name="static_tf" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 map arm/base_link" />
+
+</launch>
