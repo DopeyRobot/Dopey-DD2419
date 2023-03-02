@@ -57,7 +57,7 @@ def add_bounding_boxes(
 
 def draw_bb_on_image(image, bbs: List[BoundingBox], category_dict: Dict[int, str] = None ):
     font = cv2.FONT_HERSHEY_COMPLEX
-    color = (0,0,255)
+    color = (255,0,0)
     thickness = 2
     fontScale = 1
     for bb in bbs:
