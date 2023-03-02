@@ -28,6 +28,7 @@
 	<include file = "$(find realsense2_camera)/launch/rs_camera.launch" >
 		<arg name="tf_prefix" value="camera"/>
 		<arg name="filters" value="pointcloud" />
+		<arg name="align_depth" value="true"/>
 	</include>
 
 	<!-- launch the usb cam node -->
