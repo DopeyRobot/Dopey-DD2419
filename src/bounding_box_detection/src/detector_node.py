@@ -4,7 +4,7 @@ from typing import List
 import rospy
 import torch
 from detector import Detector
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
 import cv2
 from PIL import Image as PILImage
@@ -23,10 +23,11 @@ class BoundingBoxNode:
         self.camera_topic = "/camera/color/image_raw"
         self.out_image_topic = "/camera/color/image_bbs"
         self.depth_topic = "/camera/aligned_depth_to_color/image_raw"
+        self.camera_info_topic = "/camera/aligned_depth_to_color/camera_info"
         self.model_path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/det_2023-03-02_14-23-34-390133.pt"
         
         self.image_subscriber = rospy.Subscriber(self.camera_topic, Image, self.image_callback)
-        self.depth_subsriber = rospy.Subscriber(self.depth_topic, Image, self.depth_callback)
+        self.depth_subscriber = rospy.Subscriber(self.depth_topic, Image, self.depth_callback)
         self.image_publisher = rospy.Publisher(self.out_image_topic, Image, queue_size=10)
         self.bridge = CvBridge()
         
@@ -36,6 +37,8 @@ class BoundingBoxNode:
         self.array_image = None
         self.depth = None
         self.array_depth = None
+        self.camera_info = rospy.wait_for_message(self.camera_info_topic, CameraInfo, rospy.Duration(5))
+        self.K = np.array(self.camera_info.K).reshape(3,3)
 
         self.verbose = False
         # self.model = Detector()
@@ -61,6 +64,7 @@ class BoundingBoxNode:
         self.depth = PILImage.fromarray(depth)
         self.array_depth = np.asarray(depth)
 
+
     
     def predict(self, image) -> List[utils.BoundingBox]:
         torch_image, _ = self.model.input_transform(image, [], validation=True)
@@ -77,7 +81,6 @@ class BoundingBoxNode:
             self.image_publisher.publish(ros_img)
         else:
             self.image_publisher.publish(self.ros_img)
-                
 
     def run(self):
         while not rospy.is_shutdown():
@@ -93,8 +96,8 @@ class BoundingBoxNode:
                 if self.verbose:
                     rospy.loginfo(f"full inference time = {time.time() - start}")
             
-            if self.depth is not None:
-                rospy.loginfo(f"depth = {self.array_depth[100,100]}")
+            if self.depth is not None and self.K is not None:
+                rospy.loginfo(f"K = {self.K}")
                 
             
             self.rate.sleep()
