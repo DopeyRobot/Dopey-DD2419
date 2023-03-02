@@ -47,7 +47,9 @@ class TakePhotos:
                 input()
                 cv2.imwrite(f'./src/take_photos/photos/dp_img{datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f%")}.jpeg', self.image)
                 print("pic taken")
-            except:
+            except Exception as e:
+                print(e)
+                print(self.image)
                 print("no pic")
             self.rate.sleep()
             
