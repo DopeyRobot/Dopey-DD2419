@@ -7,7 +7,7 @@ from tf2_geometry_msgs import do_transform_pose
 
 class aruco_dectection:
     def __init__(self):
-        self.sub_goal = rospy.Subscriber('/aruco/markers', MarkerArray, self.aruco_callback)
+        self.sub_goal = rospy.Subscriber('/aruco500/markers', MarkerArray, self.aruco_callback)
         self.br = tf2_ros.TransformBroadcaster()
         self.buffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.buffer)
