@@ -18,7 +18,7 @@ class BoundingBoxNode:
     def __init__(self) -> None:
         self.camera_topic = "/camera/color/image_raw"
         self.out_image_topic = "/camera/color/image_bbs"
-        self.model_path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/det_2023-03-02_14-23-34-390133.pt"
+        self.model_path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/det_2023-03-02_16-04-20-229927.pt"
         self.image_subscriber = rospy.Subscriber(self.camera_topic, Image, self.image_callback)
         self.image_publisher = rospy.Publisher(self.out_image_topic, Image, queue_size=10)
         self.bridge = CvBridge()
