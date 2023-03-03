@@ -27,6 +27,9 @@ class BoundingBoxNode:
         self.depth_topic = "/camera/aligned_depth_to_color/image_raw"
         self.camera_info_topic = "/camera/aligned_depth_to_color/camera_info"
         self.model_path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/det_2023-03-02_14-23-34-390133.pt"
+
+        self.camera_frame = "camera_color_optical_frame"
+        self.map_frame = "map"
         
         self.image_subscriber = rospy.Subscriber(self.camera_topic, Image, self.image_callback)
         self.depth_subscriber = rospy.Subscriber(self.depth_topic, Image, self.depth_callback)
@@ -83,6 +86,11 @@ class BoundingBoxNode:
             self.image_publisher.publish(ros_img)
         else:
             self.image_publisher.publish(self.ros_img)
+
+    def project_bb(self, bbs: List[utils.BoundingBox]):
+        
+        for bb in bbs:
+            center_x = bb
 
     def run(self):
         while not rospy.is_shutdown():
