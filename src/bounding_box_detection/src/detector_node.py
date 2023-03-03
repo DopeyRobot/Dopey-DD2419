@@ -142,7 +142,7 @@ class BoundingBoxNode:
             t.transform.rotation.z = transformed_pose.pose.orientation.z
             t.transform.rotation.w = transformed_pose.pose.orientation.w
 
-            t.child_frame_id = utils.CLASS_DICT[bb["category_id"]]
+            t.child_frame_id = utils.detect_color(bb, self.array_image)
             self.broadcaster.sendTransform(t)
 
     def run(self):
