@@ -38,6 +38,7 @@ class CartesianController:
         self.I_right = I
 
         self.max_v = 0.35
+        self.last_w = None
 
         self.verbose = verbose
 
@@ -55,7 +56,8 @@ class CartesianController:
             if abs(desired_v) > self.max_v:
                 desired_v = np.sign(desired_v)*self.max_v
 
-            w_left, w_right = self.translate_encoders()
+            # w_left, w_right = self.translate_encoders()
+            w_left, w_right = self.state_from_odom()
 
             desired_w_left = (self.b * desired_w + desired_v) / self.r
             desired_w_right = (-self.b * desired_w + desired_v) / self.r
@@ -98,8 +100,15 @@ class CartesianController:
         return w_left, w_right
     
     def state_from_odom(self):
+        ##WORK IN PROGRESS
         v = self.odom_vel_state.linear.x #predicted x velocity from odom sensor fusion
-        w = self.odom_vel_state.angular.z #predicted z angular velocity from odom sensor fusion
+        w = self.odom_vel_state.angular.z #predicted z angular velocity from odom sensor fusion'
+
+        if self.last_w: #due to wobbly behaviour
+            if abs(abs(self.last_w)-abs(w)) > 9:
+                w = 0
+        
+        self.last_w = w
         w_left = (v-2*self.b*w)/self.r
         w_right = 2*self.b*w/self.r+w_left
         return w_left, w_right
