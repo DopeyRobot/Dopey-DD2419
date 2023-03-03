@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1/Frames1
-        - /Image2
       Splitter Ratio: 0.7439024448394775
     Tree Height: 160
   - Class: rviz/Selection
@@ -64,7 +63,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -79,12 +78,16 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        aruco/detected 1:
+          Value: true
+        aruco/detected 170:
+          Value: true
         base_link:
           Value: true
         camera_aligned_depth_to_color_frame:
@@ -105,8 +108,6 @@ Visualization Manager:
           Value: false
         map:
           Value: true
-        object0:
-          Value: true
         odom:
           Value: true
       Marker Alpha: 1
@@ -117,7 +118,9 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          object0:
+          aruco/detected 1:
+            {}
+          aruco/detected 170:
             {}
           odom:
             base_link:
@@ -198,6 +201,31 @@ Visualization Manager:
       Normalize Range: true
       Queue Size: 2
       Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Queue Size: 10
+      Topic: /workspace
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /move_base_simple/goal
       Unreliable: false
       Value: true
   Enabled: true

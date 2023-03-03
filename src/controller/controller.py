@@ -43,7 +43,7 @@ class CartesianController:
 
     def run(self):
         while not rospy.is_shutdown():
-            desired_w = self.twist.angular.z
+            desired_w = -self.twist.angular.z
             desired_v = self.twist.linear.x
 
             w_left, w_right = self.translate_encoders()
