@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1/Frames1
+        - /Image2
       Splitter Ratio: 0.7439024448394775
     Tree Height: 273
   - Class: rviz/Selection
@@ -103,6 +104,8 @@ Visualization Manager:
         imu_link:
           Value: false
         map:
+          Value: true
+        object0:
           Value: true
         odom:
           Value: true

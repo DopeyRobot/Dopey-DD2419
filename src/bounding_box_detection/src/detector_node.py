@@ -12,6 +12,8 @@ import numpy as np
 import utils
 import os
 import time
+import matplotlib.pyplot as plt
+
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 torch.cuda.set_per_process_memory_fraction(0.8, 0)
 torch.cuda.empty_cache()
