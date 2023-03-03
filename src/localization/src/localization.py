@@ -6,7 +6,7 @@ import tf_conversions
 import tf2_ros
 import math
 import tf2_geometry_msgs
-from odometryLoc import OdometryCustom
+#from odometryLoc import OdometryCustom
 
 from scipy.spatial.transform import Rotation as R
 import numpy as np

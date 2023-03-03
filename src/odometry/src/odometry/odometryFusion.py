@@ -3,6 +3,7 @@ import rospy
 from geometry_msgs.msg import TransformStamped
 from robp_msgs.msg import Encoders
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist
 import tf_conversions
 import tf2_ros
 import math
@@ -21,7 +22,7 @@ class OdometryFusion:
     def __init__(self,verbose=False) -> None:
         self.verbose = verbose
         self.odom_publisher = rospy.Publisher("/odometry", Odometry,queue_size=10)
-
+        self.state_publisher = rospy.Publisher("/odometry/curr_vel_state", Twist,queue_size=10)
         self.sub_encoder = rospy.Subscriber(
             "/motor/encoders", Encoders, self.encoder_callback
         )
@@ -33,7 +34,7 @@ class OdometryFusion:
         self.old_stamp = Encoders().header.stamp
 
         self.imu = Imu()#None TODO
-        self.encoders = None
+        self.encoders = Encoders()#None
 
         #self.rate = rospy.Rate(self.f)
         #self.run()
@@ -84,6 +85,12 @@ class OdometryFusion:
 
         # TODO: Fill in
         v,w = self.fusion()
+        #publish the current v,w state for the controller
+        curr_state = Twist()
+        curr_state.linear.x = v
+        curr_state.angular.z = w
+        self.state_publisher.publish(curr_state)
+        #----
         vdt = v*self.dt
         wdt = w*self.dt
 

@@ -25,11 +25,13 @@ class IMUState:
 
         #Estimation 
         self.H = np.eye(2)
-        self.H[1,1] = 1/self.dt
-        self.Q = np.eye(2)*1 # TODO Fill this in
+        self.H[0,0] = 1/self.dt
+        self.Q = np.eye(2) # TODO Fill this in
+        self.Q[0,0] = 1e6 #don't trust IMU translation
+        self.Q[1,1] = 0.1
 
         self.z_acc_x = imuData.linear_acceleration.x
-        self.z_gyro_z = imuData.angular_velocity.z
+        self.z_gyro_z = -imuData.angular_velocity.z #(-) due to opposite direction of IMU z axis
         self.z_acc_x_hat = None
         self.z_gyro_z_hat = None
 

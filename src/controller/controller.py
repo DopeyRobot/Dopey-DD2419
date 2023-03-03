@@ -14,6 +14,9 @@ class CartesianController:
         )
         self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.twist_callback)
 
+        self.sub_odom_state = rospy.Subscriber(
+            "/odometry/curr_vel_state", Twist, self.odom_state_callback)
+
         self.f = 10
         self.b = 0.3
         self.r = 0.04921
@@ -21,6 +24,7 @@ class CartesianController:
 
         self.twist = Twist()
         self.encoders = Encoders()
+        self.odom_vel_state = Twist()
 
         self.int_error_left = 0
         self.int_error_right = 0
@@ -28,10 +32,12 @@ class CartesianController:
         # I = 0.05
         P = 0.02
         I = 0.07
-        self.P_left = P
+        self.P_left = P*2.5
         self.I_left = I
         self.P_right = P
         self.I_right = I
+
+        self.max_v = 0.35
 
         self.verbose = verbose
 
@@ -45,6 +51,9 @@ class CartesianController:
         while not rospy.is_shutdown():
             desired_w = -self.twist.angular.z
             desired_v = self.twist.linear.x
+
+            if abs(desired_v) > self.max_v:
+                desired_v = np.sign(desired_v)*self.max_v
 
             w_left, w_right = self.translate_encoders()
 
@@ -109,6 +118,16 @@ class CartesianController:
 
         if self.verbose:
             rospy.loginfo("Twist received: {}".format(self.twist.twist.linear.x))
+
+    def odom_state_callback(self,data):
+        if self.verbose:
+            rospy.loginfo("Odom velocity state callback")
+
+        self.twist = data
+
+        if self.verbose:
+            rospy.loginfo("Odom velcoity state received: {}".format(self.twist.twist.linear.x))
+
 
 
 if __name__ == "__main__":
