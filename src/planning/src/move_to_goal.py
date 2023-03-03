@@ -15,8 +15,8 @@ class move_to_goal():
 
     def __init__(self):
 
-        self.Kp_ang = -0.05
-        self.Ki_ang = -0.0002
+        self.Kp_ang = 0.05
+        self.Ki_ang = 0.0002
         self.Kd_ang = 0.03
         self.Kp_dist = 0.08
         self.Ki_dist = 0.0002
