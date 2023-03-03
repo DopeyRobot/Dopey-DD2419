@@ -56,8 +56,8 @@ class CartesianController:
             if abs(desired_v) > self.max_v:
                 desired_v = np.sign(desired_v)*self.max_v
 
-            # w_left, w_right = self.translate_encoders()
-            w_left, w_right = self.state_from_odom()
+            w_left, w_right = self.translate_encoders()
+            #w_left, w_right = self.state_from_odom() ## WORK IN PROGRESS
 
             desired_w_left = (self.b * desired_w + desired_v) / self.r
             desired_w_right = (-self.b * desired_w + desired_v) / self.r
