@@ -84,9 +84,9 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        aruco/detected 170:
+        aruco/detected 1:
           Value: true
-        aruco/detected 69:
+        aruco/detected 170:
           Value: true
         base_link:
           Value: true
@@ -108,12 +108,6 @@ Visualization Manager:
           Value: false
         map:
           Value: true
-        object0:
-          Value: true
-        object1:
-          Value: true
-        object2:
-          Value: true
         odom:
           Value: true
       Marker Alpha: 1
@@ -124,15 +118,9 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
+          aruco/detected 1:
+            {}
           aruco/detected 170:
-            {}
-          aruco/detected 69:
-            {}
-          object0:
-            {}
-          object1:
-            {}
-          object2:
             {}
           odom:
             base_link:
@@ -213,6 +201,31 @@ Visualization Manager:
       Normalize Range: true
       Queue Size: 2
       Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Queue Size: 10
+      Topic: /workspace
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /move_base_simple/goal
       Unreliable: false
       Value: true
   Enabled: true
