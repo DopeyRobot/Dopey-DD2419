@@ -79,7 +79,7 @@ class BoundingBoxNode:
     def show_bbs_in_image(self, bbs: List[utils.BoundingBox], image) -> None:
         if len(bbs) >0:
             image = utils.draw_bb_on_image(image, bbs, utils.CLASS_DICT)
-            ros_img = self.bridge.cv2_to_imgmsg(image,  encoding="passthrough")
+            ros_img = self.bridge.cv2_to_imgmsg(cv2.cvtColor(image, cv2.COLOR_RGB2BGR),  encoding="passthrough")
             self.image_publisher.publish(ros_img)
         else:
             self.image_publisher.publish(self.ros_img)
