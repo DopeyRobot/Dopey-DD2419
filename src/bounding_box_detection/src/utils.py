@@ -1,12 +1,32 @@
 """Utility functions to handle object detection."""
-from typing import Dict, List
+from typing import Dict, List, TypedDict
 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import torch
 import cv2
+import numpy as np
 
-from detector import BoundingBox
+
+class BoundingBox(TypedDict):
+    """Bounding box dictionary.
+
+    Attributes:
+        x: Top-left corner column
+        y: Top-left corner row
+        width: Width of bounding box in pixel
+        height: Height of bounding box in pixel
+        score: Confidence score of bounding box.
+        category: Category
+    """
+
+    x: int
+    y: int
+    width: int
+    height: int
+    score: float
+    category_id: int
+
 
 CLASS_DICT = {
     0: "Binky",
@@ -55,38 +75,102 @@ def add_bounding_boxes(
                 CLASS_DICT[bb["category_id"]],
             )
 
-def draw_bb_on_image(image, bbs: List[BoundingBox], category_dict: Dict[int, str] = None ):
+
+def draw_bb_on_image(
+    image, bbs: List[BoundingBox], category_dict: Dict[int, str] = None
+):
     font = cv2.FONT_HERSHEY_COMPLEX
-    color = (255,0,0)
+    color = (255, 0, 0)
     thickness = 2
     fontScale = 1
     for bb in bbs:
         start_point = (int(bb["x"]), int(bb["y"]))
-        end_point = (int(bb["x"] + bb["width"]), int(bb["y"]+bb["height"]))
+        end_point = (int(bb["x"] + bb["width"]), int(bb["y"] + bb["height"]))
         image = cv2.rectangle(image, start_point, end_point, color, thickness)
 
         if category_dict is not None:
             image = cv2.putText(
                 image,
-                CLASS_DICT[bb["category_id"]],
+                detect_color(bb, image),
                 start_point,
                 font,
                 fontScale,
                 color,
                 thickness,
-                cv2.LINE_AA
+                cv2.LINE_AA,
             )
     return image
 
-def non_max_suppresion(bbs:List[BoundingBox], confidence_threshold = 0.5, IoU_threshold = 0.5, diff_class_thresh = 0.95) -> List[BoundingBox]:
+
+def detect_color(bb: BoundingBox, image: np.ndarray) -> str:
+    """
+    Detects the color of the object in the bounding box.
+    """
+    cube_red = np.array([157, 49, 52])
+    cube_green = np.array([16, 100, 93])
+    cube_blue = np.array([46, 162, 201])
+    cube_wood = np.array([148, 126, 111])
+
+    ball_red = np.array([152, 48, 65])
+    ball_green = np.array([94, 210, 185])
+    ball_blue = np.array([50, 143, 184])
+
+    cube_colors = {
+        "red": cube_red,
+        "green": cube_green,
+        "blue": cube_blue,
+        "wood": cube_wood,
+    }
+
+    ball_colors = {
+        "red": ball_red,
+        "green": ball_green,
+        "blue": ball_blue,
+    }
+
+    detected_class = CLASS_DICT[bb["category_id"]]
+
+    if detected_class == "Ball":
+        cropped_image = image[
+            bb["y"] : bb["y"] + bb["height"], bb["x"] : bb["x"] + bb["width"], :
+        ]
+        color = min(
+            ball_colors,
+            key=lambda x: np.linalg.norm(
+                ball_colors[x] - np.mean(cropped_image, axis=(0, 1))
+            ),
+        )
+        return detected_class + color
+
+    elif detected_class == "Cube":
+        cropped_image = image[
+            bb["y"] : bb["y"] + bb["height"], bb["x"] : bb["x"] + bb["width"], :
+        ]
+        color = min(
+            cube_colors,
+            key=lambda x: np.linalg.norm(
+                cube_colors[x] - np.mean(cropped_image, axis=(0, 1))
+            ),
+        )
+        return detected_class + color
+    else:
+        return detected_class
+
+
+def non_max_suppresion(
+    bbs: List[BoundingBox],
+    confidence_threshold=0.5,
+    IoU_threshold=0.5,
+    diff_class_thresh=0.95,
+) -> List[BoundingBox]:
     thresholded_bbs = []
     res = []
-    sorted_bboxes = sorted(bbs, reverse=True, key = lambda x:x["score"])
+    sorted_bboxes = sorted(bbs, reverse=True, key=lambda x: x["score"])
     for bbox in sorted_bboxes:
         if bbox["score"] > confidence_threshold:
             thresholded_bbs.append(bbox)
 
-    while len(thresholded_bbs)>0:
+    while len(thresholded_bbs) > 0:
         cur_bb = thresholded_bbs.pop(0)
         res.append(cur_bb)
         for bb in thresholded_bbs:
@@ -98,10 +182,20 @@ def non_max_suppresion(bbs:List[BoundingBox], confidence_threshold = 0.5, IoU_th
                 thresholded_bbs.remove(bb)
     return res
 
-def bb_IoU(bb1:BoundingBox, bb2:BoundingBox):
-    x1, y1, x2, y2= bb1["x"], bb1["y"], bb1["x"]+bb1["width"], bb1["y"] + bb1["height"]
-    x3, y3, x4, y4 = bb2["x"], bb2["y"], bb2["x"]+bb2["width"], bb2["y"] + bb2["height"]
 
+def bb_IoU(bb1: BoundingBox, bb2: BoundingBox):
+    x1, y1, x2, y2 = (
+        bb1["x"],
+        bb1["y"],
+        bb1["x"] + bb1["width"],
+        bb1["y"] + bb1["height"],
+    )
+    x3, y3, x4, y4 = (
+        bb2["x"],
+        bb2["y"],
+        bb2["x"] + bb2["width"],
+        bb2["y"] + bb2["height"],
+    )
 
     x_inter1 = max(x1, x3)
     y_inter1 = max(y1, y3)
@@ -118,8 +212,9 @@ def bb_IoU(bb1:BoundingBox, bb2:BoundingBox):
     area_box2 = width_box2 * height_box2
     area_union = area_box1 + area_box2 - area_inter
     iou = area_inter / area_union
-    
+
     return iou
+
 
 def save_model(model: torch.nn.Module, path: str) -> None:
     """Save model to disk.
