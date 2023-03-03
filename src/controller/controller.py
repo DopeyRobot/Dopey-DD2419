@@ -14,6 +14,9 @@ class CartesianController:
         )
         self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.twist_callback)
 
+        self.sub_odom_state = rospy.Subscriber(
+            "/odometry/curr_vel_state", Twist, self.odom_state_callback)
+
         self.f = 10
         self.b = 0.3
         self.r = 0.04921
@@ -21,6 +24,7 @@ class CartesianController:
 
         self.twist = Twist()
         self.encoders = Encoders()
+        self.odom_vel_state = Twist()
 
         self.int_error_left = 0
         self.int_error_right = 0
@@ -28,10 +32,13 @@ class CartesianController:
         # I = 0.05
         P = 0.02
         I = 0.07
-        self.P_left = P
-        self.I_left = I
+        self.P_left = P*2
+        self.I_left = I*1.1
         self.P_right = P
         self.I_right = I
+
+        self.max_v = 0.35
+        self.last_w = None
 
         self.verbose = verbose
 
@@ -46,7 +53,11 @@ class CartesianController:
             desired_w = -self.twist.angular.z
             desired_v = self.twist.linear.x
 
+            if abs(desired_v) > self.max_v:
+                desired_v = np.sign(desired_v)*self.max_v
+
             w_left, w_right = self.translate_encoders()
+            #w_left, w_right = self.state_from_odom() ## WORK IN PROGRESS
 
             desired_w_left = (self.b * desired_w + desired_v) / self.r
             desired_w_right = (-self.b * desired_w + desired_v) / self.r
@@ -87,6 +98,20 @@ class CartesianController:
         ) / self.ticks_per_rev
 
         return w_left, w_right
+    
+    def state_from_odom(self):
+        ##WORK IN PROGRESS
+        v = self.odom_vel_state.linear.x #predicted x velocity from odom sensor fusion
+        w = self.odom_vel_state.angular.z #predicted z angular velocity from odom sensor fusion'
+
+        if self.last_w: #due to wobbly behaviour
+            if abs(abs(self.last_w)-abs(w)) > 9:
+                w = 0
+        
+        self.last_w = w
+        w_left = (v-2*self.b*w)/self.r
+        w_right = 2*self.b*w/self.r+w_left
+        return w_left, w_right
 
     def encoder_callback(self, data):
         if self.verbose:
@@ -109,6 +134,16 @@ class CartesianController:
 
         if self.verbose:
             rospy.loginfo("Twist received: {}".format(self.twist.twist.linear.x))
+
+    def odom_state_callback(self,data):
+        if self.verbose:
+            rospy.loginfo("Odom velocity state callback")
+
+        self.odom_vel_state = data
+
+        if self.verbose:
+            rospy.loginfo("Odom velocity state received: {}".format(self.twist.twist.linear.x))
+
 
 
 if __name__ == "__main__":

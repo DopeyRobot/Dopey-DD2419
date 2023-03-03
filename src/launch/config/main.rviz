@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.7439024448394775
     Tree Height: 160
@@ -85,13 +86,11 @@ Visualization Manager:
       Frames:
         All Enabled: false
         aruco/detected 1:
-          Value: true
-        aruco/detected 170:
-          Value: true
+          Value: false
         base_link:
           Value: true
         camera_aligned_depth_to_color_frame:
-          Value: true
+          Value: false
         camera_bottom_screw_frame:
           Value: false
         camera_color_frame:
@@ -107,7 +106,7 @@ Visualization Manager:
         imu_link:
           Value: false
         map:
-          Value: true
+          Value: false
         odom:
           Value: true
       Marker Alpha: 1
@@ -119,8 +118,6 @@ Visualization Manager:
       Tree:
         map:
           aruco/detected 1:
-            {}
-          aruco/detected 170:
             {}
           odom:
             base_link:
@@ -206,12 +203,12 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/Polygon
       Color: 25; 255; 0
-      Enabled: true
+      Enabled: false
       Name: Polygon
       Queue Size: 10
       Topic: /workspace
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
@@ -232,7 +229,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: map
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Tools:
@@ -256,7 +253,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 9.355915069580078
+      Distance: 5.114749431610107
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -272,9 +269,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9197975397109985
+      Pitch: 1.4247972965240479
       Target Frame: <Fixed Frame>
-      Yaw: 2.925422430038452
+      Yaw: 2.930421829223633
     Saved: ~
 Window Geometry:
   ArUco:
