@@ -2,6 +2,7 @@
 
 ## Get access to Dopey remotely
 
+### Using master URI/remote roscore
 0. CONNECT TO INTERNET
 1. Power Dopey on
 <!-- 1. Plug screen, keyboard and mouse into Dopey
@@ -11,7 +12,26 @@
 4. Input password `Dopey5000`
 5. Congrats! You now have access to Dopey's mind (files)!
 
+### Using remote desktop (Sunshine/Moonlight)
 
+#### On host (Dopey)
+1. In a terminal run command `sunshine`
+4. PLUG IN HDMI DUMMY IN GPU HDMI PORT
+
+#### On client (Mission control or own computer {don't forget to pair if that's the case})
+1. In a terminal run command `moonlight`
+2. Have patience and wait until a GUI window pops up 
+3. Click the symbol "robot"
+4. Click the desktop to enter Dopey's desktop. 
+5. Have patience and wait
+6. Go nuts and drift Dopey as much as you want to
+-  Toggle fullscreen: `ctrl+shift+alt+X`
+-  Toggle cursor/keyboard: `ctrl+shift+alt+Z`
+-  Disconnect sessions: `ctrl+shift+alt+Q`
+
+#### Config/credentials
+- Configuration of Sunshine available here https://localhost:47990/
+- username: dopey, password: Dopey5000
 ## Control dopey with keyboard or joystick
 0. Be inside Dopey
 1. `cd ~/dd2419_ws`
