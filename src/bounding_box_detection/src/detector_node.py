@@ -105,8 +105,8 @@ class BoundingBoxNode:
     def project_bb(self, bbs: List[utils.BoundingBox]):
 
         for bb in bbs:
-            center_x = bb["x"] + bb["width"] / 2
-            center_y = bb["y"] + bb["height"] / 2
+            center_x = int(bb["x"] + bb["width"] / 2)
+            center_y = int(bb["y"] + bb["height"] / 2)
             world_z = self.array_depth[center_y, center_x]
             fx = self.K[0, 0]
             fy = self.K[1, 1]
