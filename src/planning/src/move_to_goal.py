@@ -15,21 +15,22 @@ class move_to_goal():
 
     def __init__(self):
 
-        self.Kp_ang = 0.05
-        self.Ki_ang = 0.0002
-        self.Kd_ang = 0.03
-        self.Kp_dist = 0.08
+        self.Kp_ang1 = 0.05
+        self.Ki_ang1 = 0.0002
+        self.Kd_ang1 = 1.0
+        self.Kp_dist = 0.0008
         self.Ki_dist = 0.0002
-        self.Kp_ang2 = 0.03
-        self.Ki_ang2 = 0.0
-        self_Kd_dist = 0.0
+        self.Kd_dist = 0.5
+        self.Kp_ang2 = 0.003
+        self.Ki_ang2 = 0.01
+        self.Kd_ang2 = 0.3
 
-        self.integral_error_ang = 0.0
+        self.integral_error_ang1 = 0.0
         self.integral_error_dist = 0.0
         self.integral_error_ang2 = 0.0
-
-        self.prev_error_ang = 0.0
-        self._prev_error_dist = 0.0
+        self.prev_error_ang1 = 0.0
+        self.prev_error_dist = 0.0
+        self.prev_error_ang2 = 0.0
 
         self.threshold_ang1 = 0.3
         self.threshold_ang2 = 0.1
@@ -82,6 +83,7 @@ class move_to_goal():
 
         while not rospy.is_shutdown():
             if self.goal_pose:
+                
 
                 self.goal_pose.header.frame_id = self.currentframe
                 self.goal_pose.header.stamp = rospy.Time.now()
@@ -90,37 +92,48 @@ class move_to_goal():
                 rot_q = self.goal_pose.pose.orientation
                 (_, _, self.goal_theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
 
-                self.error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
-                self.error_ang = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
-
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
-                error_ang = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
+                error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
                 error_ang2 = self.odom_theta - self.goal_theta
 
-                proportional_output_ang = self.Kp_ang * error_ang
-                self.integral_error_ang += error_ang
-                integral_output_ang = self.Ki_ang * self.integral_error_ang
-                total_output_ang = proportional_output_ang + integral_output_ang
+                proportional_output_ang1 = self.Kp_ang1 * error_ang1
+                self.integral_error_ang1 += error_ang1
+                self.integral_output_ang1 = self.Ki_ang1 * self.integral_error_ang1
+                derivative_error_ang1 = error_ang1 - self.prev_error_ang1
+                self.prev_error_ang1 = error_ang1
+                derivative_output_ang1 = self.Kd_ang1 * derivative_error_ang1
+                total_output_ang1 = proportional_output_ang1 + self.integral_output_ang1 + derivative_output_ang1
 
                 proportional_output_dist = self.Kp_dist * error_dist
                 self.integral_error_dist += error_dist
                 integral_output_dist = self.Ki_dist * self.integral_error_dist
-                total_output_dist = proportional_output_dist #+ integral_output_dist
+                derivative_error_dist = error_dist - self.prev_error_dist
+                self.prev_error_dist = error_dist
+                derivative_output_dist = self.Kd_dist * derivative_error_dist
+                total_output_dist = proportional_output_dist + integral_output_dist + derivative_output_dist
 
                 proportional_output_ang2 = self.Kp_ang2 * error_ang2
                 self.integral_error_ang2 += error_ang2
                 integral_output_ang2 = self.Ki_ang2 * self.integral_error_ang2
-                total_output_ang2 = proportional_output_ang2
+                derivative_error_ang2 = error_ang2 - self.prev_error_ang2
+                self.prev_error_ang2 = error_ang2
+                derivative_output_ang2 = self.Kd_ang2 * derivative_error_ang2
+                total_output_ang2 = proportional_output_ang2 + integral_output_ang2 + derivative_output_ang2
 
-                total_output_dist = proportional_output_dist #+ integral_output_dist
+                if total_output_ang1 > 2.0:
+                    total_output_ang1 = 0.0
             
                 if not self.arrived2point:
-                    if abs(self.error_ang) > self.threshold_ang1:
-                        self.twist.angular.z = total_output_ang 
-                        self.twist.linear.x = 0
+                    
+                    if abs(error_ang1) > self.threshold_ang1:
+                        print('Adjusting ang1',error_ang1)
+                        #print(total_output_ang1)
+                        self.twist.angular.z = total_output_ang1
+                        self.twist.linear.x = 0.0
         
-                    elif self.error_dist > self.threshold_dist:
-                        rospy.loginfo("Correct angle!")
+                    elif error_dist > self.threshold_dist:
+                        print("Correct angle! Adjusting dist", error_dist)
+                        #print(total_output_dist)
                         self.twist.linear.x = total_output_dist
                         self.twist.angular.z = 0.0
 
@@ -128,14 +141,14 @@ class move_to_goal():
                         rospy.loginfo("Correct pose!")
                         self.twist.angular.z = 0
                         self.twist.linear.x = 0
-                        total_output_ang = 0
+                        total_output_ang1 = 0
                         total_output_dist = 0
                         self.arrived2point = True
                 else:
                     if abs(error_ang2) > self.threshold_ang2:
+                        print("Ajusting ang2", error_ang2)
                         self.twist.linear.x = 0.0
                         self.twist.angular.z = total_output_ang2
-                        self.rot_clear2 = False
 
                     else:
                         rospy.loginfo("Done")
