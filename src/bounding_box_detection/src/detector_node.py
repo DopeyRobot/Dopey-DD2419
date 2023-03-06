@@ -153,7 +153,7 @@ class BoundingBoxNode:
                 bbs = self.predict(self.image.copy())
                 # supress multiple bbs
                 bbs = utils.non_max_suppresion(
-                    bbs, confidence_threshold=0.80, diff_class_thresh=0.75
+                    bbs, confidence_threshold=0.70, diff_class_thresh=0.75
                 )
                 # add bbs to image and publish
                 self.show_bbs_in_image(bbs, self.array_image)
