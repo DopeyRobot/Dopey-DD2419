@@ -22,8 +22,8 @@ class move_to_goal():
         self.Ki_dist = 0.0002
         self.Kd_dist = 0.5
         self.Kp_ang2 = 0.003
-        self.Ki_ang2 = 0.01
-        self.Kd_ang2 = 0.3
+        self.Ki_ang2 = 0.00001
+        self.Kd_ang2 = 1.0
 
         self.integral_error_ang1 = 0.0
         self.integral_error_dist = 0.0
@@ -74,7 +74,7 @@ class move_to_goal():
         
 
     def odom_callback(self, msg):
-        print('in odom callback')
+        # print('in odom callback')
         self.odom = msg
         odom_q = self.odom.pose.pose.orientation
         (_, _, self.odom_theta) = euler_from_quaternion([odom_q.x, odom_q.y, odom_q.z, odom_q.w])
@@ -96,6 +96,7 @@ class move_to_goal():
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
                 error_ang2 = self.odom_theta - self.goal_theta
+                rospy.loginfo(error_ang2)
 
                 proportional_output_ang1 = self.Kp_ang1 * error_ang1
                 self.integral_error_ang1 += error_ang1
