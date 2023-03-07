@@ -66,7 +66,7 @@ class DetectionBuffer:
                 #print(f"adding {class_name} at {position} to {key}")
                 self._add(class_name, key, position, timestamp)
                 return
-
+        
         #print(f"adding {class_name} at {position} to new instance")
         instance_name = self._get_instance_name(class_name)
         self._add(class_name, instance_name, position, timestamp)
@@ -85,6 +85,60 @@ class DetectionBuffer:
 # (M = Map, T=Tray, G=Grip, B = box (or maybe they can be forgoten when they are in a box?)), and their timestamps
 # The longTermMemory database will only delete objects from its list when they are outdated:
 # e.g., position does not correspond with TF tree, the object was picked up, etc.
+
+class LongTermMemory:
+    """Stores the objects that have been detected more than N times in the DetectionBuffer"""
+
+    def __init__(self, frames_needed_for_reconition, distance_threshold) -> None:
+        self.instances_in_memory=[]
+        self.locations={} # is the instance in the Map, Tray, Grip, Box?
+        self.last_time_seen = {}
+        self.positions= {}
+        self.distance_threshold = distance_threshold
+        self.min_frames_needed = frames_needed_for_reconition # how many times the object has to be detected in the DetectionBuffer to be added to the LongTermMemory
+
+    def _get_instance_name(self, class_name):
+        return class_name + "_" +  str(self.class_counter[class_name])
+    
+    def _get_class_name(self, instance_name):
+        return instance_name.split("_")[0]
+
+    def _check_position(self, position):
+        keys = []
+        for key, value in self.positions.items():
+            if np.linalg.norm(position - value) < self.distance_threshold:
+                keys.append(key)
+        keys = sorted(keys, key=lambda x: np.linalg.norm(position - self.average_positions[x]))
+        return keys
+            # do we want to decrease the class counter as well? Problem: maybe we just deleted the last instance of a class but we want to add to a higher number.
+            # What if everytime we called this we passed it the external counter?
+
+    
+    def _add(self, class_name, instance_name, position, timestamp):
+        """Increments the elements in the Long term memory"""
+        
+        if class_name in self._get_class_name(self, self.instances_in_memory): # PROBABLY AND  INCORRECT ITERATION?
+            #TODO set different locations (M,T,G,B) depending on where the obkect is
+            self.locations[instance_name] = "M" # we assume that the object is in the map (FOR NOW ONLY)
+            self.instances_in_memory.append(instance_name)
+            self.positions[instance_name] = position
+            #self.last_time_seen[instance_name] = timestamp
+            return
+
+        instance_name = self._get_instance_name(class_name) # create a new instance name
+        self.instances_in_memory.append(instance_name)
+        self.positions[instance_name] = position
+        #self.last_time_seen[instance_name] = timestamp
+    
+    def add(self, class_name, position, timestamp, db: DetectionBuffer):
+        for key, value in db.instances_detected_counter.items():
+            if value > self.min_frames_needed:
+                keys = self._check_position(db.average_positions[key])
+                if len(keys) != 0 and self._get_class_name(key) == class_name:
+                    self._add(class_name, key, position, timestamp)
+                    return
+
+
 
 
 
