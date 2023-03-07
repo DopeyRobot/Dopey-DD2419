@@ -58,7 +58,7 @@ class move_to_goal():
 
         self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
         self.goal_subscriber = rospy.Subscriber('move_base_simple/goal', PoseStamped, self.goal_callback) 
-        self.odom_subscriber = rospy.Subscriber('odometry', Odometry, self.odom_callback) 
+        self.odom_subscriber = rospy.Subscriber('/odometry', Odometry, self.odom_callback) 
 
         self.arrived2point = False
         self.run() 
@@ -74,6 +74,7 @@ class move_to_goal():
         
 
     def odom_callback(self, msg):
+        print('in odom callback')
         self.odom = msg
         odom_q = self.odom.pose.pose.orientation
         (_, _, self.odom_theta) = euler_from_quaternion([odom_q.x, odom_q.y, odom_q.z, odom_q.w])
