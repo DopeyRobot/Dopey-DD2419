@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from typing import List
+from collections import Counter 
 import rospy
 import torch
 from detector import Detector
@@ -20,7 +21,6 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 torch.cuda.set_per_process_memory_fraction(0.8, 0)
 torch.cuda.empty_cache()
 
-
 class BoundingBoxNode:
     def __init__(self) -> None:
         self.f = 60
@@ -38,6 +38,9 @@ class BoundingBoxNode:
         self.broadcaster = TransformBroadcaster()
         self.buffer = Buffer(rospy.Duration(1200.0))
         self.listener = TransformListener(self.buffer)
+
+        self.lastPredictions = []
+
 
         self.image_subscriber = rospy.Subscriber(
             self.camera_topic, Image, self.image_callback
@@ -144,6 +147,9 @@ class BoundingBoxNode:
 
             t.child_frame_id = utils.detect_color(bb, self.array_image)
             self.broadcaster.sendTransform(t)
+
+
+    
 
     def run(self):
         while not rospy.is_shutdown():
