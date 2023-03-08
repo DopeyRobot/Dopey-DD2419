@@ -112,13 +112,15 @@ class KinematicsSolver:
             theta4 = (psi - theta2 - theta3)%(2*np.pi)
             theta5 = desired_theta5
 
-            return JointData.from_np_array(
-                -np.array([-theta1, theta2, theta3, theta4, -theta1+np.pi/2])
-                )
         except:
             if self.verbose:
                 print("Could not find pose")
             return None
+        
+
+        return JointData.from_np_array(
+            -np.array([-theta1, theta2, theta3, theta4, -theta1+np.pi/2])
+            )
 
     def get_link_normal(self, joint_data: JointData, link_number: int) -> np.ndarray:
         """

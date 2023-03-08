@@ -27,6 +27,8 @@ class IKService:
         self.pickup_goal_sub = rospy.Subscriber("pickup_goal", PoseStamped, self.pickup_goal_callback)
         self.pickup_service = rospy.Service("pickup_pose", Empty, self.pickup_callback)
 
+        self.angle_increment = 0.1
+
         while len(self.cur_joint_state.position) < 5:
             rospy.sleep(0.1)
 
@@ -52,13 +54,33 @@ class IKService:
         self.IK_callback(req)
 
         return EmptyResponse()
+    
+    def transform_to_arm_frame(self, pose:PoseStamped) ->PoseStamped:
+        transformed_pose = self.buffer.transform(pose, self.arm_frame, rospy.Duration(2))
+        rospy.loginfo(transformed_pose)
+        return transformed_pose
+
 
     def IK_callback(self, req:IKData):
-        pos = req.x, req.y, req.z
+        pose = PoseStamped()
+        pose.pose.position.x = req.x
+        pose.pose.position.y = req.y
+        pose.pose.position.z = req.z
+        pose.header.stamp = rospy.Time.now()
+        pose.header.frame_id = "base_link"
+        tranformed_pose:PoseStamped = self.transform_to_arm_frame(pose)
+        pos = tranformed_pose.pose.position.x, tranformed_pose.pose.position.y, tranformed_pose.pose.position.z
+        rospy.loginfo(pos)
         psi = req.wrist_pitch
         rot = req.gripper_rotation
 
         self.move_to(pos, psi, rot)
+        if not sucess:
+
+            for angle in self.angles_to_try:
+                sucess = self.move_to(pos, angle, rot)
+                if sucess:
+                    break
 
         return EmptyResponse()
 
@@ -69,9 +91,11 @@ class IKService:
         sol = self.solver.analytical_IK(pos, wrist_pitch, wrist_rotation)
         if sol is not None:
             self.pose_service(sol.to_np_array(), 2000)
+            rospy.loginfo("found solution")
+            return True
         else:
-            rospy.loginfo("couldn't solve pose")
-            return
+            rospy.loginfo(f"couldn't solve pose for wrist pictch {wrist_pitch}")
+            return False
 
 if __name__ == "__main__":
     rospy.init_node("IK_service")
