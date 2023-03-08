@@ -41,46 +41,47 @@ class Detection:
         height_mask = self.points[:, 1] < 0.101
         norm_and_height = np.logical_and(norm_mask, height_mask)
         points = self.points[norm_and_height]
-        cloud = o3d.geometry.PointCloud()
-        cloud.points = o3d.utility.Vector3dVector(points)
-        labels = np.array(cloud.cluster_dbscan(eps=0.02, min_points=10))
-        clusters = range(labels.max()+1)
+        if len(points)>0:
+            cloud = o3d.geometry.PointCloud()
+            cloud.points = o3d.utility.Vector3dVector(points)
+            labels = np.array(cloud.cluster_dbscan(eps=0.02, min_points=10))
+            clusters = range(labels.max()+1)
 
-        for cluster in clusters:
-            cluster_bool = labels == cluster
+            for cluster in clusters:
+                cluster_bool = labels == cluster
 
-            mean = np.mean(points[cluster_bool], axis=0)
+                mean = np.mean(points[cluster_bool], axis=0)
 
-            if not np.any(np.isnan(mean)):
-                pose = PoseStamped()
-                pose.header.stamp = stamp
-                pose.header.frame_id = "camera_color_optical_frame"
-                pose.pose.position.x = mean[0]
-                pose.pose.position.y = mean[1]
-                pose.pose.position.z = mean[2]
-                pose.pose.orientation.x = 0.5
-                pose.pose.orientation.y = 0.5
-                pose.pose.orientation.z = 0.5
-                pose.pose.orientation.w = 0.5
+                if not np.any(np.isnan(mean)):
+                    pose = PoseStamped()
+                    pose.header.stamp = stamp
+                    pose.header.frame_id = "camera_color_optical_frame"
+                    pose.pose.position.x = mean[0]
+                    pose.pose.position.y = mean[1]
+                    pose.pose.position.z = mean[2]
+                    pose.pose.orientation.x = 0.5
+                    pose.pose.orientation.y = 0.5
+                    pose.pose.orientation.z = 0.5
+                    pose.pose.orientation.w = 0.5
 
-                transformed_pose = self.buffer.transform(
-                    pose, "map", rospy.Duration(1)
-                )
-                t = TransformStamped()
-                t.header.stamp = transformed_pose.header.stamp
-                t.header.frame_id = "map"
+                    transformed_pose = self.buffer.transform(
+                        pose, "map", rospy.Duration(1)
+                    )
+                    t = TransformStamped()
+                    t.header.stamp = transformed_pose.header.stamp
+                    t.header.frame_id = "map"
 
-                t.transform.translation.x = transformed_pose.pose.position.x
-                t.transform.translation.y = transformed_pose.pose.position.y
-                t.transform.translation.z = transformed_pose.pose.position.z
+                    t.transform.translation.x = transformed_pose.pose.position.x
+                    t.transform.translation.y = transformed_pose.pose.position.y
+                    t.transform.translation.z = transformed_pose.pose.position.z
 
-                t.transform.rotation.x = transformed_pose.pose.orientation.x
-                t.transform.rotation.y = transformed_pose.pose.orientation.y
-                t.transform.rotation.z = transformed_pose.pose.orientation.z
-                t.transform.rotation.w = transformed_pose.pose.orientation.w
+                    t.transform.rotation.x = transformed_pose.pose.orientation.x
+                    t.transform.rotation.y = transformed_pose.pose.orientation.y
+                    t.transform.rotation.z = transformed_pose.pose.orientation.z
+                    t.transform.rotation.w = transformed_pose.pose.orientation.w
 
-                t.child_frame_id = f"object{cluster}"
-                self.broadcaster.sendTransform(t)
+                    t.child_frame_id = f"object{cluster}"
+                    self.broadcaster.sendTransform(t)
 
     def run(self):
         while not rospy.is_shutdown():
