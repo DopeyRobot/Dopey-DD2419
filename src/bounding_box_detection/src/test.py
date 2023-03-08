@@ -1,5 +1,20 @@
 from collections import Counter
+from enum import Enum
+from dataclasses import dataclass
 import numpy as np
+from geometry_msgs.msg import PoseStamped
+
+class Locations(Enum):
+    MAP = "map"
+    BOX = "box"
+    GRIPPER = "gripper"
+    TRAY = "tray"
+
+@dataclass
+class DetectionObject:
+    class_name:str
+    position:PoseStamped #contains position in map frame and time of detection
+
 
 class DetectionBuffer:
     """The detection buffer is a filter to reject random false detections.
@@ -15,6 +30,8 @@ class DetectionBuffer:
 
     def _get_instance_name(self, class_name):
         return class_name + "_" +  str(self.class_counter[class_name])
+    def _get_instance_position(self, instance_name):
+        return self.average_positions[instance_name]
     
     def _get_class_name(self, instance_name):
         return instance_name.split("_")[0]
@@ -38,7 +55,8 @@ class DetectionBuffer:
             del self.instances_detected_counter[key]
             del self.last_time_seen[key]
             del self.average_positions[key]
-            # do we want to decrease the class counter as well? Problem: maybe we just deleted the last instance of a class but we want to add to a higher number.
+            # do we want to decrease the class counter as well? 
+            # Problem: maybe we just deleted the last instance of a class but we want to add to a higher number.
             # What if everytime we called this we passed it the external counter?
 
     
@@ -117,25 +135,25 @@ class LongTermMemory:
     def _add(self, class_name, instance_name, position, timestamp):
         """Increments the elements in the Long term memory"""
         
-        if class_name in self._get_class_name(self, self.instances_in_memory): # PROBABLY AND  INCORRECT ITERATION?
+        if class_name in [self._get_class_name(self, instance) for instance in self.instances_in_memory]: # PROBABLY AND  INCORRECT ITERATION?
             #TODO set different locations (M,T,G,B) depending on where the obkect is
             self.locations[instance_name] = "M" # we assume that the object is in the map (FOR NOW ONLY)
             self.instances_in_memory.append(instance_name)
             self.positions[instance_name] = position
-            #self.last_time_seen[instance_name] = timestamp
+            self.last_time_seen[instance_name] = timestamp
             return
 
         instance_name = self._get_instance_name(class_name) # create a new instance name
         self.instances_in_memory.append(instance_name)
         self.positions[instance_name] = position
-        #self.last_time_seen[instance_name] = timestamp
+        self.last_time_seen[instance_name] = timestamp
     
-    def add(self, class_name, position, timestamp, db: DetectionBuffer):
+    def add(self, timestamp, db: DetectionBuffer):
         for key, value in db.instances_detected_counter.items():
             if value > self.min_frames_needed:
                 keys = self._check_position(db.average_positions[key])
-                if len(keys) != 0 and self._get_class_name(key) == class_name:
-                    self._add(class_name, key, position, timestamp)
+                if len(keys) != 0:
+                    self._add(db._get_class_name(key), key, db._get_position(key), timestamp)
                     return
 
 
@@ -147,18 +165,21 @@ class LongTermMemory:
 
 if __name__ == "__main__":
     db = DetectionBuffer()
+    lt = LongTermMemory(3,.05)
     print(db._get_class_name("person_0"))
     print(db._get_instance_name("person"))
-    db.add("person", np.array([0,0,0]))
-    db.add("person", np.array([0.1,0.1,0.1]))
+    db.add("person", np.array([0,0,0]),4)
+    db.add("person", np.array([0.1,0.1,0.1]),4)
     print(db.instances_detected_counter)
-    db.add("person", np.array([0.1,0.1,0.1]))
+    db.add("person", np.array([0.1,0.1,0.1]),4)
     print(db.instances_detected_counter)
-    db.add("person", -np.array([0.1,0.1,0.1]))
+    db.add("person", -np.array([0.1,0.1,0.1]),4)
     print(db.instances_detected_counter)
-    db.add("kiki", np.array([0.1,0.1,0.1]))
+    db.add("kiki", np.array([0.1,0.1,0.1]),4)
     print(db.instances_detected_counter)
-    db.add("kiki", np.array([0.1,0.1,0.1]))
+    db.add("kiki", np.array([0.1,0.1,0.1]),4)
     print(db.instances_detected_counter)
-    db.add("kiki", -np.array([0.1,0.1,0.1]))
+    db.add("kiki", -np.array([0.1,0.1,0.1]),4)
     print(db.instances_detected_counter)
+    lt.add(5,db)
+    
