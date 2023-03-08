@@ -19,7 +19,7 @@ import numpy as np
 #Run the localization node and tune Q and R
 
 class OdometryFusion:
-    def __init__(self,verbose=False) -> None:
+    def __init__(self,SLAM=False,verbose=False) -> None:
         self.verbose = verbose
         self.odom_publisher = rospy.Publisher("/odometry", Odometry,queue_size=10)
         self.state_publisher = rospy.Publisher("/odometry/curr_vel_state", Twist,queue_size=10)
@@ -80,6 +80,20 @@ class OdometryFusion:
         
         return self.mu_t[0],self.mu_t[1]
 
+    def particleStep(self,x,y,yaw):
+        """Returns the next state of the particle using the Gaussian distribution calculated in sensor_fusion"""
+        mu_t,sigma_t = self.fusion()
+        v = np.random.normal(mu_t[0],np.sqrt(sigma_t[0,0]))
+        w = np.random.normal(mu_t[1],np.sqrt(sigma_t[1,1]))
+
+        vdt = v*self.dt
+        wdt = w*self.dt
+
+        x += vdt * math.cos(self.yaw) 
+        y += vdt * math.sin(self.yaw)
+        yaw += wdt
+        
+        return x,y,yaw
 
     def step(self):
 
@@ -99,42 +113,44 @@ class OdometryFusion:
         self.yaw += wdt
 
         #----
-        br = tf2_ros.TransformBroadcaster()
-        odom = Odometry()
+        if not self.SLAM:
+            br = tf2_ros.TransformBroadcaster()
+            odom = Odometry()
 
-        t = TransformStamped()
-        t.header.frame_id = "odom"
-        t.header.stamp = self.encoders.header.stamp
-        t.child_frame_id = "base_link"
+            t = TransformStamped()
+            t.header.frame_id = "odom"
+            t.header.stamp = self.encoders.header.stamp
+            t.child_frame_id = "base_link"
 
-        t.transform.translation.x = self.x
-        t.transform.translation.y = self.y
-        q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.yaw)
-        t.transform.rotation.x = q[0]
-        t.transform.rotation.y = q[1]
-        t.transform.rotation.z = q[2]
-        t.transform.rotation.w = q[3]
+            t.transform.translation.x = self.x
+            t.transform.translation.y = self.y
+            q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.yaw)
+            t.transform.rotation.x = q[0]
+            t.transform.rotation.y = q[1]
+            t.transform.rotation.z = q[2]
+            t.transform.rotation.w = q[3]
 
-        odom.pose.pose.position.x = self.x
-        odom.pose.pose.position.y = self.y
-        odom.pose.pose.position.z = 0.0
-        odom.pose.pose.orientation.x = q[0]
-        odom.pose.pose.orientation.y = q[1]
-        odom.pose.pose.orientation.z = q[2]
-        odom.pose.pose.orientation.w = q[3]
+            odom.pose.pose.position.x = self.x
+            odom.pose.pose.position.y = self.y
+            odom.pose.pose.position.z = 0.0
+            odom.pose.pose.orientation.x = q[0]
+            odom.pose.pose.orientation.y = q[1]
+            odom.pose.pose.orientation.z = q[2]
+            odom.pose.pose.orientation.w = q[3]
 
-        odom.child_frame_id = "base_link"
-        odom.twist.twist.linear.x = vdt*math.cos(self.yaw)/self.f
-        odom.twist.twist.linear.y = vdt*math.sin(self.yaw)/self.f
-        odom.twist.twist.angular.z = wdt/self.f
+            odom.child_frame_id = "base_link"
+            odom.twist.twist.linear.x = vdt*math.cos(self.yaw)/self.f
+            odom.twist.twist.linear.y = vdt*math.sin(self.yaw)/self.f
+            odom.twist.twist.angular.z = wdt/self.f
+            
+            
+            self.odom_publisher.publish(odom)
 
-        self.odom_publisher.publish(odom)
 
-
-        #to avoid redundat tf warnings
-        if self.old_stamp != t.header.stamp:
-            br.sendTransform(t)
-            self.old_stamp = t.header.stamp
+            #to avoid redundat tf warnings
+            if self.old_stamp != t.header.stamp:
+                br.sendTransform(t)
+                self.old_stamp = t.header.stamp
 
 
 if __name__ == "__main__":
