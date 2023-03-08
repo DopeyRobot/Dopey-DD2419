@@ -117,9 +117,13 @@ class KinematicsSolver:
                 print("Could not find pose")
             return None
         
+        sol = -np.array([-theta1, theta2, theta3, theta4, -theta1+np.pi/2])
+
+        if any(np.isnan(sol)):
+            return None
 
         return JointData.from_np_array(
-            -np.array([-theta1, theta2, theta3, theta4, -theta1+np.pi/2])
+            sol
             )
 
     def get_link_normal(self, joint_data: JointData, link_number: int) -> np.ndarray:

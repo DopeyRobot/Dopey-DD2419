@@ -34,14 +34,14 @@ class IKService:
 
     def pickup_goal_callback(self, msg):
         msg.header.frame_id = "base_link"
-        self.pickup_goal = self.buffer.transform(msg, self.arm_frame, rospy.Duration(2))
+        self.pickup_goal = msg
 
     def pickup_callback(self, req:Empty):
         """
         goes to the pickup goal
         """
         x,y,z = self.pickup_goal.pose.position.x, self.pickup_goal.pose.position.y, self.pickup_goal.pose.position.z
-        psi = np.pi
+        psi = -np.pi
         rot = 0
 
         req = IKData()
@@ -57,7 +57,6 @@ class IKService:
     
     def transform_to_arm_frame(self, pose:PoseStamped) ->PoseStamped:
         transformed_pose = self.buffer.transform(pose, self.arm_frame, rospy.Duration(2))
-        rospy.loginfo(transformed_pose)
         return transformed_pose
 
 
@@ -68,17 +67,17 @@ class IKService:
         pose.pose.position.z = req.z
         pose.header.stamp = rospy.Time.now()
         pose.header.frame_id = "base_link"
-        tranformed_pose:PoseStamped = self.transform_to_arm_frame(pose)
-        pos = tranformed_pose.pose.position.x, tranformed_pose.pose.position.y, tranformed_pose.pose.position.z
+        transformed_pose:PoseStamped = self.transform_to_arm_frame(pose)
+        pos = transformed_pose.pose.position.x, transformed_pose.pose.position.y, transformed_pose.pose.position.z
         rospy.loginfo(pos)
         psi = req.wrist_pitch
         rot = req.gripper_rotation
 
-        self.move_to(pos, psi, rot)
+        sucess = self.move_to(pos, psi, rot)
         if not sucess:
-
-            for angle in self.angles_to_try:
-                sucess = self.move_to(pos, angle, rot)
+            rospy.loginfo("trying a new angle")
+            for i in range(1, 10):
+                sucess = self.move_to(pos, psi - self.angle_increment*i, rot)
                 if sucess:
                     break
 
@@ -90,7 +89,8 @@ class IKService:
     def move_to(self, pos, wrist_pitch, wrist_rotation):
         sol = self.solver.analytical_IK(pos, wrist_pitch, wrist_rotation)
         if sol is not None:
-            self.pose_service(sol.to_np_array(), 2000)
+            rospy.loginfo(sol)
+            self.pose_service(sol.to_np_array(), 800)
             rospy.loginfo("found solution")
             return True
         else:
