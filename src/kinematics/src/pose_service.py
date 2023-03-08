@@ -6,7 +6,7 @@ from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
 from std_msgs.msg import Float64
 import numpy as np
 from kinematics_utils import RefPoses, JointData
-from kinematics.srv import JointAngles, GripStrength
+from kinematics.srv import JointAngles, GripStrengthRequest, GripStrength
 from hiwonder_servo_msgs.msg import CommandDuration
 
 
@@ -140,7 +140,7 @@ class PoseService:
 
         return EmptyResponse()
 
-    def close_gripper_callback(self, req: GripStrength) -> EmptyResponse:
+    def close_gripper_callback(self, req: GripStrengthRequest) -> EmptyResponse:
         rospy.loginfo("Closing gripper")
         
         if req.strength == "cube":

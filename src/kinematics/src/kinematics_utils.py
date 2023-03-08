@@ -4,6 +4,7 @@ import numpy as np
 from geometry_msgs.msg import Quaternion
 from tf.transformations import quaternion_from_matrix, quaternion_slerp
 import rospy
+from kinematics.srv import JointAnglesRequest
 
 class JointData:
     """
@@ -91,6 +92,17 @@ class JointData:
                 self.joint5,
             ]
         )
+    
+    def to_list(self) -> list:
+        return [
+                    self.joint1,
+                    self.joint2,
+                    self.joint3,
+                    self.joint4,
+                    self.joint5,
+                    self.gripper,
+                ]
+            
 
     def to_joint_state(self):
         joint_state = JointState()
@@ -114,6 +126,13 @@ class JointData:
 
         joint_state.header.stamp = rospy.Time.now()
         return joint_state
+
+    def to_joint_angles_req(self, time = 2000) -> JointAnglesRequest:
+        joints = self.to_list()
+        time = time
+
+        return JointAnglesRequest(joints, time)
+
 
 
 class RefPoses(Enum):

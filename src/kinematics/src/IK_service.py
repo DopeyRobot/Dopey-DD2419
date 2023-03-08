@@ -3,10 +3,12 @@ import rospy
 from kinematics_utils import JointData, RefPoses
 from kinematics_solver import KinematicsSolver, D1, A2, A3, D5
 from sensor_msgs.msg import JointState
-from kinematics.srv import JointAngles, IKData
+from kinematics.srv import JointAngles, IKData, JointAnglesRequest
 from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
+from std_msgs.msg import String
 from tf2_geometry_msgs import PoseStamped
 from tf2_ros import Buffer, TransformListener
+from kinematics.srv import GripStrength, GripStrengthRequest
 import numpy as np
 
 class IKService:
@@ -22,10 +24,13 @@ class IKService:
         self.arm_frame = "arm_base_link"
         rospy.wait_for_service("pose_service", 5.0)
         self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
+        self.gripper_open_service = rospy.ServiceProxy("gripper/open", Empty)
+        self.gripper_close_service = rospy.ServiceProxy("gripper/close", GripStrength)
         self.pickup_goal = PoseStamped()
         self.inverse_k_service = rospy.Service("IK_service", IKData, self.IK_callback)
         self.pickup_goal_sub = rospy.Subscriber("pickup_goal", PoseStamped, self.pickup_goal_callback)
         self.pickup_service = rospy.Service("pickup_pose", Empty, self.pickup_callback)
+        self.full_pickup_service = rospy.Service("full_pickup_pose", Empty, self.pickup_routine_callback)
 
         self.angle_increment = 0.1
 
@@ -96,6 +101,27 @@ class IKService:
         else:
             rospy.loginfo(f"couldn't solve pose for wrist pictch {wrist_pitch}")
             return False
+        
+    def pickup_routine_callback(self, req:EmptyRequest) -> EmptyResponse:
+        rospy.loginfo("pickup routine started")
+        self.pose_service(RefPoses.HOME.value.to_joint_angles_req())
+        rospy.sleep(2)
+        rospy.loginfo("moving to front pickup zone")
+        self.pose_service(RefPoses.PREPICK_F.value.to_joint_angles_req())
+        rospy.sleep(2)
+        self.gripper_open_service(EmptyRequest())
+        rospy.sleep(2)
+        rospy.loginfo("moving to pick")
+        self.pickup_callback(EmptyRequest())
+        rospy.sleep(2)
+        rospy.loginfo("closing gripper")
+        grip_req = GripStrengthRequest(String("cube"))
+        self.gripper_close_service(grip_req)
+        rospy.sleep(2)
+        rospy.loginfo("going back home")
+        self.pose_service(RefPoses.HOME.value.to_joint_angles_req())
+        rospy.sleep(2)
+        return EmptyResponse()
 
 if __name__ == "__main__":
     rospy.init_node("IK_service")
