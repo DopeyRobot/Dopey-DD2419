@@ -33,7 +33,6 @@ class ShortTermMemory:
         return self.average_position[instance_name]
     
     def get_class_name(self, instance_name: str):
-        print(instance_name.split("_")[0])
         return instance_name.split("_")[0]
 
     def check_position(self, position):
@@ -130,7 +129,11 @@ class LongTermMemory:
             if np.linalg.norm(position - value) < self.distance_threshold:
                 keys.append(key)
         keys = sorted(keys, key=lambda x: np.linalg.norm(position - self.positions[x]))
-        return keys[0]
+
+        if len(keys) != 0:
+            return keys[0]
+        else:
+            return None
             # do we want to decrease the class counter as well? Problem: maybe we just deleted the last instance of a class but we want to add to a higher number.
 
     
@@ -188,6 +191,14 @@ if __name__ == "__main__":
     print(db.instances_detected_counter)
     db.add("kiki", -np.array([0.1,0.1,0.1]),4)
     print(db.instances_detected_counter)
-    lt.add(4,db)
+    lt.checkForObjectsToRemember(4,db)
+    print(lt.instances_in_memory)
+    db.add("kiki", np.array([0.1,0.1,0.1]),4)
+    print(db.instances_detected_counter)
+    db.add("kiki", np.array([0.1,0.1,0.1]),4)
+    print(db.instances_detected_counter)
+    db.add("kiki", -np.array([0.1,0.1,0.1]),4)
+    print(db.instances_detected_counter)
+    lt.checkForObjectsToRemember(4,db)
     print(lt.instances_in_memory)
     
