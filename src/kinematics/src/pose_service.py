@@ -26,6 +26,9 @@ class PoseService:
         self.pickup_service_tray = rospy.Service(
             "pickup/tray", Empty, self.pickup_t_callback
         )
+        self.look_service_tray = rospy.Service(
+            "home/tray", Empty, self.look_t_callback
+        )
         self.open_gripper_service = rospy.Service(
             "gripper/open", Empty, self.open_gripper_callback
         )
@@ -72,6 +75,11 @@ class PoseService:
     def join_state_callback(self, state: JointState):
         self.cur_joint_state = state
 
+    def look_t_callback(self, req:EmptyRequest):
+        rospy.loginfo("Moving to look tray position")
+        self.publish_data(RefPoses.LOOK_TRAY.value, include_gripper=True)
+        return EmptyResponse()
+    
     def home_callback(self, req: EmptyRequest) -> EmptyResponse:
         rospy.loginfo("Moving to home position")
         self.publish_data(RefPoses.HOME.value, include_gripper=True)

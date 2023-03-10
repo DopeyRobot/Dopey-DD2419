@@ -33,10 +33,13 @@ class IKService:
         self.full_pickup_service = rospy.Service("full_pickup_pose", Empty, self.pickup_routine_callback)
 
         self.angle_increment = 0.1
-
+        tries = 0
         while len(self.cur_joint_state.position) < 5:
             rospy.sleep(0.1)
-
+            tries +=1
+            if tries > 10:
+                break
+        
     def pickup_goal_callback(self, msg):
         msg.header.frame_id = "base_link"
         self.pickup_goal = msg
