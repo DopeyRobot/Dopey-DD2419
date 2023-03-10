@@ -40,7 +40,11 @@
 		<param name="color_format" value="yuv422p" />
 		<param name="camera_frame_id" value="usb_cam" />
 		<param name="io_method" value="mmap"/>
+		<param name="camera_info_url" value="file:///home/robot/dd2419_ws/src/usb_cam/ost.yaml" />
   	</node>
+
+	<!-- process usb cam image-->
+	<node name="image_proc" pkg="image_proc" type="image_proc" ns="usb_cam" />
 
 	<!-- launch the arm node -->
 	<node name="forwards_kinematics" pkg="kinematics" type="FK_publisher.py" output="screen"/>
