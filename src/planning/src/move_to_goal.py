@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 from geometry_msgs.msg import TransformStamped
+from std_msgs.msg import Bool
 from robp_msgs.msg import Encoders
 from nav_msgs.msg import Path
 from tf.transformations import euler_from_quaternion
@@ -10,6 +11,10 @@ import tf2_geometry_msgs
 from nav_msgs.msg import Odometry
 import math
 #from rrt import path 
+
+
+# FIX: The ready for pose BOOL
+
 
 class move_to_goal():
 
@@ -54,11 +59,15 @@ class move_to_goal():
         self.currentframe = "odom"
         self.timeout = rospy.Duration(2)
 
+        self.ready_for_pose_publisher = True
+
         rospy.sleep(2)
 
         self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+        self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=10)
         self.goal_subscriber = rospy.Subscriber('move_base_simple/goal', PoseStamped, self.goal_callback) 
         self.odom_subscriber = rospy.Subscriber('/odometry', Odometry, self.odom_callback) 
+
 
         self.arrived2point = False
         self.run() 
@@ -66,6 +75,8 @@ class move_to_goal():
 
     def goal_callback(self, msg):
         rospy.loginfo("new goal ")
+        self.ready_for_pose_publisher.publish(False)
+
         self.goal_pose = PoseStamped()
         self.goal_pose.pose = msg.pose
         self.goal_pose.header.stamp = msg.header.stamp
@@ -156,6 +167,8 @@ class move_to_goal():
                         rospy.loginfo("Done")
                         self.twist.linear.x = 0.0
                         self.twist.angular.z = 0.0
+
+                        self.ready_for_pose_publisher.publish(True)
 
 
                 self.publisher_twist.publish(self.twist)
