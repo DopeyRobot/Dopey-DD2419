@@ -6,27 +6,39 @@ import tf_conversions
 import tf2_ros
 import math
 import tf2_geometry_msgs
-from odometryLoc import OdometryCustom
+#from odometryLoc import OdometryCustom
 
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import pdb
 
+## Import module from other package/directory
+#import sys
+#sys.path.append("/home/robot/dopey_ws/src/odometry") #this needs to be changed for the actual Dopey Robot
+#from odometryFusion import OdometryFusion
+
+# How to import modules from another package/directory https://roboticsbackend.com/ros-import-python-module-from-another-package/
+from odometry.odometryFusion import OdometryFusion
+
+
+
+
 
 class Localization:
-    def __init__(self) -> None:
+    def __init__(self,verbose=False) -> None:
         self.sub_anchor = rospy.Subscriber(
             "/aruco/markers", MarkerArray, self.anchor_callback
         )
+        self.verbose = verbose
+        # self.odom = OdometryCustom()
+        self.odom = OdometryFusion()
 
-        self.odom = OdometryCustom()
         self.rate = rospy.Rate(self.odom.f)
-
         #Anchor stuff
         self.anchor = None #In aruco_frame TF
         self.first_anchor = None
-        self.anchorID = 500
-        
+        self.anchorID = 2
+        #self.test = OdometryPublisher()
         #TF stuff
         self.aruco_frame = "camera_color_optical_frame"
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
@@ -54,18 +66,18 @@ class Localization:
 
         rospy.sleep(1)
         #init static TF between map and odom
-        t = TransformStamped()
-        t.header.frame_id = "map"
-        t.child_frame_id = "odom"
-        t.header.stamp = rospy.Time.now()
-        t.transform.translation.x = 0
-        t.transform.translation.y = 0
-        t.transform.translation.z = 0
-        t.transform.rotation.x = 0
-        t.transform.rotation.y = 0
-        t.transform.rotation.z = 0
-        t.transform.rotation.w = 1
-        self.brStatic.sendTransform(t)
+        # t = TransformStamped()
+        # t.header.frame_id = "map"
+        # t.child_frame_id = "odom"
+        # t.header.stamp = rospy.Time.now()
+        # t.transform.translation.x = 0
+        # t.transform.translation.y = 0
+        # t.transform.translation.z = 0
+        # t.transform.rotation.x = 0
+        # t.transform.rotation.y = 0
+        # t.transform.rotation.z = 0
+        # t.transform.rotation.w = 1
+        # self.brStatic.sendTransform(t)
 
         self.run()
 
@@ -117,7 +129,8 @@ class Localization:
                 t = self._inverse_transform(t)
                 #To avoid redudant tf warnings
                 if self.latest_stamp != t.header.stamp:
-                    rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
+                    if self.verbose:
+                        rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
                     self.brStatic.sendTransform(t)
                     self.latest_stamp = t.header.stamp
                     self.latest_t = t

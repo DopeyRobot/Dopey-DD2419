@@ -21,7 +21,7 @@
 		
 		<!-- <param name="fiducial_len_override" value="500: 0.175"/> -->
 		<param name="image_is_rectified" value="True"/>
-		<param name="marker_size"        value="0.06"/> <!-- in m -->
+		<param name="marker_size"        value="0.175"/> <!-- in m -->
 		<param name="reference_frame"    value="camera_color_optical_frame"/>   <!-- frame in which the marker pose will be refered -->
 		<param name="camera_frame"       value="camera_color_optical_frame"/>
 	
@@ -44,6 +44,6 @@
 	
 	<!-- launch the localization node -->
 	<node pkg="localization" type="localization.py" name="localization_node" output="screen" />
-	<node pkg="planning" type="move_to_goal.py" name="move_to_goal_node" output="screen" />
+	<!-- <node pkg="planning" type="move_to_goal.py" name="move_to_goal_node" output="screen" /> -->
 
 </launch>
