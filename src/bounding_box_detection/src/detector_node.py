@@ -36,12 +36,14 @@ class BoundingBoxNode:
 
         self.camera_frame = "camera_color_optical_frame"
         self.map_frame = "map"
-
+        self.model = torch.load(self.model_path)
+        self.model.eval()
+        self.cuda = torch.cuda.is_available()
         self.broadcaster = TransformBroadcaster()
         self.buffer = Buffer(rospy.Duration(1200.0))
         self.listener = TransformListener(self.buffer)
 
-        self.lastPredictions = []
+        self.bbs:List[utils.BoundingBox] = []
 
         self.image_subscriber = rospy.Subscriber(
             self.camera_topic, Image, self.image_callback
@@ -60,19 +62,18 @@ class BoundingBoxNode:
         self.array_image = None
         self.depth = None
         self.array_depth = None
+        self.verbose = False
+        # self.model = Detector()
+
+
         self.camera_info = rospy.wait_for_message(
             self.camera_info_topic, CameraInfo, rospy.Duration(5)
         )
         self.K = np.array(self.camera_info.K).reshape(3, 3)
 
-        self.verbose = False
-        # self.model = Detector()
-        self.model = torch.load(self.model_path)
-        self.model.eval()
-        self.cuda = torch.cuda.is_available()
 
         self.short_term_memory = ShortTermMemory()
-        self.long_term_memory = LongTermMemory()
+        self.long_term_memory = LongTermMemory(frames_needed_for_reconition=15)
 
         if self.cuda:
             self.model.cuda()
@@ -80,11 +81,25 @@ class BoundingBoxNode:
         self.run()
 
     def image_callback(self, msg):
+        timestamp = msg.header.stamp
         self.ros_img = msg
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         self.image = PILImage.fromarray(image)
         self.array_image = np.asarray(image)
-
+        bbs = self.predict(self.image.copy())
+        # supress multiple bbs
+        self.bbs = utils.non_max_suppresion(
+            bbs, confidence_threshold=0.70, diff_class_thresh=0.75
+        )
+        # add bbs to image and publish
+        self.show_bbs_in_image(self.bbs, self.array_image)
+        for bb in self.bbs:
+            class_name = self.get_class_name(bb)
+            position = self.project_bb(bb)
+            self.short_term_memory.add(class_name, position, timestamp)
+            
+        self.long_term_memory.checkForObjectsToRemember(timestamp, self.short_term_memory)
+        self.publish_long_term_memory()
     def depth_callback(self, msg):
         self.ros_depth = msg
         depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
@@ -117,7 +132,8 @@ class BoundingBoxNode:
         returns the projected 3d postion of the center of a bounding box in world coordinates
         in camera frame
         """
-
+        if self.array_depth is None or self.K is None:
+            return np.array([0, 0, 0])
         center_x = int(bb["x"] + bb["width"] / 2)
         center_y = int(bb["y"] + bb["height"] / 2)
         world_z = self.array_depth[center_y, center_x]
@@ -126,30 +142,32 @@ class BoundingBoxNode:
         world_x = (center_x - self.K[0, 2]) * world_z / fx
         world_y = (center_y - self.K[1, 2]) * world_z / fy
 
-        return world_x / 1000, world_y / 1000, world_z / 1000
+        return np.array([world_x / 1000, world_y / 1000, world_z / 1000])
 
-    def get_frame_name(self, class_name: str, instance_id: str, color_name: str):
+    def get_frame_name(self, class_name: str, instance_id: str):
         """
         returns the full name of a frame
         """
-        return color_name + "_" + class_name + "_" + instance_id
+        return class_name + "_" + instance_id
 
     def get_class_name(self, bb: utils.BoundingBox):
         """
         returns the class name of a bounding box
         """
-        return utils.CLASS_DICT[bb["category_id"]]
-
-    def publish_to_tf(self, frame_name, world_x, world_y, world_z):
+        class_name = utils.CLASS_DICT[bb["category_id"]]
+        
+        return class_name
+    
+    def publish_to_tf(self, frame_name:str, position:np.ndarray):
         """
         Publish a transform from the camera frame to the map frame
         """
         pose = PoseStamped()
         pose.header.frame_id = self.camera_frame
         pose.header.stamp = self.ros_img.header.stamp
-        pose.pose.position.x = world_x
-        pose.pose.position.y = world_y
-        pose.pose.position.z = world_z
+        pose.pose.position.x = position[0]
+        pose.pose.position.y = position[1]
+        pose.pose.position.z = position[2]
 
         pose.pose.orientation.x = 0.5
         pose.pose.orientation.y = 0.5
@@ -175,25 +193,13 @@ class BoundingBoxNode:
 
         t.child_frame_id = frame_name
         self.broadcaster.sendTransform(t)
+        
+    def publish_long_term_memory(self):
+        for instance in self.long_term_memory:
+            print(instance)
 
     def run(self):
         while not rospy.is_shutdown():
-            if self.image is not None:
-                if self.verbose:
-                    start = time.time()
-                bbs = self.predict(self.image.copy())
-                # supress multiple bbs
-                bbs = utils.non_max_suppresion(
-                    bbs, confidence_threshold=0.70, diff_class_thresh=0.75
-                )
-                # add bbs to image and publish
-                self.show_bbs_in_image(bbs, self.array_image)
-
-                if self.verbose:
-                    rospy.loginfo(f"full inference time = {time.time() - start}")
-
-            if self.depth is not None and self.K is not None and bbs is not None:
-                self.project_bb(bbs)
 
             self.rate.sleep()
 

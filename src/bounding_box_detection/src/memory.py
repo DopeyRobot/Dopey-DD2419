@@ -1,6 +1,8 @@
 from collections import Counter
 from enum import Enum
 import numpy as np
+from dataclasses import dataclass
+import rospy
 
 
 class Locations(Enum):
@@ -8,6 +10,15 @@ class Locations(Enum):
     BOX = "box"
     GRIPPER = "gripper"
     TRAY = "tray"
+
+@dataclass
+class LongTermInstance:
+    instance_name: str
+    position: np.ndarray
+    last_time_seen: rospy.Time
+
+    def __str__(self) -> str:
+        return f"name: {self.instance_name} \nposition: {self.position}, \nlast_time_seen: {self.last_time_seen} \n\n"
 
 
 # @dataclass
@@ -20,7 +31,7 @@ class ShortTermMemory:
     """The detection buffer is a filter to reject random false detections.
     It keeps track of how many times an instance has been detected and how many times a class has been detected."""
 
-    def __init__(self, distance_threshold=0.05, time_threshold=10) -> None:
+    def __init__(self, distance_threshold=0.05, time_threshold= rospy.Duration(10)) -> None:
         self.instances_detected_counter = (
             Counter()
         )  # keeps track of how many times the same instance has been detected
@@ -124,7 +135,7 @@ class ShortTermMemory:
 class LongTermMemory:
     """Stores the objects that have been detected more than N times in the DetectionBuffer"""
 
-    def __init__(self, frames_needed_for_reconition, distance_threshold) -> None:
+    def __init__(self, frames_needed_for_reconition = 5, distance_threshold = 0.02) -> None:
         self.class_counter = (
             Counter()
         )  # keeps track of how many times a new element of every class has been detected
@@ -167,7 +178,7 @@ class LongTermMemory:
             closest_instance_in_lt_memory = self.check_position(
                 db.average_position[instance_name]
             )
-            if closest_instance_in_lt_memory != None:
+            if closest_instance_in_lt_memory is not None:
                 self.locations[
                     closest_instance_in_lt_memory
                 ] = "M"  # !!!FOR NOW ONLY OBJECTS IN MAP ARE STORED IN THE LONG TERM MEMORY!!!
@@ -198,11 +209,23 @@ class LongTermMemory:
                     db_instance,
                     db.get_instance_position(db_instance),
                 )
-
+    
+    def __len__(self):
+        return len(self.instances_in_memory)
+    
+    def __getitem__(self, key):
+        name= self.instances_in_memory[key]
+        return LongTermInstance(
+            name,
+            self.positions[name],
+            self.last_time_seen[name],
+        )
 
 if __name__ == "__main__":
+    import time
     db = ShortTermMemory()
     lt = LongTermMemory(1, 0.05)
+    start = time.time()
     print(db.get_class_name("person_0"))
     print(db.get_next_instance_name("person"))
     db.add("person", np.array([0, 0, 0]), 4)
@@ -228,3 +251,6 @@ if __name__ == "__main__":
     print(db.instances_detected_counter)
     lt.checkForObjectsToRemember(4, db)
     print(lt.instances_in_memory)
+    print(f"Time: {time.time()-start}")
+    for instance in lt:
+        print(instance)
