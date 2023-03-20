@@ -13,9 +13,6 @@ import numpy as np
 import pdb
 
 ## Import module from other package/directory
-#import sys
-#sys.path.append("/home/robot/dopey_ws/src/odometry") #this needs to be changed for the actual Dopey Robot
-#from odometryFusion import OdometryFusion
 
 # How to import modules from another package/directory https://roboticsbackend.com/ros-import-python-module-from-another-package/
 from odometry.odometryFusion import OdometryFusion
