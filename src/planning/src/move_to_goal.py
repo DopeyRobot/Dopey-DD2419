@@ -65,10 +65,10 @@ class move_to_goal():
 
         self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
         self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
-        self.goal_subscriber = rospy.Subscriber('move_base_simple/goal', PoseStamped, self.goal_callback) 
+        self.goal_subscriber = rospy.Subscriber('/goal', PoseStamped, self.goal_callback) 
         self.odom_subscriber = rospy.Subscriber('/odometry', Odometry, self.odom_callback) 
 
-        self.ready_for_pose.data = True
+        self.ready_for_pose.data = True # Maybe not needed?
         self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
         self.arrived2point = False
@@ -76,7 +76,8 @@ class move_to_goal():
 
 
     def goal_callback(self, msg):
-        rospy.loginfo("new goal ")
+        rospy.loginfo("Recived new goal")
+
         self.ready_for_pose.data = False
         self.ready_for_pose_publisher.publish(self.ready_for_pose)
         self.goal_pose = PoseStamped()
@@ -84,12 +85,12 @@ class move_to_goal():
         self.goal_pose.header.stamp = msg.header.stamp
         self.goal_pose.header.frame_id = msg.header.frame_id
 
-    
+        print(self.goal_pose.pose)
+
         self.arrived2point = False
         
 
     def odom_callback(self, msg):
-        # print('in odom callback')
         self.odom = msg
         odom_q = self.odom.pose.pose.orientation
         (_, _, self.odom_theta) = euler_from_quaternion([odom_q.x, odom_q.y, odom_q.z, odom_q.w])
@@ -111,8 +112,7 @@ class move_to_goal():
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
                 error_ang2 = self.odom_theta - self.goal_theta
-                rospy.loginfo(error_ang2)
-
+    
                 proportional_output_ang1 = self.Kp_ang1 * error_ang1
                 self.integral_error_ang1 += error_ang1
                 self.integral_output_ang1 = self.Ki_ang1 * self.integral_error_ang1
@@ -144,13 +144,11 @@ class move_to_goal():
                     
                     if abs(error_ang1) > self.threshold_ang1:
                         print('Adjusting ang1',error_ang1)
-                        #print(total_output_ang1)
                         self.twist.angular.z = total_output_ang1
                         self.twist.linear.x = 0.0
         
                     elif error_dist > self.threshold_dist:
                         print("Correct angle! Adjusting dist", error_dist)
-                        #print(total_output_dist)
                         self.twist.linear.x = total_output_dist
                         self.twist.angular.z = 0.0
 
@@ -173,7 +171,6 @@ class move_to_goal():
                         self.twist.angular.z = 0.0
 
                         self.ready_for_pose.data = True
-
                         self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
 

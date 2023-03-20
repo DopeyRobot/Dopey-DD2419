@@ -58,10 +58,15 @@ class RRTPlanner:
 
     def publish_path(self):
         pub = rospy.Publisher('/path_topic', Path, queue_size=10)
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(1)
+
         while not rospy.is_shutdown():
-            pub.publish(self.path_msg)
+
             rate.sleep()
+            if self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.x == self.goal[0] and self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.y == self.goal[1]:
+                pub.publish(self.path_msg)
+                print('hej')
+                break
 
 
 if __name__ == '__main__':
