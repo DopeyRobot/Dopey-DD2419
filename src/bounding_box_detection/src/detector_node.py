@@ -71,6 +71,9 @@ class BoundingBoxNode:
         self.model.eval()
         self.cuda = torch.cuda.is_available()
 
+        self.short_term_memory = ShortTermMemory()
+        self.long_term_memory = LongTermMemory()
+
         if self.cuda:
             self.model.cuda()
 
@@ -89,6 +92,9 @@ class BoundingBoxNode:
         self.array_depth = np.asarray(depth)
 
     def predict(self, image) -> List[utils.BoundingBox]:
+        """
+        returns a raw list of bounding boxes
+        """
         torch_image, _ = self.model.input_transform(image, [], validation=True)
         if self.cuda:
             torch_image = torch_image.to("cuda")
@@ -106,48 +112,69 @@ class BoundingBoxNode:
         else:
             self.image_publisher.publish(self.ros_img)
 
-    def project_bb(self, bbs: List[utils.BoundingBox]):
+    def project_bb(self, bb: utils.BoundingBox):
+        """
+        returns the projected 3d postion of the center of a bounding box in world coordinates
+        in camera frame
+        """
 
-        for bb in bbs:
-            center_x = int(bb["x"] + bb["width"] / 2)
-            center_y = int(bb["y"] + bb["height"] / 2)
-            world_z = self.array_depth[center_y, center_x]
-            fx = self.K[0, 0]
-            fy = self.K[1, 1]
-            world_x = (center_x - self.K[0, 2]) * world_z / fx
-            world_y = (center_y - self.K[1, 2]) * world_z / fy
+        center_x = int(bb["x"] + bb["width"] / 2)
+        center_y = int(bb["y"] + bb["height"] / 2)
+        world_z = self.array_depth[center_y, center_x]
+        fx = self.K[0, 0]
+        fy = self.K[1, 1]
+        world_x = (center_x - self.K[0, 2]) * world_z / fx
+        world_y = (center_y - self.K[1, 2]) * world_z / fy
 
-            pose = PoseStamped()
-            pose.header.frame_id = self.camera_frame
-            pose.header.stamp = self.ros_img.header.stamp
-            pose.pose.position.x = world_x / 1000
-            pose.pose.position.y = world_y / 1000
-            pose.pose.position.z = world_z / 1000
+        return world_x / 1000, world_y / 1000, world_z / 1000
 
-            pose.pose.orientation.x = 0.5
-            pose.pose.orientation.y = 0.5
-            pose.pose.orientation.z = 0.5
-            pose.pose.orientation.w = 0.5
+    def get_frame_name(self, class_name: str, instance_id: str, color_name: str):
+        """
+        returns the full name of a frame
+        """
+        return color_name + "_" + class_name + "_" + instance_id
 
-            transformed_pose = self.buffer.transform(
-                pose, self.map_frame, rospy.Duration(1.0)
-            )
+    def get_class_name(self, bb: utils.BoundingBox):
+        """
+        returns the class name of a bounding box
+        """
+        return utils.CLASS_DICT[bb["category_id"]]
 
-            t = TransformStamped()
-            t.header.stamp = transformed_pose.header.stamp
-            t.header.frame_id = "map"
+    def publish_to_tf(self, frame_name, world_x, world_y, world_z):
+        """
+        Publish a transform from the camera frame to the map frame
+        """
+        pose = PoseStamped()
+        pose.header.frame_id = self.camera_frame
+        pose.header.stamp = self.ros_img.header.stamp
+        pose.pose.position.x = world_x
+        pose.pose.position.y = world_y
+        pose.pose.position.z = world_z
 
-            t.transform.translation.x = transformed_pose.pose.position.x
-            t.transform.translation.y = transformed_pose.pose.position.y
-            t.transform.translation.z = transformed_pose.pose.position.z
+        pose.pose.orientation.x = 0.5
+        pose.pose.orientation.y = 0.5
+        pose.pose.orientation.z = 0.5
+        pose.pose.orientation.w = 0.5
 
-            t.transform.rotation.x = transformed_pose.pose.orientation.x
-            t.transform.rotation.y = transformed_pose.pose.orientation.y
-            t.transform.rotation.z = transformed_pose.pose.orientation.z
-            t.transform.rotation.w = transformed_pose.pose.orientation.w
+        transformed_pose = self.buffer.transform(
+            pose, self.map_frame, rospy.Duration(1.0)
+        )
 
-            t.child_frame_id = utils.detect_color(bb, self.array_image)
-            self.broadcaster.sendTransform(t)
+        t = TransformStamped()
+        t.header.stamp = transformed_pose.header.stamp
+        t.header.frame_id = "map"
+
+        t.transform.translation.x = transformed_pose.pose.position.x
+        t.transform.translation.y = transformed_pose.pose.position.y
+        t.transform.translation.z = transformed_pose.pose.position.z
+
+        t.transform.rotation.x = transformed_pose.pose.orientation.x
+        t.transform.rotation.y = transformed_pose.pose.orientation.y
+        t.transform.rotation.z = transformed_pose.pose.orientation.z
+        t.transform.rotation.w = transformed_pose.pose.orientation.w
+
+        t.child_frame_id = frame_name
+        self.broadcaster.sendTransform(t)
 
     def run(self):
         while not rospy.is_shutdown():
