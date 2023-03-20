@@ -7,6 +7,7 @@ import tf2_ros
 import math
 import tf2_geometry_msgs
 #from odometryLoc import OdometryCustom
+import tf
 
 from scipy.spatial.transform import Rotation as R
 import numpy as np
@@ -32,9 +33,7 @@ class FastSLAM:
 
         self.verbose = verbose
         # self.odom = OdometryCustom()
-        self.odom = OdometryFusion(SLAM=True)
-
-        self.rate = rospy.Rate(self.odom.f)
+        
         #Anchor stuff
         self.anchor = None #In aruco_frame TF
         self.first_anchor = None
@@ -83,6 +82,10 @@ class FastSLAM:
         #fastSLAM stuff
         self.SLAMinitialized = False
         self.M = 15 #Number of particles
+        self.odomL = []
+        for i in range(self.M):
+            self.odomL.append(OdometryFusion(SLAM=True))
+        self.rate = rospy.Rate(self.odomL[0].f)
 
         #self.J = 4 #Number of landmarks
         # init_uncertainty = 1000 #large uncertainty, since they're all put in the origin
@@ -109,9 +112,12 @@ class FastSLAM:
                 if self.first_anchor is None: #to keep the first anchor coordinates only
                     self.first_anchor = anchor
                 self.anchor = anchor
-        
-    def predict(self):
-        self.odom.step()
+    
+    def aruco_callback(self,msg):
+        pass
+
+    # def predict(self):
+    #     self.odom.step()
     
     def place_anchor(self):
         if self.anchor:
@@ -150,8 +156,10 @@ class FastSLAM:
                 #     self.latest_stamp = t.header.stamp
                 #     self.latest_t = t
                 if not self.SLAMinitialized:
-                    self.particles[:,:,0] = np.array([t.transform.translation.x, t.transform.translation.y, self._quaternion_to_yaw(t.transform.rotation)])
+                    # pdb.set_trace()
+                    self.particles[:,:,0] = np.array([t.transform.translation.x, t.transform.translation.y, tf_conversions.transformations.euler_from_quaternion([t.transform.rotation.x,t.transform.rotation.y,t.transform.rotation.z,t.transform.rotation.w])[2]])
                     self.SLAMinitialized = True
+                    rospy.loginfo("fastSLAM initialized")
 
 
     def _inverse_transform(self, transform):
@@ -210,18 +218,21 @@ class FastSLAM:
             #self.predict()
             
             if self.SLAMinitialized:
-                particleCloud = MarkerArray()
+                particleCloud = PoseArray()
                 particleCloud.header.frame_id = "map"
                 particleCloud.header.stamp = rospy.Time.now()
 
             #---new fastSLAM
             #sample M particles using prior distribution from odometryFusion
                 for k in range(self.particles.shape[0]):
-                    x,y,yaw = self.odom.particleStep(self.particles[k,0,0],self.particles[k,1,0],self.particles[k,2,0])
+                    x,y,yaw = self.odomL[k].particleStep(self.particles[k,0,0],self.particles[k,1,0],self.particles[k,2,0])
                     self.particles[k,0,0] = x
                     self.particles[k,1,0] = y
                     self.particles[k,2,0] = yaw
                     particleCloud.poses.append(self._particle_to_pose(x,y,yaw))
+
+                self.particle_publisher.publish(particleCloud)
+                # rospy.loginfo("Publishing pointCloud")
             #for particle 
                 #for each observed landmark
                     #if not seen before
@@ -236,7 +247,7 @@ class FastSLAM:
             #resample particles
 
             #return map and localization of best importance weight particle
-            self.particle_publisher.publish(particleCloud)
+            
             self.rate.sleep()
 
 

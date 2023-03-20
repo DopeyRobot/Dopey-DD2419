@@ -61,7 +61,7 @@ class OdometryFusion:
         #self.velocities2imuData()
 
 
-    def fusion(self):
+    def fusion(self,particle=False):
         if self.verbose:
             rospy.loginfo("Fusion")
         encoderState = EncoderState(self.encoders)
@@ -78,11 +78,15 @@ class OdometryFusion:
         self.mu_t = self.mu_pred_t + K @ (np.array([imuState.z_acc_x,imuState.z_gyro_z]) - np.array([imuState.z_acc_x_hat,imuState.z_gyro_z_hat]))
         self.sigma_t = (np.eye(2) - K @ imuState.H) @ self.sigma_pred_t
         
-        return self.mu_t[0],self.mu_t[1]
+        if particle:
+            return self.mu_t,self.sigma_t
+        else:
+            return self.mu_t[0],self.mu_t[1]
+        
 
     def particleStep(self,x,y,yaw):
         """Returns the next state of the particle using the Gaussian distribution calculated in sensor_fusion"""
-        mu_t,sigma_t = self.fusion()
+        mu_t,sigma_t = self.fusion(particle=True)
         v = np.random.normal(mu_t[0],np.sqrt(sigma_t[0,0]))
         w = np.random.normal(mu_t[1],np.sqrt(sigma_t[1,1]))
 
