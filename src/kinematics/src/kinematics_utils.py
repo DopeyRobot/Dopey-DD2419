@@ -4,6 +4,7 @@ import numpy as np
 from geometry_msgs.msg import Quaternion
 from tf.transformations import quaternion_from_matrix, quaternion_slerp
 import rospy
+from kinematics.srv import JointAnglesRequest
 
 class JointData:
     """
@@ -91,6 +92,17 @@ class JointData:
                 self.joint5,
             ]
         )
+    
+    def to_list(self) -> list:
+        return [
+                    self.joint1,
+                    self.joint2,
+                    self.joint3,
+                    self.joint4,
+                    self.joint5,
+                    self.gripper,
+                ]
+            
 
     def to_joint_state(self):
         joint_state = JointState()
@@ -115,6 +127,13 @@ class JointData:
         joint_state.header.stamp = rospy.Time.now()
         return joint_state
 
+    def to_joint_angles_req(self, time = 2000) -> JointAnglesRequest:
+        joints = self.to_list()
+        time = time
+
+        return JointAnglesRequest(joints, time)
+
+
 
 class RefPoses(Enum):
     """
@@ -137,7 +156,8 @@ class RefPoses(Enum):
     PREPICK_R = JointData.from_list(positions=[0 -0.2, -1.2, -1.75, 0.0, -1.5])
     PICKUP_F = JointData.from_list(positions=[1.57, -0.9, -1.15, -1.1, 0, -1.5])
     PREPICK_F = JointData.from_list(positions=[1.57, -0.2, -1.2, -1.75, 0.0, -1.5])
-    PICKUP_TRAY = JointData.from_list(positions=[-1.57, 0.7, -1.57, -1.5, 0, -0.2])
+    LOOK_TRAY = JointData.from_list(positions=[-1.57, 0.33, -1.20, -1.88, 0, -0.2])
+    PICKUP_TRAY = JointData.from_list(positions=[-1.57, 0.33, -1.20, -1.88, 0, -0.2])
     OPEN_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, -1.5])
     CLOSE_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])
     CLOSE_GRIPPER_CUBE = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])

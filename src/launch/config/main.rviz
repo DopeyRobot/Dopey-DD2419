@@ -128,12 +128,6 @@ Visualization Manager:
         map:
           Value: false
         odom:
-          Value: false
-        red Ball:
-          Value: true
-        red Cube:
-          Value: true
-        wood Cube:
           Value: true
       Marker Alpha: 1
       Marker Scale: 1
@@ -255,12 +249,12 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/Polygon
       Color: 25; 255; 0
-      Enabled: true
+      Enabled: false
       Name: Polygon
       Queue Size: 10
       Topic: /workspace
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
@@ -281,7 +275,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: map
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Tools:
@@ -306,6 +300,7 @@ Visualization Manager:
     Current:
       Class: rviz/XYOrbit
       Distance: 1.032299518585205
+      Distance: 5.114749431610107
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -321,6 +316,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
+      Pitch: 1.4247972965240479
       Pitch: 0.4097978174686432
       Target Frame: <Fixed Frame>
       Yaw: 1.920422077178955
