@@ -19,18 +19,15 @@ class give_path():
         self.main()
 
     def path_callback(self, msg):
-        
         self.path = msg
 
     def ready_for_path_callback(self, msg):
-        print('in ready call:', msg)
-        self.ready_for_path = msg
+        self.ready_for_path = msg.data
 
     def main(self):
         
         while not rospy.is_shutdown():
             for pose in self.path.poses:
-                print('in for')
                 if self.ready_for_path:
                     print('ready')
                     self.goal_publisher.publish(pose)

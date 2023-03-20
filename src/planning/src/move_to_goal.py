@@ -48,6 +48,7 @@ class move_to_goal():
 
         self.twist = Twist()  
         self.odom = Odometry()
+        self.ready_for_pose = Bool()
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -59,15 +60,16 @@ class move_to_goal():
         self.currentframe = "odom"
         self.timeout = rospy.Duration(2)
 
-        self.ready_for_pose_publisher = True
 
         rospy.sleep(2)
 
         self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
-        self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=10)
+        self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
         self.goal_subscriber = rospy.Subscriber('move_base_simple/goal', PoseStamped, self.goal_callback) 
         self.odom_subscriber = rospy.Subscriber('/odometry', Odometry, self.odom_callback) 
 
+        self.ready_for_pose.data = True
+        self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
         self.arrived2point = False
         self.run() 
@@ -75,12 +77,14 @@ class move_to_goal():
 
     def goal_callback(self, msg):
         rospy.loginfo("new goal ")
-        self.ready_for_pose_publisher.publish(False)
-
+        self.ready_for_pose.data = False
+        self.ready_for_pose_publisher.publish(self.ready_for_pose)
         self.goal_pose = PoseStamped()
         self.goal_pose.pose = msg.pose
         self.goal_pose.header.stamp = msg.header.stamp
         self.goal_pose.header.frame_id = msg.header.frame_id
+
+    
         self.arrived2point = False
         
 
@@ -94,8 +98,8 @@ class move_to_goal():
     def run(self):
 
         while not rospy.is_shutdown():
+
             if self.goal_pose:
-                
 
                 self.goal_pose.header.frame_id = self.currentframe
                 self.goal_pose.header.stamp = rospy.Time.now()
@@ -168,7 +172,9 @@ class move_to_goal():
                         self.twist.linear.x = 0.0
                         self.twist.angular.z = 0.0
 
-                        self.ready_for_pose_publisher.publish(True)
+                        self.ready_for_pose.data = True
+
+                        self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
 
                 self.publisher_twist.publish(self.twist)
