@@ -81,7 +81,7 @@ class FastSLAM:
 
         #fastSLAM stuff
         self.SLAMinitialized = False
-        self.M = 15 #Number of particles
+        self.M = 1#15 #Number of particles
         self.odomL = []
         for i in range(self.M):
             self.odomL.append(OdometryFusion(SLAM=True))
@@ -230,6 +230,10 @@ class FastSLAM:
                     self.particles[k,1,0] = y
                     self.particles[k,2,0] = yaw
                     particleCloud.poses.append(self._particle_to_pose(x,y,yaw))
+                    if k ==0:
+                        rospy.loginfo(x)
+                        rospy.loginfo(y)
+                        rospy.loginfo(yaw)
 
                 self.particle_publisher.publish(particleCloud)
                 # rospy.loginfo("Publishing pointCloud")
