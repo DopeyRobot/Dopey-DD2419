@@ -8,8 +8,10 @@ import tf_conversions
 import tf2_ros
 import math
 
-from odometry.estStateIMU import IMUState
-from odometry.estStateEncoder import EncoderState
+# from odometry.estStateIMU import IMUState #UNCOMMENT THESE LINES TO REVERT
+# from odometry.estStateEncoder import EncoderState #UNCOMMENT THESE LINES TO REVERT
+from estStateIMU import IMUState
+from estStateEncoder import EncoderState
 from sensor_msgs.msg import Imu
 
 import numpy as np

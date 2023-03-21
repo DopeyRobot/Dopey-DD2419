@@ -18,11 +18,10 @@ import pdb
 #from odometryFusion import OdometryFusion
 
 # How to import modules from another package/directory https://roboticsbackend.com/ros-import-python-module-from-another-package/
-from odometry.odometryFusion import OdometryFusion
+from odometryFusion import OdometryFusion
 
 
-
-
+#TODO: Fix such that we track turns, it's broken.
 
 class odometryMAIN:
     def __init__(self,verbose=False) -> None:
