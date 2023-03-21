@@ -89,10 +89,12 @@ class OdometryFusion:
     def particleStep(self,x,y,yaw):
         """Returns the next state of the particle using the Gaussian distribution calculated in sensor_fusion"""
         mu_t,sigma_t = self.fusion(particle=True)
-        v = np.random.normal(mu_t[0],0)#np.sqrt(sigma_t[0,0])) #TODO: fix uncertainity for particle cloud
-        w = np.random.normal(mu_t[1],0)#np.sqrt(sigma_t[1,1]))
+        Rv = 1
+        Rw = 1
+        v = np.random.normal(mu_t[0],Rv)#np.sqrt(sigma_t[0,0])) #TODO: fix uncertainity for particle cloud
+        w = np.random.normal(mu_t[1],Rw)#np.sqrt(sigma_t[1,1]))
         #pdb.set_trace()
-        rospy.loginfo(sigma_t)
+        #rospy.loginfo(sigma_t)
 
         vdt = v*self.dt
         wdt = w*self.dt

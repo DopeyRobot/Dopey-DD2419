@@ -81,7 +81,7 @@ class FastSLAM:
 
         #fastSLAM stuff
         self.SLAMinitialized = False
-        self.M = 1#15 #Number of particles
+        self.M = 15 #Number of particles
         self.odomL = []
         for i in range(self.M):
             self.odomL.append(OdometryFusion(SLAM=True))
@@ -149,12 +149,12 @@ class FastSLAM:
                 #transform map to odom
                 t = self._inverse_transform(t)
                 #To avoid redudant tf warnings
-                # if self.latest_stamp != t.header.stamp:
-                #     if self.verbose:
-                #         rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
-                #     self.brStatic.sendTransform(t)
-                #     self.latest_stamp = t.header.stamp
-                #     self.latest_t = t
+                if self.latest_stamp != t.header.stamp:
+                    if self.verbose:
+                        rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
+                    self.brStatic.sendTransform(t)
+                    self.latest_stamp = t.header.stamp
+                    self.latest_t = t
                 if not self.SLAMinitialized:
                     # pdb.set_trace()
                     self.particles[:,:,0] = np.array([t.transform.translation.x, t.transform.translation.y, tf_conversions.transformations.euler_from_quaternion([t.transform.rotation.x,t.transform.rotation.y,t.transform.rotation.z,t.transform.rotation.w])[2]])
