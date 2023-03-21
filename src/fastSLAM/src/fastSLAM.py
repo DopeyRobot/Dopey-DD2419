@@ -230,10 +230,10 @@ class FastSLAM:
                     self.particles[k,1,0] = y
                     self.particles[k,2,0] = yaw
                     particleCloud.poses.append(self._particle_to_pose(x,y,yaw))
-                    if k ==0:
-                        rospy.loginfo(x)
-                        rospy.loginfo(y)
-                        rospy.loginfo(yaw)
+                    # if k ==0:
+                    #     rospy.loginfo(x)
+                    #     rospy.loginfo(y)
+                    #     rospy.loginfo(yaw)
 
                 self.particle_publisher.publish(particleCloud)
                 # rospy.loginfo("Publishing pointCloud")

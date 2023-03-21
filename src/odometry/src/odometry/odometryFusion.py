@@ -14,6 +14,8 @@ from sensor_msgs.msg import Imu
 
 import numpy as np
 
+import pdb
+
 #TODO:
 #Record rosbag that's running everything except for the localization node. 
 #Run the localization node and tune Q and R
@@ -89,6 +91,8 @@ class OdometryFusion:
         mu_t,sigma_t = self.fusion(particle=True)
         v = np.random.normal(mu_t[0],0)#np.sqrt(sigma_t[0,0])) #TODO: fix uncertainity for particle cloud
         w = np.random.normal(mu_t[1],0)#np.sqrt(sigma_t[1,1]))
+        #pdb.set_trace()
+        rospy.loginfo(sigma_t)
 
         vdt = v*self.dt
         wdt = w*self.dt
