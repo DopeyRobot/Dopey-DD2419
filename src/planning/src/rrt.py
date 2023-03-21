@@ -138,7 +138,7 @@ class RRTPlanner:
                 dx = next_pose.pose.position.x - pose.pose.position.x
 
                 orientation = np.arctan2(dy, dx)
-                rotation = rotation_matrix
+                rotation = rotation_matrix(orientation, (0, 0, 1))
                 
                 quaternian = quaternion_from_matrix(rotation)
 
