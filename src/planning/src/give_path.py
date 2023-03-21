@@ -8,7 +8,7 @@ from nav_msgs.msg import Path
 class give_path():
 
     def __init__(self):
-        self.goal_publisher = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
+        self.goal_publisher = rospy.Publisher('/goal', PoseStamped, queue_size=10)
         self.path_subscriber = rospy.Subscriber('/path_topic', Path, self.path_callback) 
         self.ready_for_pose_subscriber = rospy.Subscriber('/ready_for_pose', Bool, self.ready_for_path_callback)
         self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)

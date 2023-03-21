@@ -65,7 +65,7 @@ class move_to_goal():
 
         self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
         self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
-        self.goal_subscriber = rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback) 
+        self.goal_subscriber = rospy.Subscriber('/goal', PoseStamped, self.goal_callback) 
         self.odom_subscriber = rospy.Subscriber('/odometry', Odometry, self.odom_callback) 
 
         self.ready_for_pose.data = True # Maybe not needed?
