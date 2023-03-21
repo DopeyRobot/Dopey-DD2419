@@ -7,6 +7,7 @@ import numpy as np
 from buildmap import map_data
 import matplotlib.pyplot as plt
 from typing import List, Tuple
+from tf.transformations import quaternion_from_euler
 
 class RRTNode:
     def __init__(self, x, y, parent = None) -> None:
@@ -93,7 +94,7 @@ class RRTPlanner:
                     goal_node = RRTNode(self.goal[0], self.goal[1], new_node)
                     self.RRT.append(goal_node)
                     break
-            self.plot_RRT_tree()
+            # self.plot_RRT_tree()
             print(f"done with iteration {i}")
 
     def generate_path(self):
@@ -110,10 +111,38 @@ class RRTPlanner:
             pose_stamped.pose.orientation.w = 1.0
             self.path_msg.poses.append(pose_stamped)
             current_node = current_node.get_parent()
+        self.path_msg.poses = self.path_msg.poses[::-1]
+
+        for i , pose in enumerate(self.path_msg.poses):
+            next_pose = None
+            try:
+                next_pose = self.path_msg.poses[i+1]
+            except:
+                pass
+            if next_pose is not None:
+                dy = next_pose.pose.position.y - pose.pose.position.y
+                dx = next_pose.pose.position.x - pose.pose.position.x
+                
+                orientation = np.arctan2(dy, dx)
+                quaternian = quaternion_from_euler(orientation, 0, 0, axes="sxyz")
+
+                pose.pose.orientation.w = quaternian[0]
+                pose.pose.orientation.x = quaternian[1]
+                pose.pose.orientation.y = quaternian[2]
+                pose.pose.orientation.z = quaternian[3]
+
+
         print(self.path_msg)
 
     def publish_path(self):
         self.pub.publish(self.path_msg)
+        #while not rospy.is_shutdown():
+        
+            
+        #if self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.x == self.goal[0] and self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.y == self.goal[1]:
+                
+                
+
 
     def plot_RRT_tree(self):
         self.fig, self.ax = plt.subplots()
@@ -138,7 +167,7 @@ if __name__ == '__main__':
     planner = RRTPlanner(start, goal, num_iterations=100, step_size=0.1)
     planner.generate_RRT()
     planner.generate_path()
-    planner.plot_RRT_tree()
+    # planner.plot_RRT_tree()
     planner.publish_path()
     rospy.spin()
 

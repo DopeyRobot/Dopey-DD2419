@@ -84,6 +84,8 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        aruco/detected 1:
+          Value: true
         base_link:
           Value: true
         camera_aligned_depth_to_color_frame:
@@ -108,6 +110,8 @@ Visualization Manager:
           Value: true
         object1:
           Value: true
+        object2:
+          Value: true
         odom:
           Value: true
       Marker Alpha: 1
@@ -118,9 +122,13 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
+          aruco/detected 1:
+            {}
           object0:
             {}
           object1:
+            {}
+          object2:
             {}
           odom:
             base_link:
@@ -226,6 +234,46 @@ Visualization Manager:
       Shaft Radius: 0.05000000074505806
       Shape: Arrow
       Topic: /move_base_simple/goal
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /path_topic
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /goal
       Unreliable: false
       Value: true
   Enabled: true
