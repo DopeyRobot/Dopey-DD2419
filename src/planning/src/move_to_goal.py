@@ -10,11 +10,6 @@ import tf2_ros
 import tf2_geometry_msgs
 from nav_msgs.msg import Odometry
 import math
-#from rrt import path 
-
-
-# FIX: The ready for pose BOOL
-
 
 class move_to_goal():
 

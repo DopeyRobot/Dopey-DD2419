@@ -28,7 +28,7 @@ class RRTPlanner:
         self.step_size = step_size
         self.n_steps = n_steps
         self.goal_sample_prob = 0.1
-        self.pub = rospy.Publisher('/path_topic', Path, queue_size=10)
+        self.pub = rospy.Publisher('/path_topic', Path, queue_size=10, latch=True)
         self.rate = rospy.Rate(1)
 
 
@@ -114,13 +114,6 @@ class RRTPlanner:
 
     def publish_path(self):
         self.pub.publish(self.path_msg)
-        #while not rospy.is_shutdown():
-        
-            
-            #if self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.x == self.goal[0] and self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.y == self.goal[1]:
-                
-                
-
 
     def plot_RRT_tree(self):
         self.fig, self.ax = plt.subplots()
@@ -138,7 +131,6 @@ class RRTPlanner:
         plt.show()
 
 
-
 if __name__ == '__main__':
     rospy.init_node('rrt')
     start = [0, 0]
@@ -149,3 +141,6 @@ if __name__ == '__main__':
     planner.plot_RRT_tree()
     planner.publish_path()
     rospy.spin()
+
+
+    # FIX: Tree = Dict, where the parent is the ID and value is the rrt node for the parent. 
