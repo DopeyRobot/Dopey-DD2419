@@ -7,7 +7,7 @@ import numpy as np
 from buildmap import map_data
 import matplotlib.pyplot as plt
 from typing import List, Tuple
-from tf.transformations import quaternion_from_matrix, rotation_matrix
+import tf_conversions
 
 
 class RRTNode:
@@ -134,14 +134,13 @@ class RRTPlanner:
                 dx = next_pose.pose.position.x - pose.pose.position.x
 
                 orientation = np.arctan2(dy, dx)
-                rotation = rotation_matrix(orientation, (0, 0, 1))
+                print(orientation)
+                quaternian = tf_conversions.transformations.quaternion_from_euler(0,0,orientation)
 
-                quaternian = quaternion_from_matrix(rotation)
-
-                pose.pose.orientation.w = quaternian[0]
-                pose.pose.orientation.x = quaternian[1]
-                pose.pose.orientation.y = quaternian[2]
-                pose.pose.orientation.z = quaternian[3]
+                pose.pose.orientation.w = quaternian[3]
+                pose.pose.orientation.x = quaternian[0]
+                pose.pose.orientation.y = quaternian[1]
+                pose.pose.orientation.z = quaternian[2]
 
         print(self.path_msg)
 

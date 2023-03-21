@@ -4,7 +4,7 @@ from geometry_msgs.msg import TransformStamped
 from std_msgs.msg import Bool
 from robp_msgs.msg import Encoders
 from nav_msgs.msg import Path
-from tf.transformations import euler_from_quaternion
+import tf_conversions
 from geometry_msgs.msg import PoseStamped, Point, Twist, TransformStamped
 import tf2_ros
 import tf2_geometry_msgs
@@ -88,7 +88,7 @@ class move_to_goal():
     def odom_callback(self, msg):
         self.odom = msg
         odom_q = self.odom.pose.pose.orientation
-        (_, _, self.odom_theta) = euler_from_quaternion([odom_q.x, odom_q.y, odom_q.z, odom_q.w])
+        (_, _, self.odom_theta) = tf_conversions.transformations.euler_from_quaternion([odom_q.w, odom_q.x, odom_q.y, odom_q.z])
 
 
     def run(self):
@@ -102,7 +102,7 @@ class move_to_goal():
                 self.transformed_goal_pose = self.tf_buffer.transform(self.goal_pose, self.targetframe, self.timeout)
 
                 rot_q = self.goal_pose.pose.orientation
-                (_, _, self.goal_theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
+                (_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
