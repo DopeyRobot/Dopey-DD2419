@@ -44,6 +44,10 @@ class EkfSLAM:
         self.anchorID = 500
         self.aruco_frame = "camera_color_optical_frame"
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
+        self.anchor_landmarks = []
+        self.anchor_stamp = None
+        self.landmarks = []
+        self.landmarks_stamp = None
 
         #publish stuf
         self.old_stamp = TwistStamped().header.stamp #Init empty stamp
@@ -64,56 +68,89 @@ class EkfSLAM:
         self.R = np.eye(3) #process noise matrix
         self.Q = np.eye(3) #measurement noise matrix
         
-        self.seenLandmarks = [] #List that tracks seen landmarks, keeps track of arucoID
+        self.seenLandmarks = np.array([]) #List that tracks seen landmarks, keeps track of arucoID
 
         self.run()
+
+    # def anchor_callback(self, msg):
+    #     #rospy.logdebug("anchor callback")
+    #     for marker in msg.markers:
+    #         poseWithCov = PoseWithCovarianceStamped()
+    #         poseWithCov.pose.pose = marker.pose.pose 
+    #         poseWithCov.pose.covariance = marker.pose.covariance
+    #         poseWithCov.header.frame_id = self.aruco_frame
+    #         poseWithCov.header.stamp = msg.header.stamp
+    #         if marker.id == self.anchorID:
+    #             #add marker.id to seen landmarks only if it's not already there
+    #             if marker.id not in self.seenLandmarks:
+    #                 self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+    #             else:
+    #                 self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="base_link"))
+                
+    
+    # def aruco_callback(self,msg):
+    #     for marker in msg.markers:
+    #         poseWithCov = PoseWithCovarianceStamped()
+    #         poseWithCov.pose.pose = marker.pose.pose 
+    #         poseWithCov.pose.covariance = marker.pose.covariance
+    #         poseWithCov.header.frame_id = self.aruco_frame
+    #         poseWithCov.header.stamp = msg.header.stamp
+    #         if marker.id != self.anchorID:
+    #             if marker.id not in self.seenLandmarks:
+    #                 self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+    #             else:
+    #                 self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
 
     def anchor_callback(self, msg):
         #rospy.logdebug("anchor callback")
         for marker in msg.markers:
-            poseWithCov = PoseWithCovarianceStamped()
-            poseWithCov.pose.pose = marker.pose.pose 
-            poseWithCov.pose.covariance = marker.pose.covariance
-            poseWithCov.header.frame_id = self.aruco_frame
-            poseWithCov.header.stamp = msg.header.stamp
             if marker.id == self.anchorID:
                 #add marker.id to seen landmarks only if it's not already there
-                if marker.id not in self.seenLandmarks:
-                    self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
-                else:
-                    self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="base_link"))
+                if msg.header.stamp == self.currHeaderStamp:
+                    self.anchor_landmarks = []
+                    self.anchor_landmarks.append(marker)
+                    self.anchor_stamp = msg.header.stamp
                 
     
     def aruco_callback(self,msg):
         for marker in msg.markers:
-            poseWithCov = PoseWithCovarianceStamped()
-            poseWithCov.pose.pose = marker.pose.pose 
-            poseWithCov.pose.covariance = marker.pose.covariance
-            poseWithCov.header.frame_id = self.aruco_frame
-            poseWithCov.header.stamp = msg.header.stamp
             if marker.id != self.anchorID:
-                if marker.id not in self.seenLandmarks:
-                    self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
-                else:
-                    self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="base_link"))
+                if msg.header.stamp == self.currHeaderStamp:
+                    self.landmarks = []
+                    self.landmarks.append(marker)
+                    self.landmarks_stamp = msg.header.stamp
 
     
     def add_landmark(self,arucoID,pose):
         self.seenLandmarks.append(arucoID)
         self._inflate_matrices()
-        q = pose.pose.orientation
-        yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
-        self.mu_bar_t[:,-1] = np.array([[pose.pose.position.x],[pose.pose.position.y],[yaw]])
+        # q = pose.pose.orientation
+        # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
+        self.mu_bar_t[:,-1] = np.array([[pose.pose.position.x],[pose.pose.position.y],[0]])
         self.sigma_bar_t[-3:,-3:] = self.sigma_bar_t[3:,3:] #Inherit covariance from robot pose when seen
 
     def update_landmark(self,arucoID,pose):
-        q = pose.pose.orientation
-        yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
-        z = np.array([[pose.pose.position.x],[pose.pose.position.y],[yaw]])
+        # q = pose.pose.orientation
+        # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
+        z = np.array([[pose.pose.position.x-self.mu_bar_t[0,0]],[pose.pose.position.y-self.mu_bar_t[1,0]],[0]])
         j = self.seenLandmarks.index(arucoID)
-        z_hat = np.array([[self.mu_bar_t[0,j]-self.mu_bar_t[0,0]],[self.mu_bar_t[1,j]-self.mu_bar_t[1,0]],[self.mu_bar_t[2,j]-self.mu_bar_t[2,0]]])
-        H = -np.eye(3)
-        Fxj = 
+        N = self.seenLandmarks.shape[0]
+        z_hat = np.array([[self.mu_bar_t[0,j]-self.mu_bar_t[0,0]],[self.mu_bar_t[1,j]-self.mu_bar_t[1,0]],[0]])
+        H_prime = np.zeros((3,6))
+        H_prime[0,0] = -1
+        H_prime[0,3] = 1
+        H_prime[1,1] = -1
+        H_prime[1,4] = 1
+        Fxj = np.zeros((6,3+3*N))
+        Fxj[:3,:3] = np.eye(3)
+        Fxj[3:,3+3*j:3+3*(j+1)] = np.eye(3)
+        H = H_prime @ Fxj
+
+        K = self.sigma_bar_t @ H.T @ np.linalg.inv(H @ self.sigma_bar_t @ H.T + self.Q)
+        self.mu_bar_t = self.mu_bar_t + K @ (z-z_hat)
+        KH= K @ H
+        assert KH.shape[0] == KH.shape[1]
+        self.sigma_bar_t = (np.eye(KH.shape[0]) - KH) @ self.sigma_bar_t
 
 
 
@@ -185,18 +222,39 @@ class EkfSLAM:
         if self.old_stamp != t.header.stamp:
             br.sendTransform(t)
             self.old_stamp = t.header.stamp
+    
+    def odometry_prediction(self):
+        vOw = self.v/self.w
+        self.mu_bar_t = self.mu_t + self.Fx.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
+        G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
+        self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
 
 
+    def measurement_update(self,pose):
+        for marker in self.landmarks+self.anchor_landmarks:
+            poseWithCov = PoseWithCovarianceStamped()
+            poseWithCov.pose.pose = marker.pose.pose 
+            poseWithCov.pose.covariance = marker.pose.covariance
+            poseWithCov.header.frame_id = self.aruco_frame
+            if marker.id == self.anchorID:
+                poseWithCov.header.stamp = self.anchor_stamp
+            else:
+                poseWithCov.header.stamp = self.landmarks_stamp
+
+            if marker.id not in self.seenLandmarks:
+                self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+            else:
+                self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
 
     def run(self):
         while not rospy.is_shutdown():
             if self.startOK:
                 # self.mu_bar_t = self.mu_t + self.F.T @ np.array([[self.v*np.cos(self.mu_t[2,0])],[self.v*np.sin(self.mu_t[2,0])],[self.w*self.dt]])  #predicted state according to odometry fusion - not like the book        
                 # G = np.eye(self.F.shape[1]) + self.F.T @ np.array([[0,0,-self.v*np.sin(self.mu_t[2,0])],[0,0,self.v*np.cos(self.mu_t[2,0])],[0,0,0]]) @ self.F
-                vOw = self.v/self.w
-                self.mu_bar_t = self.mu_t + self.Fx.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
-                G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
-                self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
+                # vOw = self.v/self.w
+                # self.mu_bar_t = self.mu_t + self.Fx.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
+                # G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
+                # self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
 
 
                 self.mu_t = self.mu_bar_t
