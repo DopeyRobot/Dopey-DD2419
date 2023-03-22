@@ -33,6 +33,7 @@ class Occupancygrid():
         self.y_high = max(self.vertices[:, 1])
         self.x_n = 200 #number of cells in the x-direction for width
         self.y_n = 200 #number of cells in the y-direction for height
+        self.grid = np.zeros((self.x_n, self.y_n))
         # self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
 
         self.pcd = o3d.geometry.PointCloud()
@@ -79,7 +80,7 @@ class Occupancygrid():
 
         # dist_req1 = points[:, 2] <= 0.9 #axis 2 is depth
         height_req = points[:,1] < 0.10
-        dist_aboveground = points[height_req]
+        dist_aboveground = points[height_req] #these will be occupied spaces
          #points which are above ground #axis 1 is height
         # dist_index = np.logical_and(dist_req1, dist_req2)
         
@@ -90,6 +91,17 @@ class Occupancygrid():
 
         self.pcd.points = o3d.utility.Vector3dVector(dist_aboveground)
 
+        # Fill in values for occupied at those points
+        # Occupied
+        coordinate_list = zip(dist_aboveground[:,0], dist_aboveground[:,1])
+        for x,y in zip(*coordinate_list):
+            self.grid[self.get_i_index(x), self.get_j_index(y)] = 1 #occupied
+        # Unkown 
+
+        #Free space
+
+
+    
     def run(self):
         while not rospy.is_shutdown():
             metadata = MapMetaData()
