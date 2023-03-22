@@ -33,11 +33,14 @@ class EkfSLAM:
             "/odometry/curr_vel_state", TwistStamped, self.odom_state_callback)
 
 
-
+        #
         self.verbose = verbose
         f = EncoderState(None).f
         self.rate = rospy.Rate(f) #=20
         self.dt = 1/f
+
+        #aruco stuff
+        self.anchorID = 500
 
         #publish stuf
         self.old_stamp = TwistStamped().header.stamp #Init empty stamp
@@ -58,6 +61,7 @@ class EkfSLAM:
         self.R = np.eye(3) #process noise matrix
         self.Q = np.eye(3) #measurement noise matrix
         
+        self.seenLandmarks = [] #List that tracks seen landmarks, keeps track of arucoID
 
         self.run()
 
@@ -76,7 +80,9 @@ class EkfSLAM:
                 self.anchor = anchor
     
     def aruco_callback(self,msg):
-        pass
+        for marker in msg.markers:
+            if marker.id != self.anchorID:
+                pass
 
     
     def odom_state_callback(self,data):
@@ -84,7 +90,7 @@ class EkfSLAM:
         self.v = data.twist.linear.x #predicted x velocity from odom sensor fusion
         self.w = data.twist.angular.z #predicted z angular velocity from odom sensor fusion'
         if np.isclose(data.twist.angular.z,0):
-            self.w = 1e-5
+            self.w = 1e-9
         self.currHeaderStamp = data.header.stamp
         self.startOK = True
 
