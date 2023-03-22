@@ -4,7 +4,7 @@ from typing import List
 from collections import Counter
 import rospy
 import torch
-from torchvision.transforms import  ToTensor, Normalize
+from torchvision.transforms import ToTensor, Normalize
 from detector import Detector
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
@@ -20,7 +20,7 @@ from tf2_geometry_msgs import PoseStamped
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
-torch.cuda.set_per_process_memory_fraction(0.8, 0)
+torch.cuda.set_per_process_memory_fraction(0.6, 0)
 torch.cuda.empty_cache()
 
 
@@ -37,19 +37,21 @@ class BoundingBoxNode:
 
         self.camera_frame = "camera_color_optical_frame"
         self.map_frame = "map"
-        self.input_size = (640,480)
+        self.input_size = (640, 480)
         self.model = torch.load(self.model_path)
         self.model.eval()
         self.cuda = torch.cuda.is_available()
 
         if self.cuda:
             self.model.cuda()
-            self.model_trace = torch.jit.trace(self.model, torch.rand((1,3,480,640)).to("cuda"))
+            self.model_trace = torch.jit.trace(
+                self.model, torch.rand((1, 3, 480, 640)).to("cuda")
+            )
         self.broadcaster = TransformBroadcaster()
         self.buffer = Buffer(rospy.Duration(1200.0))
         self.listener = TransformListener(self.buffer)
 
-        self.bbs:List[utils.BoundingBox] = []
+        self.bbs: List[utils.BoundingBox] = []
 
         self.image_subscriber = rospy.Subscriber(
             self.camera_topic, Image, self.image_callback
@@ -71,16 +73,13 @@ class BoundingBoxNode:
         self.verbose = False
         # self.model = Detector()
 
-
         self.camera_info = rospy.wait_for_message(
             self.camera_info_topic, CameraInfo, rospy.Duration(5)
         )
         self.K = np.array(self.camera_info.K).reshape(3, 3)
 
-
         self.short_term_memory = ShortTermMemory()
         self.long_term_memory = LongTermMemory(frames_needed_for_reconition=15)
-
 
         self.run()
 
@@ -90,7 +89,6 @@ class BoundingBoxNode:
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         self.image = PILImage.fromarray(image)
         self.array_image = np.asarray(image)
-
 
         bbs = self.predict(self.image.copy())
         # supress multiple bbs
@@ -105,9 +103,10 @@ class BoundingBoxNode:
             position = self.project_bb(bb)
             self.short_term_memory.add(class_name, position, timestamp)
 
-        self.long_term_memory.checkForObjectsToRemember(timestamp, self.short_term_memory)
+        self.long_term_memory.checkForObjectsToRemember(
+            timestamp, self.short_term_memory
+        )
         self.publish_long_term_memory()
-       
 
     def depth_callback(self, msg):
         self.ros_depth = msg
@@ -158,27 +157,25 @@ class BoundingBoxNode:
         returns the full name of a frame
         """
         return class_name + "_" + instance_id
-    
-    def image_transforms(self, image):
-            image = cv2.resize(self.array_image, self.input_size)
-            image = ToTensor()(image)
-            image = Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            )(image)
-            if self.cuda:
-                return image.to("cuda")
 
-            return image
+    def image_transforms(self, image):
+        image = cv2.resize(self.array_image, self.input_size)
+        image = ToTensor()(image)
+        image = Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
+        if self.cuda:
+            return image.to("cuda")
+
+        return image
 
     def get_class_name(self, bb: utils.BoundingBox):
         """
         returns the class name of a bounding box
         """
         class_name = utils.CLASS_DICT[bb["category_id"]]
-        
+
         return class_name
-    
-    def publish_to_tf(self, frame_name:str, position:np.ndarray):
+
+    def publish_to_tf(self, frame_name: str, position: np.ndarray):
         """
         Publish a transform from the camera frame to the map frame
         """
@@ -213,14 +210,17 @@ class BoundingBoxNode:
 
         t.child_frame_id = frame_name
         self.broadcaster.sendTransform(t)
-        
+
     def publish_long_term_memory(self):
         for instance in self.long_term_memory:
-            print(instance)
+            self.publish_to_tf(
+                self.get_frame_name(instance.instance_name, ""),
+                instance.position,
+            )
 
     def run(self):
         while not rospy.is_shutdown():
-            
+
             self.rate.sleep()
 
 

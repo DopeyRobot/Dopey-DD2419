@@ -2,7 +2,6 @@ from collections import Counter
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
-from playsound import playsound
 #from geometry_msgs.msg import PoseStamped
 
 class Locations(Enum):
@@ -137,23 +136,7 @@ class LongTermMemory:
             return None
             # do we want to decrease the class counter as well? Problem: maybe we just deleted the last instance of a class but we want to add to a higher number.
 
-    def playClassDetectionSound(self, db_instance:str):            
-            if self.get_class_name(db_instance) == "hugo":
-                playsound('./src/bounding_box_detection/src/audio_files/hugo.mp3')
-            elif self.get_class_name(db_instance) == "kiki":
-                playsound('./src/bounding_box_detection/src/audio_files/kiki.mp3')
-            elif self.get_class_name(db_instance) == "binky":
-                playsound('./src/bounding_box_detection/src/audio_files/binky.mp3')
-            elif self.get_class_name(db_instance) == "slush":
-                playsound('./src/bounding_box_detection/src/audio_files/slush.mp3')
-            elif self.get_class_name(db_instance) == "muddles":
-                playsound('./src/bounding_box_detection/src/audio_files/muddles.mp3')
-            elif self.get_class_name(db_instance) == "oakie":
-                playsound('./src/bounding_box_detection/src/audio_files/oakie.mp3')
-            elif self.get_class_name(db_instance) == "ball":
-                playsound('./src/bounding_box_detection/src/audio_files/ball.mp3')
-            elif self.get_class_name(db_instance) == "cube":
-                playsound('./src/bounding_box_detection/src/audio_files/cube.mp3')
+    
 
     def _updateMemory(self, class_name, instance_name, position, timestamp):
         """Updates an old or creates a new element for the Long term memory"""
@@ -182,7 +165,7 @@ class LongTermMemory:
             if counter > self.min_frames_needed:
                 self._updateMemory(self.get_class_name(db_instance), db_instance, db.get_instance_position(db_instance), timestamp)
                 # play an audio file to notify the user that the object has been added to the long term memory
-                playClassDetectionSound(db_instance)
+               
                 
                 
                 
