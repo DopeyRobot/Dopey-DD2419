@@ -37,7 +37,7 @@ class Occupancygrid():
 
         self.pcd = o3d.geometry.PointCloud()
 
-
+        self.run()
     def get_i_index(self, x):
         index = math.floor((x - self.x_low) * self.x_n/(self.x_high - self.x_low))
         if index <0:
@@ -64,7 +64,6 @@ class Occupancygrid():
         y_pos = self.y_low + step*j + step/2 # added step/2 so that the coordinate is in the middle of the cells
         return y_pos
 
-
     def cloud_callback(self, pointcloudmsg):
         # Convert ROS -> Open3D
         cloud = o3drh.rospc_to_o3dpc(pointcloudmsg)
@@ -79,7 +78,9 @@ class Occupancygrid():
         # print("colors", colors)
 
         # dist_req1 = points[:, 2] <= 0.9 #axis 2 is depth
-        dist_aboveground = points[points[:,1] >= 0] #points which are above ground #axis 1 is height
+        height_req = points[:,1] < 0.10
+        dist_aboveground = points[height_req]
+         #points which are above ground #axis 1 is height
         # dist_index = np.logical_and(dist_req1, dist_req2)
         
 
@@ -101,7 +102,10 @@ class Occupancygrid():
             occupancygrid_data = OccupancyGrid()
             occupancygrid_data.info = metadata
             # occupancygrid_data.data = 
-            self.publisher_pointcloud.publish(self.pcd)
+            pcd_msg = o3drh.o3dpc_to_rospc(self.pcd)
+            pcd_msg.header.stamp = rospy.Time.now()
+            pcd_msg.header.frame_id = "camera_color_optical_frame"
+            self.publisher_pointcloud.publish(pcd_msg)
 
             self.publisher_occupancygrid.publish(occupancygrid_data)
 
