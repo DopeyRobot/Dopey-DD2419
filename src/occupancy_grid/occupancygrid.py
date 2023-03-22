@@ -15,7 +15,7 @@ class Occupancygrid():
         self.f = 10
         self.rate = rospy.Rate(self.f)
         self.subscriber_pointcloud = rospy.Subscriber("/camera/depth/color/points", PointCloud2, self.cloud_callback)
-        self.publisher_pointcloud = rospy.Publisher("/camera/depth/color/points", PointCloud2, queue_size= 10)
+        self.publisher_pointcloud = rospy.Publisher("/newpointcloud", PointCloud2, queue_size= 10)
         self.publisher_occupancygrid = rospy.Publisher("/occupancygrid", OccupancyGrid, queue_size = 10)
         self.out_msg = PointCloud2()
         self.cells_width = 200 #number of cells for width : x?
