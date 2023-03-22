@@ -102,22 +102,29 @@ class OdometryFusion:
         self.yaw += wdt
 
         #----
-        br = tf2_ros.TransformBroadcaster()
-        odom = Odometry()
-
-        t = TransformStamped()
-        t.header.frame_id = "odom"
-        t.header.stamp = self.encoders.header.stamp
-        t.child_frame_id = "base_link"
-
-        t.transform.translation.x = self.x
-        t.transform.translation.y = self.y
         q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.yaw)
-        t.transform.rotation.x = q[0]
-        t.transform.rotation.y = q[1]
-        t.transform.rotation.z = q[2]
-        t.transform.rotation.w = q[3]
+        #----
+        # br = tf2_ros.TransformBroadcaster()
 
+        # t = TransformStamped()
+        # t.header.frame_id = "odom"
+        # t.header.stamp = self.encoders.header.stamp
+        # t.child_frame_id = "base_link"
+
+        # t.transform.translation.x = self.x
+        # t.transform.translation.y = self.y
+        
+        # t.transform.rotation.x = q[0]
+        # t.transform.rotation.y = q[1]
+        # t.transform.rotation.z = q[2]
+        # t.transform.rotation.w = q[3]
+
+        # #to avoid redundat tf warnings
+        # if self.old_stamp != t.header.stamp:
+        #     br.sendTransform(t)
+        #     self.old_stamp = t.header.stamp
+        #----
+        odom = Odometry()
         odom.pose.pose.position.x = self.x
         odom.pose.pose.position.y = self.y
         odom.pose.pose.position.z = 0.0
@@ -134,10 +141,7 @@ class OdometryFusion:
         self.odom_publisher.publish(odom)
 
 
-        #to avoid redundat tf warnings
-        if self.old_stamp != t.header.stamp:
-            br.sendTransform(t)
-            self.old_stamp = t.header.stamp
+        
 
 
 if __name__ == "__main__":

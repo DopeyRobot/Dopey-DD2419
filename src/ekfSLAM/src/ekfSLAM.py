@@ -35,12 +35,16 @@ class EkfSLAM:
 
 
         self.verbose = verbose
-        self.rate = EncoderState(None).f #=20
-        self.dt = 1/self.rate
+        f = EncoderState(None).f
+        self.rate = rospy.Rate(f) #=20
+        self.dt = 1/f
 
-        #SLAM stuff
+        #publish stuf
         self.old_stamp = TwistStamped().header.stamp #Init empty stamp
         self.currHeaderStamp = None
+        self.startOK = False
+
+        #SLAM stuff
         self.v = None #predicted x velocity from odom sensor fusion
         self.w = None #predicted z angular velocity from odom sensor fusion'
 
@@ -76,19 +80,18 @@ class EkfSLAM:
 
     
     def odom_state_callback(self,data):
-        self.v = data.linear.x #predicted x velocity from odom sensor fusion
-        self.w = data.angular.z #predicted z angular velocity from odom sensor fusion'
+        # rospy.loginfo("inside odom_state callback")
+        self.v = data.twist.linear.x #predicted x velocity from odom sensor fusion
+        self.w = data.twist.angular.z #predicted z angular velocity from odom sensor fusion'
+        if np.isclose(data.twist.angular.z,0):
+            self.w = 1e-5
         self.currHeaderStamp = data.header.stamp
+        self.startOK = True
 
-    def sendCurrentTransform(self,prediction=False):
-        if prediction:
-            x = self.mu_bar_t[0,0]
-            y = self.mu_bar_t[1,0]
-            yaw = self.mu_bar_t[2,0]
-        else:
-            x = self.mu_t[0,0]
-            y = self.mu_t[1,0]
-            yaw = self.mu_t[2,0]
+    def sendCurrentTransform(self):
+        x = self.mu_t[0,0]
+        y = self.mu_t[1,0]
+        yaw = self.mu_t[2,0]
 
         br = tf2_ros.TransformBroadcaster()
 
@@ -114,14 +117,19 @@ class EkfSLAM:
 
     def run(self):
         while not rospy.is_shutdown():
-            # self.mu_bar_t = self.mu_t + self.F.T @ np.array([[self.v*np.cos(self.mu_t[2,0])],[self.v*np.sin(self.mu_t[2,0])],[self.w*self.dt]])  #predicted state according to odometry fusion - not like the book        
-            # G = np.eye(self.F.shape[1]) + self.F.T @ np.array([[0,0,-self.v*np.sin(self.mu_t[2,0])],[0,0,self.v*np.cos(self.mu_t[2,0])],[0,0,0]]) @ self.F
-            vOw = self.v/self.w
-            self.mu_bar_t = self.mu_t + self.F.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
-            G = np.eye(self.F.shape[1]) + self.F.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.F
-            self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.F.T @ self.R @ self.F
-            self.sendCurrentTransform(prediction=True)
-            self.rate.sleep()
+            if self.startOK:
+                # self.mu_bar_t = self.mu_t + self.F.T @ np.array([[self.v*np.cos(self.mu_t[2,0])],[self.v*np.sin(self.mu_t[2,0])],[self.w*self.dt]])  #predicted state according to odometry fusion - not like the book        
+                # G = np.eye(self.F.shape[1]) + self.F.T @ np.array([[0,0,-self.v*np.sin(self.mu_t[2,0])],[0,0,self.v*np.cos(self.mu_t[2,0])],[0,0,0]]) @ self.F
+                vOw = self.v/self.w
+                self.mu_bar_t = self.mu_t + self.F.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
+                G = np.eye(self.F.shape[1]) + self.F.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.F
+                self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.F.T @ self.R @ self.F
+
+
+                self.mu_t = self.mu_bar_t
+                self.sigma_t = self.sigma_bar_t
+                self.sendCurrentTransform()
+                self.rate.sleep()
 
 
 if __name__ == "__main__":

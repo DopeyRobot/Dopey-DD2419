@@ -130,7 +130,7 @@ class CartesianController:
         if self.verbose:
             rospy.loginfo("Twist callback")
 
-        self.twist = data.twist
+        self.twist = data
 
         if self.verbose:
             rospy.loginfo("Twist received: {}".format(self.twist.twist.linear.x))
