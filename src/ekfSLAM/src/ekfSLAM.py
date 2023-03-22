@@ -16,7 +16,7 @@ import pdb
 # ## Import module from other package/directory
 
 # # How to import modules from another package/directory https://roboticsbackend.com/ros-import-python-module-from-another-package/
-# from odometry.odometryFusion import OdometryFusion
+from odometry.estStateEncoder import EncoderState
 
 
 
@@ -31,6 +31,14 @@ class EkfSLAM:
 
 
         self.verbose = verbose
+        self.rate = EncoderState(None).f #=20
+
+        #SLAM stuff
+
+        self.mu_t = None
+        self.sigma_t = None
+        self.mu_bar_t = None
+        self.sigma_bar_t = None
         
 
         self.run()
