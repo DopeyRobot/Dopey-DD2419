@@ -22,8 +22,8 @@ class Occupancygrid():
         self.resolution = 5/ self.cells_width #m/cell
         self.cells_height = 200 #number of cells for height : y ? 
 
-        # self.vertices_df = pd.read_csv("~/dd2419_ws/src/occupancygrid/example_workspace.tsv", sep="\t")
-        self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/occupancy_grid/example_workspace.tsv", sep="\t")
+        # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
         self.vertices = self.vertices_df.values
         print(f"vertices: {self.vertices}, x min:{min(self.vertices[:,0])}, xmax: {max(self.vertices[:,0])}, y min: {min(self.vertices[:, 1])}, y max : {max(self.vertices[:,1])}")
         # self.xx_yy = [min(self.vertices[:,0]), max(self.vertices[:,0]), min(self.vertices[:,1]), max(self.vertices[:,1])]
