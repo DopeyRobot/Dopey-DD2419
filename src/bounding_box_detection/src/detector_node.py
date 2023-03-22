@@ -84,6 +84,7 @@ class BoundingBoxNode:
         self.run()
 
     def image_callback(self, msg):
+        start = time.time()
         timestamp = msg.header.stamp
         self.ros_img = msg
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
@@ -107,6 +108,8 @@ class BoundingBoxNode:
             timestamp, self.short_term_memory
         )
         self.publish_long_term_memory()
+        t = time.time() - start
+        print(f"inference time = {t}, FPS = {1/t}")
 
     def depth_callback(self, msg):
         self.ros_depth = msg
