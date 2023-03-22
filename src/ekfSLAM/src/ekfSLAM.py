@@ -60,7 +60,7 @@ class EkfSLAM:
         self.mu_bar_t = None
         self.sigma_bar_t = None
 
-        self.F = np.eye(3) #state transition matrix, will grow with 3*#landmarks column wise
+        self.Fx = np.eye(3) #state transition matrix, will grow with 3*#landmarks column wise
         self.R = np.eye(3) #process noise matrix
         self.Q = np.eye(3) #measurement noise matrix
         
@@ -79,10 +79,10 @@ class EkfSLAM:
             if marker.id == self.anchorID:
                 #add marker.id to seen landmarks only if it's not already there
                 if marker.id not in self.seenLandmarks:
-                    self.add_landmark(marker.id,self._aruco_in_odom_frame(poseWithCov))
+                    self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
                 else:
-                    #update landmark pose
-                    pass
+                    self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="base_link"))
+                
     
     def aruco_callback(self,msg):
         for marker in msg.markers:
@@ -93,28 +93,38 @@ class EkfSLAM:
             poseWithCov.header.stamp = msg.header.stamp
             if marker.id != self.anchorID:
                 if marker.id not in self.seenLandmarks:
-                    self.add_landmark(marker.id,self._aruco_in_odom_frame(poseWithCov))
+                    self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
                 else:
-                    #update landmark pose
-                    pass
+                    self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="base_link"))
+
     
     def add_landmark(self,arucoID,pose):
         self.seenLandmarks.append(arucoID)
         self._inflate_matrices()
         q = pose.pose.orientation
-        yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+        yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
         self.mu_bar_t[:,-1] = np.array([[pose.pose.position.x],[pose.pose.position.y],[yaw]])
         self.sigma_bar_t[-3:,-3:] = self.sigma_bar_t[3:,3:] #Inherit covariance from robot pose when seen
+
+    def update_landmark(self,arucoID,pose):
+        q = pose.pose.orientation
+        yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
+        z = np.array([[pose.pose.position.x],[pose.pose.position.y],[yaw]])
+        j = self.seenLandmarks.index(arucoID)
+        z_hat = np.array([[self.mu_bar_t[0,j]-self.mu_bar_t[0,0]],[self.mu_bar_t[1,j]-self.mu_bar_t[1,0]],[self.mu_bar_t[2,j]-self.mu_bar_t[2,0]]])
+        H = -np.eye(3)
+        Fxj = 
+
 
 
     def _inflate_matrices(self):
         inf=1e9
         #add 3 columns to F
-        self.F = np.hstack((self.F,np.zeros((self.F.shape[0],3))))
+        self.Fx = np.hstack((self.Fx,np.zeros((3,3))))
         #add 3 rows to F
-        self.F = np.vstack((self.F,np.zeros((3,self.F.shape[1]))))
+        #self.Fx = np.vstack((self.Fx,np.zeros((3,self.Fx.shape[1]))))
         #set bottom right 3x3 to identity
-        self.F[-3:,-3:] = np.eye(3)
+        self.Fx[-3:,-3:] = np.eye(3)
         #add 1 column to mu and mu_bar
         self.mu_t = np.hstack((self.mu_t,np.zeros((3,1))))
         self.mu_bar_t = np.hstack((self.mu_bar_t,np.zeros((3,1))))
@@ -125,14 +135,15 @@ class EkfSLAM:
         self.sigma_t = block_diag(self.sigma_t,np.eye(3)*inf)
         self.sigma_bar_t = block_diag(self.sigma_bar_t,np.eye(3)*inf)
     
-    def _aruco_in_odom_frame(self,pose):
-        if self.buffer.can_transform("odom", self.aruco_frame, self.currHeaderStamp, rospy.Duration(2)):
+    def _aruco_in_frame(self,pose,parent_frame):
+        if self.buffer.can_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(2)):
             poseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(pose)
-            transform2odom = self.buffer.lookup_transform("odom", self.aruco_frame, self.currHeaderStamp, rospy.Duration(20))
+            transform2odom = self.buffer.lookup_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(20))
             odom_pose = tf2_geometry_msgs.do_transform_pose(poseStamped, transform2odom) #where the marker is in odom frame
             return odom_pose
         else:
             raise Exception("No transform from aruco frame to odom frame")
+        
 
 
     def _PoseWithCovarianceStamped_to_PoseStamped(self, PoseWithCovarianceStamped):
@@ -183,9 +194,9 @@ class EkfSLAM:
                 # self.mu_bar_t = self.mu_t + self.F.T @ np.array([[self.v*np.cos(self.mu_t[2,0])],[self.v*np.sin(self.mu_t[2,0])],[self.w*self.dt]])  #predicted state according to odometry fusion - not like the book        
                 # G = np.eye(self.F.shape[1]) + self.F.T @ np.array([[0,0,-self.v*np.sin(self.mu_t[2,0])],[0,0,self.v*np.cos(self.mu_t[2,0])],[0,0,0]]) @ self.F
                 vOw = self.v/self.w
-                self.mu_bar_t = self.mu_t + self.F.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
-                G = np.eye(self.F.shape[1]) + self.F.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.F
-                self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.F.T @ self.R @ self.F
+                self.mu_bar_t = self.mu_t + self.Fx.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
+                G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
+                self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
 
 
                 self.mu_t = self.mu_bar_t
