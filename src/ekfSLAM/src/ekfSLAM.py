@@ -10,6 +10,7 @@ import tf2_geometry_msgs
 import tf
 
 from scipy.spatial.transform import Rotation as R
+from scipy.linalg import block_diag
 import numpy as np
 import pdb
 from geometry_msgs.msg import TwistStamped
@@ -41,6 +42,8 @@ class EkfSLAM:
 
         #aruco stuff
         self.anchorID = 500
+        self.aruco_frame = "camera_color_optical_frame"
+        self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
 
         #publish stuf
         self.old_stamp = TwistStamped().header.stamp #Init empty stamp
@@ -68,22 +71,75 @@ class EkfSLAM:
     def anchor_callback(self, msg):
         #rospy.logdebug("anchor callback")
         for marker in msg.markers:
+            poseWithCov = PoseWithCovarianceStamped()
+            poseWithCov.pose.pose = marker.pose.pose 
+            poseWithCov.pose.covariance = marker.pose.covariance
+            poseWithCov.header.frame_id = self.aruco_frame
+            poseWithCov.header.stamp = msg.header.stamp
             if marker.id == self.anchorID:
-                anchor = PoseWithCovarianceStamped()
-                anchor.pose.pose = marker.pose.pose #.pose & .covariance exist after this
-                anchor.pose.covariance = marker.pose.covariance
-                anchor.header.frame_id = self.aruco_frame
-                anchor.header.stamp = msg.header.stamp
-
-                if self.first_anchor is None: #to keep the first anchor coordinates only
-                    self.first_anchor = anchor
-                self.anchor = anchor
+                #add marker.id to seen landmarks only if it's not already there
+                if marker.id not in self.seenLandmarks:
+                    self.add_landmark(marker.id,self._aruco_in_odom_frame(poseWithCov))
+                else:
+                    #update landmark pose
+                    pass
     
     def aruco_callback(self,msg):
         for marker in msg.markers:
+            poseWithCov = PoseWithCovarianceStamped()
+            poseWithCov.pose.pose = marker.pose.pose 
+            poseWithCov.pose.covariance = marker.pose.covariance
+            poseWithCov.header.frame_id = self.aruco_frame
+            poseWithCov.header.stamp = msg.header.stamp
             if marker.id != self.anchorID:
-                pass
+                if marker.id not in self.seenLandmarks:
+                    self.add_landmark(marker.id,self._aruco_in_odom_frame(poseWithCov))
+                else:
+                    #update landmark pose
+                    pass
+    
+    def add_landmark(self,arucoID,pose):
+        self.seenLandmarks.append(arucoID)
+        self._inflate_matrices()
+        q = pose.pose.orientation
+        yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+        self.mu_bar_t[:,-1] = np.array([[pose.pose.position.x],[pose.pose.position.y],[yaw]])
+        self.sigma_bar_t[-3:,-3:] = self.sigma_bar_t[3:,3:] #Inherit covariance from robot pose when seen
 
+
+    def _inflate_matrices(self):
+        inf=1e9
+        #add 3 columns to F
+        self.F = np.hstack((self.F,np.zeros((self.F.shape[0],3))))
+        #add 3 rows to F
+        self.F = np.vstack((self.F,np.zeros((3,self.F.shape[1]))))
+        #set bottom right 3x3 to identity
+        self.F[-3:,-3:] = np.eye(3)
+        #add 1 column to mu and mu_bar
+        self.mu_t = np.hstack((self.mu_t,np.zeros((3,1))))
+        self.mu_bar_t = np.hstack((self.mu_bar_t,np.zeros((3,1))))
+        #add covariance matrix space for new landmark on sigma and sigma_bar
+        # self.sigma_t = np.hstack((self.sigma_t,np.eye(3)*inf))
+        # self.sigma_bar_t =  np.hstack((self.sigma_bar_t,np.eye(3)*inf))
+        #stack matrices on diagonal
+        self.sigma_t = block_diag(self.sigma_t,np.eye(3)*inf)
+        self.sigma_bar_t = block_diag(self.sigma_bar_t,np.eye(3)*inf)
+    
+    def _aruco_in_odom_frame(self,pose):
+        if self.buffer.can_transform("odom", self.aruco_frame, self.currHeaderStamp, rospy.Duration(2)):
+            poseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(pose)
+            transform2odom = self.buffer.lookup_transform("odom", self.aruco_frame, self.currHeaderStamp, rospy.Duration(20))
+            odom_pose = tf2_geometry_msgs.do_transform_pose(poseStamped, transform2odom) #where the marker is in odom frame
+            return odom_pose
+        else:
+            raise Exception("No transform from aruco frame to odom frame")
+
+
+    def _PoseWithCovarianceStamped_to_PoseStamped(self, PoseWithCovarianceStamped):
+        PoseS = PoseStamped()
+        PoseS.pose = PoseWithCovarianceStamped.pose.pose
+        PoseS.header = PoseWithCovarianceStamped.header
+        return PoseS
     
     def odom_state_callback(self,data):
         # rospy.loginfo("inside odom_state callback")
