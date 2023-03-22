@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped,Twist
 from robp_msgs.msg import DutyCycles, Encoders
 import math
 import numpy as np
@@ -15,7 +15,7 @@ class CartesianController:
         self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.twist_callback)
 
         self.sub_odom_state = rospy.Subscriber(
-            "/odometry/curr_vel_state", Twist, self.odom_state_callback)
+            "/odometry/curr_vel_state", TwistStamped, self.odom_state_callback)
 
         self.f = 10
         self.b = 0.3
@@ -130,7 +130,7 @@ class CartesianController:
         if self.verbose:
             rospy.loginfo("Twist callback")
 
-        self.twist = data
+        self.twist = data.twist
 
         if self.verbose:
             rospy.loginfo("Twist received: {}".format(self.twist.twist.linear.x))
