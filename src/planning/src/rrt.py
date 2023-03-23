@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Path
 import random
 import numpy as np
@@ -16,8 +17,10 @@ class RRTNode:
         self.x = x
         self.y = y
         self.parent = parent
+
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
         self.listener = tf2_ros.TransformListener(self.buffer)
+        self.sub_map = rospy.Subscriber('/occupancyGrid', OccupancyGrid, self.get_map_callback)
 
     def set_parent(self, parent: "RRTNode"):
         self.parent = parent
@@ -42,7 +45,7 @@ class RRTNode:
             start_pose = [0, 0]
         
         return start_pose
-
+        
 
 class RRTPlanner:
     def __init__(self, start, goal, num_iterations=100, step_size=2, n_steps=1):
@@ -57,6 +60,10 @@ class RRTPlanner:
             self.start.y = self.start.get_start()[1]
 
         self.goal = goal
+
+        self.map_data = None
+        self.occupancy_grid = None
+
         self.num_iterations = num_iterations
         self.step_size = step_size
         self.n_steps = n_steps
@@ -74,6 +81,9 @@ class RRTPlanner:
 
         self.RRT: List[RRTNode] = [self.start]
 
+    def get_map_callback(self, msg):
+        self.map_data = msg
+        self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
 
     def send_goal_callback(self, msg):
         self.goal = [msg.pose.position.x, msg.pose.position.y]
@@ -107,7 +117,26 @@ class RRTPlanner:
         return new_pos[0], new_pos[1]
 
     def check_map(self, x, y) -> bool:
-        return True
+        # Check bounds   
+        if x < self.map_data.info.origin.position.x or y < self.map_data.info.origin.position.y:
+            return False
+        if x >= self.map_data.info.origin.position.x + self.map_data.info.width * self.map_data.info.resolution or y >= self.map_data.info.origin.position.y + self.map_data.info.height * self.map_data.info.resolution:
+            return False
+
+        # Convert the (x,y) coordinate to a grid cell index
+        col = int((x - self.map_data.info.origin.position.x) / self.map_data.info.resolution)
+        row = int((y - self.map_data.info.origin.position.y) / self.map_data.info.resolution)
+
+        value = self.occupancy_grid[row][col]
+        if value == 0:
+            # Free
+            return True
+        elif value == 1:
+            # Obstacle
+            return False
+        else:
+            return True
+            # For now, its unknown..
 
     def RRT_step(self, nearest_node: RRTNode, target_x, target_y):
         new_node = RRTNode(nearest_node.x, nearest_node.y, nearest_node)

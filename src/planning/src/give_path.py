@@ -12,9 +12,11 @@ class give_path():
         self.path_subscriber = rospy.Subscriber('/path_topic', Path, self.path_callback) 
         self.ready_for_pose_subscriber = rospy.Subscriber('/ready_for_pose', Bool, self.ready_for_path_callback)
         self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
+        self.ready_for_new_path = rospy.Publisher('/ready_for_new_path', Bool, queue_size=1, latch=True)
 
         self.path = Path()
         self.ready_for_pose = Bool()
+        self.ready_for_path = Bool()
         self.pose_to_send = 0
 
         self.main()
@@ -35,7 +37,14 @@ class give_path():
                 self.ready_for_pose_publisher.publish(self.ready_for_pose)
                 self.goal_publisher.publish(self.path.poses[self.pose_to_send])
                 self.pose_to_send = self.pose_to_send + 1
-                print(self.pose_to_send)
+            
+            if self.pose_to_send == len(self.path.poses):
+                self.ready_for_path = True
+                self.ready_for_new_path.publish(self.ready_for_path)
+            else:
+                self.ready_for_path = False
+                self.ready_for_new_path.publish(self.ready_for_path)
+
                                         
                     
 
