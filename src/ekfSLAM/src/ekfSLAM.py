@@ -50,7 +50,7 @@ class EkfSLAM:
         self.landmarks = []
         self.landmarks_stamp = None
 
-        #publish stuf
+        #publish stuff
         self.old_stamp = TwistStamped().header.stamp #Init empty stamp
         self.old_stamps4landmarks = []
         self.currHeaderStamp = None
@@ -87,7 +87,7 @@ class EkfSLAM:
                 if marker.id not in self.seenLandmarks:
                     self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
                 else:
-                    self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="base_link"))
+                    self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
                 
     
     def aruco_callback(self,msg):
@@ -102,6 +102,7 @@ class EkfSLAM:
                     self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
                 else:
                     self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+                    rospy.logdebug(marker.pose.pose.position.x)
 
     # def anchor_callback(self, msg):
     #     rospy.logdebug("anchor callback")
@@ -129,6 +130,7 @@ class EkfSLAM:
 
     
     def add_landmark(self,arucoID,pose):
+        rospy.logdebug("adding landmark")
         self.seenLandmarks.append(arucoID)
         # np.append(self.seenLandmarks,arucoID)
         # self.seenLandmarks += np.array([arucoID])
@@ -142,9 +144,10 @@ class EkfSLAM:
         # q = pose.pose.orientation
         # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
         self.mu_bar_t[-3:,:] = np.array([[pose.pose.position.x],[pose.pose.position.y],[0]])
-        self.sigma_bar_t[-3:,-3:] = self.sigma_bar_t[:3,:3] #Inherit covariance from robot pose when seen
+        #self.sigma_bar_t[-3:,-3:] = self.sigma_bar_t[:3,:3] #Inherit covariance from robot pose when seen
 
     def update_landmark(self,arucoID,pose):
+        rospy.logdebug("updating landmark")
         # q = pose.pose.orientation
         # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
         z = np.array([[pose.pose.position.x-self.mu_bar_t[0,0]],[pose.pose.position.y-self.mu_bar_t[1,0]],[0]])
@@ -301,12 +304,24 @@ class EkfSLAM:
                 # self.measurement_update()
                 self.mu_t = self.mu_bar_t
                 self.sigma_t = self.sigma_bar_t
-                rospy.logdebug(self.mu_t.shape)
-                rospy.logdebug(self.mu_bar_t.shape)
-                rospy.logdebug(self.sigma_t.shape)
-                rospy.logdebug(self.sigma_bar_t.shape)
+                try:
+                    rospy.logdebug(self.mu_t[3])
+                except:
+                    pass
+                
+
+                # rospy.logdebug(self.mu_t.shape)
+                # rospy.logdebug(self.mu_bar_t.shape)
+                # rospy.logdebug(self.sigma_t.shape)
+                # rospy.logdebug(self.sigma_bar_t.shape)
                 self.sendCurrentRobotPose()
                 self.sendCurrentLandmarkPoses()
+
+                assert self.mu_t.shape == (3*len(self.seenLandmarks)+3,1)
+                assert self.mu_t.shape == self.mu_bar_t.shape
+                assert self.sigma_t.shape == (3*len(self.seenLandmarks)+3,3*len(self.seenLandmarks)+3)
+                assert self.sigma_t.shape == self.sigma_bar_t.shape
+
                 self.rate.sleep()
 
 
