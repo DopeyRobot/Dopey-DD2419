@@ -19,8 +19,10 @@ from geometry_msgs.msg import TwistStamped
 # # How to import modules from another package/directory https://roboticsbackend.com/ros-import-python-module-from-another-package/
 from odometry.estStateEncoder import EncoderState
 
-
-
+#TODO: find reason why landmarks are published to middle of base_link
+#1. Keep odometry separate from the update step
+#2. Do all odometry stuff on baselink in odom frame as it is now
+#3. All updates on mu_bar[0:3] should be implemented on the trasnform from odom to map and keep the base_link untouched
 
 class EkfSLAM:
     def __init__(self,verbose=False) -> None:
