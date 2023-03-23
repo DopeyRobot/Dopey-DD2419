@@ -102,7 +102,7 @@ class EkfSLAM:
     #                 self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
 
     def anchor_callback(self, msg):
-        #rospy.logdebug("anchor callback")
+        rospy.logdebug("anchor callback")
         for marker in msg.markers:
             if marker.id == self.anchorID:
                 #add marker.id to seen landmarks only if it's not already there
@@ -113,6 +113,7 @@ class EkfSLAM:
                 
     
     def aruco_callback(self,msg):
+        ropsy.logdebug("aruco callback")
         for marker in msg.markers:
             if marker.id != self.anchorID:
                 if msg.header.stamp == self.currHeaderStamp:
@@ -230,7 +231,7 @@ class EkfSLAM:
         self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
 
 
-    def measurement_update(self,pose):
+    def measurement_update(self):
         for marker in self.landmarks+self.anchor_landmarks:
             poseWithCov = PoseWithCovarianceStamped()
             poseWithCov.pose.pose = marker.pose.pose 
@@ -255,8 +256,8 @@ class EkfSLAM:
                 # self.mu_bar_t = self.mu_t + self.Fx.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
                 # G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
                 # self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
-
-
+                self.odometry_prediction()
+                self.measurement_update()
                 self.mu_t = self.mu_bar_t
                 self.sigma_t = self.sigma_bar_t
                 self.sendCurrentTransform()
