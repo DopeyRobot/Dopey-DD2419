@@ -70,7 +70,7 @@ class RRTPlanner:
 
         self.pub_path = rospy.Publisher("/path_topic", Path, queue_size=10)
         self.sub_goal = rospy.Subscriber("/send_goal", PoseStamped, self.send_goal_callback)
-        self.sub_map = rospy.Subscriber('/occupancyGrid', OccupancyGrid, self.get_map_callback)
+        self.sub_map = rospy.Subscriber('/occupancygrid', OccupancyGrid, self.get_map_callback)
         self.rate = rospy.Rate(1)
 
         self.path_msg = Path()

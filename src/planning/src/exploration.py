@@ -12,7 +12,7 @@ from std_msgs.msg import Bool
 class FrontierExploration:
     def __init__(self):
 
-        rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+        rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
         self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1)
         self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
 
