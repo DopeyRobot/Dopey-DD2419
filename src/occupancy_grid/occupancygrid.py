@@ -57,13 +57,25 @@ class Occupancygrid():
     
     def get_x_pos(self, i):
         step = (self.x_high - self.x_low)/self.x_n
-        x_pos = self.x_low + step*i + step/2 #added step / 2 so that the coordinate is in the middle of the cell
+        x_pos = self.x_low + step*i + step/2 #added step / 2 so that; the coordinate is in the middle of the cell
         return x_pos
     
     def get_y_pos(self, j):
         step = (self.y_high - self.y_low) / self.y_n
         y_pos = self.y_low + step*j + step/2 # added step/2 so that the coordinate is in the middle of the cells
         return y_pos
+    
+    def incrementer(self, x, y, direction):
+        #x and y are the current position of the robot in discrete values
+        dx = np.cos(direction)
+        dy = np.sin(direction)
+
+        x += dx
+        y += dy
+        return [int(x), int(y)]
+
+    def enroute(self, robotidx, obstacleidx):
+        return robotidx != obstacleidx
 
     def cloud_callback(self, pointcloudmsg):
         # Convert ROS -> Open3D
@@ -91,13 +103,31 @@ class Occupancygrid():
 
         self.pcd.points = o3d.utility.Vector3dVector(dist_aboveground)
 
-        # Fill in values for occupied at those points
-        # Occupied
-        coordinate_list = zip(dist_aboveground[:,0], dist_aboveground[:,1])
-        for x,y in zip(*coordinate_list):
-            self.grid[self.get_i_index(x), self.get_j_index(y)] = 1 #occupied
-        # Unkown 
+        # MISSING:
+        # transform into map frame from camera link frame first
 
+        robot_pos_cont_space = [0,0] #placeholder
+        robot_pos_disc_space = [self.get_i_index(robot_pos_cont_space[0]), self.get_i_index(robot_pos_cont_space[1])]
+        coordinate_list = zip(dist_aboveground[:,0], dist_aboveground[:,1])
+        # check for every obstacle
+        for x,y in zip(*coordinate_list):
+            obstacle_pos_dicrete_space = [self.get_i_index(x), self.get_j_index(y)]
+            delta_y = obstacle_pos_dicrete_space[1] - robot_pos_disc_space[1]
+            delta_x = obstacle_pos_dicrete_space[0] - robot_pos_disc_space[0]
+            bounded = True
+            while bounded:
+                # FREE SPACE
+                direction = np.arctan2(delta_y / delta_x)
+                step_index = self.incrementer(robot_pos_disc_space[0], robot_pos_disc_space[1], direction)
+                self.grid[step_index[0], step_index[1]] = 0 #free space
+
+                bounded = self.enroute(robot_pos_disc_space, obstacle_pos_dicrete_space)
+
+            #OCCUPIED SPACE
+
+            self.grid[self.get_i_index(x), self.get_j_index(y)] = -1 #occupied
+        # Unknown 
+        
         #Free space
 
 
