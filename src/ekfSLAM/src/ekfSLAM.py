@@ -44,6 +44,7 @@ class EkfSLAM:
         self.anchorID = 500
         self.aruco_frame = "camera_color_optical_frame"
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
+        self.listener = tf2_ros.TransformListener(self.buffer)
         self.anchor_landmarks = []
         self.anchor_stamp = None
         self.landmarks = []
@@ -106,20 +107,24 @@ class EkfSLAM:
         for marker in msg.markers:
             if marker.id == self.anchorID:
                 #add marker.id to seen landmarks only if it's not already there
-                if msg.header.stamp == self.currHeaderStamp:
-                    self.anchor_landmarks = []
-                    self.anchor_landmarks.append(marker)
-                    self.anchor_stamp = msg.header.stamp
+                #if msg.header.stamp == self.currHeaderStamp:
+                rospy.logdebug("added anchor landmark")
+                self.anchor_landmarks = np.array([])
+                # self.anchor_landmarks.append(marker)
+                np.append(self.anchor_landmarks,marker)
+                self.anchor_stamp = msg.header.stamp
                 
     
     def aruco_callback(self,msg):
-        ropsy.logdebug("aruco callback")
+        rospy.logdebug("aruco callback")
         for marker in msg.markers:
             if marker.id != self.anchorID:
-                if msg.header.stamp == self.currHeaderStamp:
-                    self.landmarks = []
-                    self.landmarks.append(marker)
-                    self.landmarks_stamp = msg.header.stamp
+                #if msg.header.stamp == self.currHeaderStamp:
+                rospy.logdebug("added landmark")
+                self.landmarks = np.array([])
+                # self.landmarks.append(marker)
+                np.append(self.anchor_landmarks,marker)
+                self.landmarks_stamp = msg.header.stamp
 
     
     def add_landmark(self,arucoID,pose):
@@ -174,13 +179,13 @@ class EkfSLAM:
         self.sigma_bar_t = block_diag(self.sigma_bar_t,np.eye(3)*inf)
     
     def _aruco_in_frame(self,pose,parent_frame):
-        if self.buffer.can_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(2)):
-            poseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(pose)
-            transform2odom = self.buffer.lookup_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(20))
-            odom_pose = tf2_geometry_msgs.do_transform_pose(poseStamped, transform2odom) #where the marker is in odom frame
-            return odom_pose
-        else:
-            raise Exception("No transform from aruco frame to odom frame")
+        #if self.buffer.can_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(2)):
+        poseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(pose)
+        transform2odom = self.buffer.lookup_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(20))
+        odom_pose = tf2_geometry_msgs.do_transform_pose(poseStamped, transform2odom) #where the marker is in odom frame
+        return odom_pose
+        # else:
+        #     raise Exception("No transform from aruco frame to odom frame")
         
 
 
