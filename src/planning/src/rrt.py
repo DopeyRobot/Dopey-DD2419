@@ -35,7 +35,7 @@ class RRTNode:
         robot_pose.header.stamp = rospy.Time.now()
 
         try:
-            transform_to_map = self.buffer.lookup_transform("map", robot_pose.header.frame_id, robot_pose.header.stamp , rospy.Duration(5))           
+            transform_to_map = self.buffer.lookup_transform("map", robot_pose.header.frame_id, robot_pose.header.stamp , rospy.Duration(1))           
             start_pose = tf2_geometry_msgs.do_transform_pose(robot_pose, transform_to_map)
 
         except:
@@ -85,7 +85,6 @@ class RRTPlanner:
                 np.random.uniform(0, map_data.shape[1]),
             )
         else:
-            print("sampled the goal")
             return self.goal
 
     def find_nearest(self, x, y) -> RRTNode:
@@ -118,7 +117,7 @@ class RRTPlanner:
                 new_node.x = new_x
                 new_node.y = new_y
             else:
-                print("ran into obstacle")
+                print("Ran into obstacle")
                 return None
 
         return new_node
@@ -205,7 +204,7 @@ if __name__ == "__main__":
     rospy.init_node("rrt")
     start = [0, 0]
     goal = [0, 0]
-    planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.05)
+    planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.09)
     planner.generate_RRT()
     planner.generate_path()
     planner.plot_RRT_tree()
