@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Posestamped
 import math
 import pandas as pd
 import numpy as np
@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 from sensor_msgs.msg import PointCloud2
 import open3d as o3d
 from open3d_ros_helper import open3d_ros_helper as o3drh
+import tf2_ros
+import tf2_geometry_msgs
+
 
 class Occupancygrid():
     def __init__(self):
@@ -35,6 +38,12 @@ class Occupancygrid():
         self.y_n = 200 #number of cells in the y-direction for height
         self.grid = np.zeros((self.x_n, self.y_n))
         # self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
+
+        self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
+        self.source_frame = "camera"
+        self.target_frame = "map"
+        self.timeout =rospy.Duration(5)
+
 
         self.pcd = o3d.geometry.PointCloud()
 
@@ -74,10 +83,9 @@ class Occupancygrid():
         y += dy
         return [int(x), int(y)]
 
-    def enroute(self, robotidx, obstacleidx):
-        return robotidx != obstacleidx
-
     def cloud_callback(self, pointcloudmsg):
+        # Transform the pointcloudmsg
+        pointcloudmsg = self.buffer.transform(pointcloudmsg, self.target_frame, self.timeout)
         # Convert ROS -> Open3D
         cloud = o3drh.rospc_to_o3dpc(pointcloudmsg)
 
@@ -105,9 +113,13 @@ class Occupancygrid():
 
         # MISSING:
         # transform into map frame from camera link frame first
-
+        
         robot_pos_cont_space = [0,0] #placeholder
-        robot_pos_disc_space = [self.get_i_index(robot_pos_cont_space[0]), self.get_i_index(robot_pos_cont_space[1])]
+        ## Transform robot position
+
+        # robot_pos_disc_space = [self.get_i_index(robot_pos_cont_space[0]), self.get_i_index(robot_pos_cont_space[1])]
+        robot_pos_disc_space = [0,0]
+
         coordinate_list = zip(dist_aboveground[:,0], dist_aboveground[:,1])
         # check for every obstacle
         for x,y in zip(*coordinate_list):
@@ -118,13 +130,12 @@ class Occupancygrid():
             while bounded:
                 # FREE SPACE
                 direction = np.arctan2(delta_y / delta_x)
-                step_index = self.incrementer(robot_pos_disc_space[0], robot_pos_disc_space[1], direction)
-                self.grid[step_index[0], step_index[1]] = 0 #free space
+                robot_explore_pos = self.incrementer(robot_pos_disc_space[0], robot_pos_disc_space[1], direction)
+                self.grid[robot_explore_pos[0], robot_explore_pos[1]] = 0 #free space
 
-                bounded = self.enroute(robot_pos_disc_space, obstacle_pos_dicrete_space)
+                bounded = robot_explore_pos != obstacle_pos_dicrete_space
 
             #OCCUPIED SPACE
-
             self.grid[self.get_i_index(x), self.get_j_index(y)] = -1 #occupied
         # Unknown 
         
