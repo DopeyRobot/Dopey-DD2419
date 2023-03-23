@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import PoseStamped
-from nav_msgs.msg import OccupancyGrid
-from nav_msgs.msg import Path
 import random
 import numpy as np
-from buildmap import map_data
-import matplotlib.pyplot as plt
-from typing import List, Tuple
 import tf_conversions
 import tf2_ros
 import tf2_geometry_msgs
+import matplotlib.pyplot as plt
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import Path
+from buildmap import map_data
+from typing import List, Tuple
 
 class RRTNode:
     def __init__(self, x, y, parent=None) -> None:
@@ -20,7 +20,6 @@ class RRTNode:
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
         self.listener = tf2_ros.TransformListener(self.buffer)
-        self.sub_map = rospy.Subscriber('/occupancyGrid', OccupancyGrid, self.get_map_callback)
 
     def set_parent(self, parent: "RRTNode"):
         self.parent = parent
@@ -71,6 +70,7 @@ class RRTPlanner:
 
         self.pub_path = rospy.Publisher("/path_topic", Path, queue_size=10)
         self.sub_goal = rospy.Subscriber("/send_goal", PoseStamped, self.send_goal_callback)
+        self.sub_map = rospy.Subscriber('/occupancyGrid', OccupancyGrid, self.get_map_callback)
         self.rate = rospy.Rate(1)
 
         self.path_msg = Path()

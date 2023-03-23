@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import PoseStamped
 import numpy as np
+from geometry_msgs.msg import PoseStamped
 
 class send_goal():
 

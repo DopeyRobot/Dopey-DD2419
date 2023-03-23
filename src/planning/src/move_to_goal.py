@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import TransformStamped
-from std_msgs.msg import Bool
-from robp_msgs.msg import Encoders
-from nav_msgs.msg import Path
-import tf_conversions
-from geometry_msgs.msg import PoseStamped, Point, Twist, TransformStamped
-import tf2_ros
-import tf2_geometry_msgs
-from nav_msgs.msg import Odometry
 import math
+import tf2_ros
+import tf_conversions
+from geometry_msgs.msg import PoseStamped, Twist
+from nav_msgs.msg import Odometry
+from std_msgs.msg import Bool
+from tf.transformations import euler_from_quaternion
 
 class move_to_goal():
 
@@ -102,7 +99,8 @@ class move_to_goal():
                 self.transformed_goal_pose = self.tf_buffer.transform(self.goal_pose, self.targetframe, self.timeout)
 
                 rot_q = self.goal_pose.pose.orientation
-                (_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
+                (_, _, self.goal_theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
+                #(_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)

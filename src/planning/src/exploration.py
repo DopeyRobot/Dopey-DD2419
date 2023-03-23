@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 import rospy
-from nav_msgs.msg import OccupancyGrid
-from geometry_msgs.msg import Point, PoseStamped
-from random import randint
 import numpy as np
-import tf_conversions
 import tf2_ros
 import tf2_geometry_msgs
 import math
+from nav_msgs.msg import OccupancyGrid
+from geometry_msgs.msg import Point, PoseStamped
+from random import randint
 from std_msgs.msg import Bool
-
 
 class FrontierExploration:
     def __init__(self):
