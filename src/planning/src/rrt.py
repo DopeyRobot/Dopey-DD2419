@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import TransformStamped, PoseStamped
+from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 import random
 import numpy as np
@@ -8,30 +8,67 @@ from buildmap import map_data
 import matplotlib.pyplot as plt
 from typing import List, Tuple
 import tf_conversions
-
+import tf2_ros
+import tf2_geometry_msgs
 
 class RRTNode:
     def __init__(self, x, y, parent=None) -> None:
         self.x = x
         self.y = y
         self.parent = parent
+        self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
+        self.listener = tf2_ros.TransformListener(self.buffer)
 
     def set_parent(self, parent: "RRTNode"):
         self.parent = parent
 
     def get_parent(self):
         return self.parent
+    
+    def get_start(self):                
+        
+        robot_pose = PoseStamped()
+
+        robot_pose.pose.position.x = 0
+        robot_pose.pose.position.y = 0
+        robot_pose.pose.position.z = 0
+        robot_pose.header.frame_id = 'base_link'
+        robot_pose.header.stamp = rospy.Time.now()
+
+        try:
+            transform_to_map = self.buffer.lookup_transform("map", robot_pose.header.frame_id, robot_pose.header.stamp , rospy.Duration(5))           
+            start_pose = tf2_geometry_msgs.do_transform_pose(robot_pose, transform_to_map)
+
+        except:
+            start_pose = [0, 0]
+        
+        print('HELLO1', start_pose)
+        return start_pose
 
 
 class RRTPlanner:
     def __init__(self, start, goal, num_iterations=100, step_size=2, n_steps=1):
+        
         self.start = RRTNode(start[0], start[1])
+
+        try:
+            self.start.x = self.start.get_start().pose.position.x
+            self.start.y = self.start.get_start().pose.position.y
+        except:
+            self.start.x = self.start.get_start()[0]
+            self.start.y = self.start.get_start()[1]
+
+        print('HELLO2',self.start.x)
+
+
         self.goal = goal
         self.num_iterations = num_iterations
         self.step_size = step_size
         self.n_steps = n_steps
         self.goal_sample_prob = 0.1
-        self.pub = rospy.Publisher("/path_topic", Path, queue_size=10)
+
+        self.pub_path = rospy.Publisher("/path_topic", Path, queue_size=10)
+        self.sub_goal = rospy.Subscriber("/send_goal", PoseStamped, self.send_goal_callback)
         self.rate = rospy.Rate(1)
 
         self.path_msg = Path()
@@ -42,11 +79,15 @@ class RRTPlanner:
 
         self.RRT: List[RRTNode] = [self.start]
 
+
+    def send_goal_callback(self, msg):
+        self.goal = [msg.pose.position.x, msg.pose.position.y]
+
     def sample_random(self) -> Tuple[int]:
         if random.random() > self.goal_sample_prob:
             return (
-                np.random.randint(0, map_data.shape[0]),
-                np.random.randint(0, map_data.shape[1]),
+                np.random.uniform(0, map_data.shape[0]),
+                np.random.uniform(0, map_data.shape[1]),
             )
         else:
             print("sampled the goal")
@@ -105,7 +146,7 @@ class RRTPlanner:
                     self.RRT.append(goal_node)
                     break
             # self.plot_RRT_tree()
-            print(f"done with iteration {i}")
+            #print(f"done with iteration {i}")
 
     def generate_path(self):
         current_node = self.RRT[-1]
@@ -123,6 +164,8 @@ class RRTPlanner:
             current_node = current_node.get_parent()
         self.path_msg.poses = self.path_msg.poses[::-1]
 
+        
+
         for i, pose in enumerate(self.path_msg.poses):
             next_pose = None
             try:
@@ -134,18 +177,19 @@ class RRTPlanner:
                 dx = next_pose.pose.position.x - pose.pose.position.x
 
                 orientation = np.arctan2(dy, dx)
-                print(orientation)
+                #print(orientation)
                 quaternian = tf_conversions.transformations.quaternion_from_euler(0,0,orientation)
 
                 pose.pose.orientation.w = quaternian[3]
                 pose.pose.orientation.x = quaternian[0]
                 pose.pose.orientation.y = quaternian[1]
                 pose.pose.orientation.z = quaternian[2]
-
-        print(self.path_msg)
-
+        print('done genereting')
+        
     def publish_path(self):
-        self.pub.publish(self.path_msg)
+        print('publish')
+        self.pub_path.publish(self.path_msg)
+        
         # while not rospy.is_shutdown():
 
         # if self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.x == self.goal[0] and self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.y == self.goal[1]:
@@ -171,11 +215,11 @@ class RRTPlanner:
 if __name__ == "__main__":
     rospy.init_node("rrt")
     start = [0, 0]
-    goal = [1, 1]
-    planner = RRTPlanner(start, goal, num_iterations=100, step_size=0.1)
+    goal = [0, 0]
+    planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.05)
     planner.generate_RRT()
     planner.generate_path()
-    # planner.plot_RRT_tree()
+    planner.plot_RRT_tree()
     planner.publish_path()
     rospy.spin()
 

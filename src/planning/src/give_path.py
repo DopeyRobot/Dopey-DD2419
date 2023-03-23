@@ -20,6 +20,7 @@ class give_path():
         self.main()
 
     def path_callback(self, msg):
+        print('in path callback')
         self.path = msg
 
 
