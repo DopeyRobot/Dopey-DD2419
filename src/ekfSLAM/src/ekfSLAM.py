@@ -68,7 +68,7 @@ class EkfSLAM:
 
         self.Fx = np.eye(3) #state transition matrix, will grow with 3*#landmarks column wise
         self.R = np.eye(3) #process noise matrix
-        self.Q = np.eye(3) #measurement noise matrix
+        self.Q = np.eye(3)*1e-2 #measurement noise matrix
         
         self.seenLandmarks = []#np.empty((1,0), int)#np.array([]) #List that tracks seen landmarks, keeps track of arucoID
 
@@ -88,6 +88,7 @@ class EkfSLAM:
                     self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
                 else:
                     self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+            
                 
     
     def aruco_callback(self,msg):
@@ -98,11 +99,12 @@ class EkfSLAM:
             poseWithCov.header.frame_id = self.aruco_frame
             poseWithCov.header.stamp = msg.header.stamp
             if marker.id != self.anchorID:
+                # pdb.set_trace()
                 if marker.id not in self.seenLandmarks:
                     self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
                 else:
                     self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
-                    rospy.logdebug(marker.pose.pose.position.x)
+                    # rospy.logdebug(marker.pose.pose.position.x)
 
     # def anchor_callback(self, msg):
     #     rospy.logdebug("anchor callback")
@@ -131,23 +133,26 @@ class EkfSLAM:
     
     def add_landmark(self,arucoID,pose):
         rospy.logdebug("adding landmark")
+        # pdb.set_trace()
         self.seenLandmarks.append(arucoID)
         # np.append(self.seenLandmarks,arucoID)
         # self.seenLandmarks += np.array([arucoID])
         # a = np.empty((1,0), int)
         # np.append(a,np.array([arucoID]),axis=1)
         # rospy.logdebug(a)
-        rospy.logdebug(arucoID)
-        rospy.logdebug(self.seenLandmarks)
+        # rospy.logdebug(arucoID)
+        # rospy.logdebug(self.seenLandmarks)
 
         self._inflate_matrices()
         # q = pose.pose.orientation
         # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
         self.mu_bar_t[-3:,:] = np.array([[pose.pose.position.x],[pose.pose.position.y],[0]])
         #self.sigma_bar_t[-3:,-3:] = self.sigma_bar_t[:3,:3] #Inherit covariance from robot pose when seen
+        # pdb.set_trace()
 
     def update_landmark(self,arucoID,pose):
         rospy.logdebug("updating landmark")
+        # pdb.set_trace()
         # q = pose.pose.orientation
         # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
         z = np.array([[pose.pose.position.x-self.mu_bar_t[0,0]],[pose.pose.position.y-self.mu_bar_t[1,0]],[0]])
@@ -170,6 +175,7 @@ class EkfSLAM:
         KH= K @ H
         assert KH.shape[0] == KH.shape[1]
         self.sigma_bar_t = (np.eye(KH.shape[0]) - KH) @ self.sigma_bar_t
+        # pdb.set_trace()
 
     def _inflate_matrices(self):
             inf=1e9
@@ -193,9 +199,12 @@ class EkfSLAM:
     
     def _aruco_in_frame(self,pose,parent_frame):
         #if self.buffer.can_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(2)):
+        pdb.set_trace()
         poseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(pose)
         transform2odom = self.buffer.lookup_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(20))
         odom_pose = tf2_geometry_msgs.do_transform_pose(poseStamped, transform2odom) #where the marker is in odom frame
+        pdb.set_trace()
+        
         return odom_pose
         # else:
         #     raise Exception("No transform from aruco frame to odom frame")
@@ -265,7 +274,7 @@ class EkfSLAM:
             # rospy.loginfo(self.old_stamps4landmarks[i] == t.header.stamp)
             if self.old_stamps4landmarks[i] != t.header.stamp:
                 br.sendTransform(t)
-                rospy.logdebug("Sending transform of landmark"+str(i+1))
+                # rospy.logdebug("Sending transform of landmark"+str(i+1))
                 self.old_stamps4landmarks[i] = t.header.stamp
     
     def odometry_prediction(self):
@@ -304,23 +313,23 @@ class EkfSLAM:
                 # self.measurement_update()
                 self.mu_t = self.mu_bar_t
                 self.sigma_t = self.sigma_bar_t
-                try:
-                    rospy.logdebug(self.mu_t[3])
-                except:
-                    pass
+                # try:
+                #     rospy.logdebug(self.mu_t[3])
+                # except:
+                #     pass
                 
 
                 # rospy.logdebug(self.mu_t.shape)
                 # rospy.logdebug(self.mu_bar_t.shape)
-                # rospy.logdebug(self.sigma_t.shape)
+                # rospy.logdebug(self.sigma_t)
                 # rospy.logdebug(self.sigma_bar_t.shape)
                 self.sendCurrentRobotPose()
                 self.sendCurrentLandmarkPoses()
 
-                assert self.mu_t.shape == (3*len(self.seenLandmarks)+3,1)
-                assert self.mu_t.shape == self.mu_bar_t.shape
-                assert self.sigma_t.shape == (3*len(self.seenLandmarks)+3,3*len(self.seenLandmarks)+3)
-                assert self.sigma_t.shape == self.sigma_bar_t.shape
+                # assert self.mu_t.shape == (3*len(self.seenLandmarks)+3,1)
+                # assert self.mu_t.shape == self.mu_bar_t.shape
+                # assert self.sigma_t.shape == (3*len(self.seenLandmarks)+3,3*len(self.seenLandmarks)+3)
+                # assert self.sigma_t.shape == self.sigma_bar_t.shape
 
                 self.rate.sleep()
 
