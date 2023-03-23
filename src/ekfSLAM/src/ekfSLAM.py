@@ -204,7 +204,7 @@ class EkfSLAM:
         self.currHeaderStamp = data.header.stamp
         self.startOK = True
 
-    def sendCurrentTransform(self):
+    def sendCurrentRobotPose(self):
         x = self.mu_t[0,0]
         y = self.mu_t[1,0]
         yaw = self.mu_t[2,0]
@@ -228,6 +228,28 @@ class EkfSLAM:
         if self.old_stamp != t.header.stamp:
             br.sendTransform(t)
             self.old_stamp = t.header.stamp
+    
+    def sendCurrentLandmarkPoses(self):
+        br = tf2_ros.TransformBroadcaster()
+        N = int((self.mu_t.shape[0]-3)/3)
+        for i in range(N):
+            t = TransformStamped()
+            t.header.frame_id = "odom"
+            t.header.stamp = self.currHeaderStamp
+            t.child_frame_id = "landmark"+str(i)
+
+            t.transform.translation.x = self.mu_t[3+3*i,0]
+            t.transform.translation.y = self.mu_t[4+3*i,0]
+            q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.mu_t[5+3*i,0])
+            t.transform.rotation.x = q[0]
+            t.transform.rotation.y = q[1]
+            t.transform.rotation.z = q[2]
+            t.transform.rotation.w = q[3]
+
+            #to avoid redundat tf warnings
+            if self.old_stamp != t.header.stamp:
+                br.sendTransform(t)
+                self.old_stamp = t.header.stamp
     
     def odometry_prediction(self):
         vOw = self.v/self.w
@@ -265,7 +287,8 @@ class EkfSLAM:
                 self.measurement_update()
                 self.mu_t = self.mu_bar_t
                 self.sigma_t = self.sigma_bar_t
-                self.sendCurrentTransform()
+                self.sendCurrentRobotPose()
+                self.sendCurrentLandmarkPoses()
                 self.rate.sleep()
 
 
