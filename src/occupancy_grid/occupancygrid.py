@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
-from geometry_msgs.msg import Pose, Posestamped
+from geometry_msgs.msg import Pose, PolygonStamped
 import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sensor_msgs.msg import PointCloud2, LaserScan
+from sensor_msgs.msg import LaserScan
 import open3d as o3d
 from open3d_ros_helper import open3d_ros_helper as o3drh
 import tf2_ros
@@ -18,16 +18,18 @@ class Occupancygrid:
         self.f = 10
         self.rate = rospy.Rate(self.f)
 
-        self.publisher_pointcloud = rospy.Publisher(
-            "/newpointcloud", PointCloud2, queue_size=10
-        )
         self.publisher_occupancygrid = rospy.Publisher(
             "/occupancygrid", OccupancyGrid, queue_size=10
         )
-        self.publisher_laserscan = rospy.Publisher(
-            "/laserscan", LaserScan, queue_size=10
+        self.sub_laserscan = rospy.Subscriber(
+            "/laserscan", LaserScan, self.scan_callback
         )
-        self.out_msg = PointCloud2()
+
+        self.sub_workspace = rospy.Subscriber(
+            "/workspace", PolygonStamped, self.workspace_callback
+        )
+        self.laserscan = LaserScan()
+
         self.cells_width = 200  # number of cells for width : x?
         self.resolution = 5 / self.cells_width  # m/cell
         self.cells_height = 200  # number of cells for height : y ?
@@ -98,66 +100,39 @@ class Occupancygrid:
         y += dy
         return [int(x), int(y)]
 
-    def cloud_callback(self, pointcloudmsg):
-        # Transform the pointcloudmsg
-        pointcloudmsg = self.buffer.transform(
-            pointcloudmsg, self.target_frame, self.timeout
-        )
-        # Convert ROS -> Open3D
-        cloud = o3drh.rospc_to_o3dpc(pointcloudmsg)
+    def update_map(self):
+        pass
 
-        # Downsample the point cloud to 5 cm
-        ds_cloud = cloud.voxel_down_sample(voxel_size=0.05)
+    def scan_callback(self, msg):
+        self.laserscan = msg
+        self.update_map()
+        # for x, y in zip(*coordinate_list):
+        #     obstacle_pos_dicrete_space = [self.get_i_index(x), self.get_j_index(y)]
+        #     delta_y = obstacle_pos_dicrete_space[1] - robot_pos_disc_space[1]
+        #     delta_x = obstacle_pos_dicrete_space[0] - robot_pos_disc_space[0]
+        #     bounded = True
+        #     while bounded:
+        #         # FREE SPACE
+        #         direction = np.arctan2(delta_y / delta_x)
+        #         robot_explore_pos = self.incrementer(
+        #             robot_pos_disc_space[0], robot_pos_disc_space[1], direction
+        #         )
+        #         self.grid[robot_explore_pos[0], robot_explore_pos[1]] = 0  # free space
 
-        # Convert Open3D -> NumPy
-        points = np.asarray(cloud.points)
-        # print(f"points: {points[0]}\n")
-        # colors = np.asarray(cloud.colors)
-        # print("colors", colors)
+        #         bounded = robot_explore_pos != obstacle_pos_dicrete_space
 
-        # dist_req1 = points[:, 2] <= 0.9 #axis 2 is depth
-        height_req = points[:, 1] < 0.10
-        dist_aboveground = points[height_req]  # these will be occupied spaces
-        # points which are above ground #axis 1 is height
-        # dist_index = np.logical_and(dist_req1, dist_req2)
-
-        # Convert Open3D -> ROS
-        out_msg = o3drh.o3dpc_to_rospc(ds_cloud)
-        out_msg.header = pointcloudmsg.header
-
-        self.pcd.points = o3d.utility.Vector3dVector(dist_aboveground)
-
-        # MISSING:
-        # transform into map frame from camera link frame first
-
-        robot_pos_cont_space = [0, 0]  # placeholder
-        ## Transform robot position
-
-        # robot_pos_disc_space = [self.get_i_index(robot_pos_cont_space[0]), self.get_i_index(robot_pos_cont_space[1])]
-        robot_pos_disc_space = [0, 0]
-
-        coordinate_list = zip(dist_aboveground[:, 0], dist_aboveground[:, 1])
-        # check for every obstacle
-        for x, y in zip(*coordinate_list):
-            obstacle_pos_dicrete_space = [self.get_i_index(x), self.get_j_index(y)]
-            delta_y = obstacle_pos_dicrete_space[1] - robot_pos_disc_space[1]
-            delta_x = obstacle_pos_dicrete_space[0] - robot_pos_disc_space[0]
-            bounded = True
-            while bounded:
-                # FREE SPACE
-                direction = np.arctan2(delta_y / delta_x)
-                robot_explore_pos = self.incrementer(
-                    robot_pos_disc_space[0], robot_pos_disc_space[1], direction
-                )
-                self.grid[robot_explore_pos[0], robot_explore_pos[1]] = 0  # free space
-
-                bounded = robot_explore_pos != obstacle_pos_dicrete_space
-
-            # OCCUPIED SPACE
-            self.grid[self.get_i_index(x), self.get_j_index(y)] = -1  # occupied
-        # Unknown
+        #     # OCCUPIED SPACE
+        #     self.grid[self.get_i_index(x), self.get_j_index(y)] = -1  # occupied
+        # # Unknown
 
         # Free space
+
+    def workspace_callback(self, msg):
+        self.vertices = msg.polygon.points
+        self.x_low = min(self.vertices[:, 0])
+        self.x_high = max(self.vertices[:, 0])
+        self.y_low = min(self.vertices[:, 1])
+        self.y_high = max(self.vertices[:, 1])
 
     def run(self):
         while not rospy.is_shutdown():
@@ -171,10 +146,6 @@ class Occupancygrid:
             occupancygrid_data = OccupancyGrid()
             occupancygrid_data.info = metadata
             # occupancygrid_data.data =
-            pcd_msg = o3drh.o3dpc_to_rospc(self.pcd)
-            pcd_msg.header.stamp = rospy.Time.now()
-            pcd_msg.header.frame_id = "camera_color_optical_frame"
-            self.publisher_pointcloud.publish(pcd_msg)
 
             self.publisher_occupancygrid.publish(occupancygrid_data)
 
