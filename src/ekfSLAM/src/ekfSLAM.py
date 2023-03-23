@@ -21,6 +21,7 @@ from odometry.estStateEncoder import EncoderState
 
 
 
+
 class EkfSLAM:
     def __init__(self,verbose=False) -> None:
         self.sub_aruco = rospy.Subscriber(
