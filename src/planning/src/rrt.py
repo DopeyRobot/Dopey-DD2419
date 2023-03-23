@@ -28,7 +28,6 @@ class RRTNode:
     def get_start(self):                
         
         robot_pose = PoseStamped()
-
         robot_pose.pose.position.x = 0
         robot_pose.pose.position.y = 0
         robot_pose.pose.position.z = 0
@@ -42,7 +41,6 @@ class RRTNode:
         except:
             start_pose = [0, 0]
         
-        print('HELLO1', start_pose)
         return start_pose
 
 
@@ -57,9 +55,6 @@ class RRTPlanner:
         except:
             self.start.x = self.start.get_start()[0]
             self.start.y = self.start.get_start()[1]
-
-        print('HELLO2',self.start.x)
-
 
         self.goal = goal
         self.num_iterations = num_iterations
@@ -165,7 +160,6 @@ class RRTPlanner:
         self.path_msg.poses = self.path_msg.poses[::-1]
 
         
-
         for i, pose in enumerate(self.path_msg.poses):
             next_pose = None
             try:
@@ -184,16 +178,11 @@ class RRTPlanner:
                 pose.pose.orientation.x = quaternian[0]
                 pose.pose.orientation.y = quaternian[1]
                 pose.pose.orientation.z = quaternian[2]
-        print('done genereting')
-        
+
     def publish_path(self):
-        print('publish')
         self.pub_path.publish(self.path_msg)
         
-        # while not rospy.is_shutdown():
-
-        # if self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.x == self.goal[0] and self.path_msg.poses[len(self.path_msg.poses)-1].pose.position.y == self.goal[1]:
-
+    
     def plot_RRT_tree(self):
         self.fig, self.ax = plt.subplots()
         self.ax.scatter(self.goal[0], self.goal[1], color="red", s=10)
