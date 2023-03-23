@@ -52,7 +52,6 @@ class EkfSLAM:
 
         #publish stuf
         self.old_stamp = TwistStamped().header.stamp #Init empty stamp
-        self.old_stamps4landmarks = []
         self.currHeaderStamp = None
         self.startOK = False
 
@@ -70,74 +69,66 @@ class EkfSLAM:
         self.R = np.eye(3) #process noise matrix
         self.Q = np.eye(3) #measurement noise matrix
         
-        self.seenLandmarks = []#np.empty((1,0), int)#np.array([]) #List that tracks seen landmarks, keeps track of arucoID
+        self.seenLandmarks = np.array([]) #List that tracks seen landmarks, keeps track of arucoID
 
         self.run()
 
-    def anchor_callback(self, msg):
-        #rospy.logdebug("anchor callback")
-        for marker in msg.markers:
-            poseWithCov = PoseWithCovarianceStamped()
-            poseWithCov.pose.pose = marker.pose.pose 
-            poseWithCov.pose.covariance = marker.pose.covariance
-            poseWithCov.header.frame_id = self.aruco_frame
-            poseWithCov.header.stamp = msg.header.stamp
-            if marker.id == self.anchorID:
-                #add marker.id to seen landmarks only if it's not already there
-                if marker.id not in self.seenLandmarks:
-                    self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
-                else:
-                    self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="base_link"))
-                
-    
-    def aruco_callback(self,msg):
-        for marker in msg.markers:
-            poseWithCov = PoseWithCovarianceStamped()
-            poseWithCov.pose.pose = marker.pose.pose 
-            poseWithCov.pose.covariance = marker.pose.covariance
-            poseWithCov.header.frame_id = self.aruco_frame
-            poseWithCov.header.stamp = msg.header.stamp
-            if marker.id != self.anchorID:
-                if marker.id not in self.seenLandmarks:
-                    self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
-                else:
-                    self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
-
     # def anchor_callback(self, msg):
-    #     rospy.logdebug("anchor callback")
+    #     #rospy.logdebug("anchor callback")
     #     for marker in msg.markers:
+    #         poseWithCov = PoseWithCovarianceStamped()
+    #         poseWithCov.pose.pose = marker.pose.pose 
+    #         poseWithCov.pose.covariance = marker.pose.covariance
+    #         poseWithCov.header.frame_id = self.aruco_frame
+    #         poseWithCov.header.stamp = msg.header.stamp
     #         if marker.id == self.anchorID:
     #             #add marker.id to seen landmarks only if it's not already there
-    #             #if msg.header.stamp == self.currHeaderStamp:
-    #             rospy.logdebug("adding anchor landmark")
-    #             self.anchor_landmarks = np.array([])
-    #             # self.anchor_landmarks.append(marker)
-    #             np.append(self.anchor_landmarks,marker)
-    #             self.anchor_stamp = msg.header.stamp
+    #             if marker.id not in self.seenLandmarks:
+    #                 self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+    #             else:
+    #                 self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="base_link"))
                 
     
     # def aruco_callback(self,msg):
-    #     rospy.logdebug("aruco callback")
     #     for marker in msg.markers:
+    #         poseWithCov = PoseWithCovarianceStamped()
+    #         poseWithCov.pose.pose = marker.pose.pose 
+    #         poseWithCov.pose.covariance = marker.pose.covariance
+    #         poseWithCov.header.frame_id = self.aruco_frame
+    #         poseWithCov.header.stamp = msg.header.stamp
     #         if marker.id != self.anchorID:
-    #             #if msg.header.stamp == self.currHeaderStamp:
-    #             rospy.logdebug("adding landmark")
-    #             self.landmarks = np.array([])
-    #             # self.landmarks.append(marker)
-    #             np.append(self.anchor_landmarks,marker)
-    #             self.landmarks_stamp = msg.header.stamp
+    #             if marker.id not in self.seenLandmarks:
+    #                 self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+    #             else:
+    #                 self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+
+    def anchor_callback(self, msg):
+        rospy.logdebug("anchor callback")
+        for marker in msg.markers:
+            if marker.id == self.anchorID:
+                #add marker.id to seen landmarks only if it's not already there
+                #if msg.header.stamp == self.currHeaderStamp:
+                rospy.logdebug("adding anchor landmark")
+                self.anchor_landmarks = np.array([])
+                # self.anchor_landmarks.append(marker)
+                np.append(self.anchor_landmarks,marker)
+                self.anchor_stamp = msg.header.stamp
+                
+    
+    def aruco_callback(self,msg):
+        rospy.logdebug("aruco callback")
+        for marker in msg.markers:
+            if marker.id != self.anchorID:
+                #if msg.header.stamp == self.currHeaderStamp:
+                rospy.logdebug("adding landmark")
+                self.landmarks = np.array([])
+                # self.landmarks.append(marker)
+                np.append(self.anchor_landmarks,marker)
+                self.landmarks_stamp = msg.header.stamp
 
     
     def add_landmark(self,arucoID,pose):
         self.seenLandmarks.append(arucoID)
-        # np.append(self.seenLandmarks,arucoID)
-        # self.seenLandmarks += np.array([arucoID])
-        # a = np.empty((1,0), int)
-        # np.append(a,np.array([arucoID]),axis=1)
-        # rospy.logdebug(a)
-        rospy.logdebug(arucoID)
-        rospy.logdebug(self.seenLandmarks)
-
         self._inflate_matrices()
         # q = pose.pose.orientation
         # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
@@ -149,7 +140,7 @@ class EkfSLAM:
         # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
         z = np.array([[pose.pose.position.x-self.mu_bar_t[0,0]],[pose.pose.position.y-self.mu_bar_t[1,0]],[0]])
         j = self.seenLandmarks.index(arucoID)
-        N = len(self.seenLandmarks)#.shape[0]
+        N = self.seenLandmarks.shape[0]
         # z_hat = np.array([[self.mu_bar_t[0,j]-self.mu_bar_t[0,0]],[self.mu_bar_t[1,j]-self.mu_bar_t[1,0]],[0]])
         z_hat = np.array([[self.mu_bar_t[3+3*j,0]-self.mu_bar_t[0,0]],[self.mu_bar_t[4+3*j,0]-self.mu_bar_t[1,0]],[0]])
         H_prime = np.zeros((3,6))
@@ -170,7 +161,6 @@ class EkfSLAM:
 
     def _inflate_matrices(self):
             inf=1e9
-            self.old_stamps4landmarks.append(None)
             #add 3 columns to F
             self.Fx = np.hstack((self.Fx,np.zeros((3,3))))
             #add 3 rows to F
@@ -246,8 +236,8 @@ class EkfSLAM:
             t = TransformStamped()
             t.header.frame_id = "odom"
             t.header.stamp = self.currHeaderStamp
-            t.child_frame_id = "landmark"+str(i+1)
-            
+            t.child_frame_id = "landmark"+str(i)
+            rospy.logdebug("Sending transform of landmark"+str(i))
 
             t.transform.translation.x = self.mu_t[3+3*i,0]
             t.transform.translation.y = self.mu_t[4+3*i,0]
@@ -258,12 +248,9 @@ class EkfSLAM:
             t.transform.rotation.w = q[3]
 
             #to avoid redundat tf warnings
-            # rospy.logdebug(self.old_stamps4landmarks)
-            # rospy.loginfo(self.old_stamps4landmarks[i] == t.header.stamp)
-            if self.old_stamps4landmarks[i] != t.header.stamp:
+            if self.old_stamp != t.header.stamp:
                 br.sendTransform(t)
-                rospy.logdebug("Sending transform of landmark"+str(i+1))
-                self.old_stamps4landmarks[i] = t.header.stamp
+                self.old_stamp = t.header.stamp
     
     def odometry_prediction(self):
         vOw = self.v/self.w
@@ -272,21 +259,21 @@ class EkfSLAM:
         self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
 
 
-    # def measurement_update(self):
-    #     for marker in self.landmarks+self.anchor_landmarks:
-    #         poseWithCov = PoseWithCovarianceStamped()
-    #         poseWithCov.pose.pose = marker.pose.pose 
-    #         poseWithCov.pose.covariance = marker.pose.covariance
-    #         poseWithCov.header.frame_id = self.aruco_frame
-    #         if marker.id == self.anchorID:
-    #             poseWithCov.header.stamp = self.anchor_stamp
-    #         else:
-    #             poseWithCov.header.stamp = self.landmarks_stamp
+    def measurement_update(self):
+        for marker in self.landmarks+self.anchor_landmarks:
+            poseWithCov = PoseWithCovarianceStamped()
+            poseWithCov.pose.pose = marker.pose.pose 
+            poseWithCov.pose.covariance = marker.pose.covariance
+            poseWithCov.header.frame_id = self.aruco_frame
+            if marker.id == self.anchorID:
+                poseWithCov.header.stamp = self.anchor_stamp
+            else:
+                poseWithCov.header.stamp = self.landmarks_stamp
 
-    #         if marker.id not in self.seenLandmarks:
-    #             self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
-    #         else:
-    #             self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+            if marker.id not in self.seenLandmarks:
+                self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+            else:
+                self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
 
     def run(self):
         while not rospy.is_shutdown():
@@ -298,7 +285,7 @@ class EkfSLAM:
                 # G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
                 # self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
                 self.odometry_prediction()
-                # self.measurement_update()
+                self.measurement_update()
                 self.mu_t = self.mu_bar_t
                 self.sigma_t = self.sigma_bar_t
                 rospy.logdebug(self.mu_t.shape)
