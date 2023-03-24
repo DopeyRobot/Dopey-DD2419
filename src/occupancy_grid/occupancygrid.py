@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
-from geometry_msgs.msg import PoseStamped, PolygonStamped, TransformStamped
+from std_msgs.msg import Header
+from geometry_msgs.msg import PoseStamped, PolygonStamped, TransformStamped, Point32
 import math
 import pandas as pd
 import numpy as np
@@ -34,7 +35,7 @@ class Occupancygrid:
         self.resolution = 5 / self.cells_width  # m/cell
         self.cells_height = 200  # number of cells for height : y ?
 
-        self.vertices = 0
+        self.vertices = []
         # print(
         #     f"vertices: {self.vertices}, x min:{min(self.vertices[:,0])}, xmax: {max(self.vertices[:,0])}, y min: {min(self.vertices[:, 1])}, y max : {max(self.vertices[:,1])}"
         # )
@@ -52,14 +53,17 @@ class Occupancygrid:
         self.grid = np.ones((self.x_n, self.y_n)) *self.uknownspace_value 
         # self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
 
-        self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
+        self.buffer = tf2_ros.Buffer(rospy.Duration(1200.0))
+        self.listener = tf2_ros.TransformListener(self.buffer)
         self.source_frame = "camera_color_optical_frame"
         self.target_frame = "map"
-        self.timeout = rospy.Duration(5)
+        self.timeout = rospy.Duration(1)
 
         self.pcd = o3d.geometry.PointCloud()
 
         self.robot_transform = TransformStamped()
+
+        rospy.wait_for_message("/workspace", PolygonStamped)
 
 
 
@@ -112,7 +116,7 @@ class Occupancygrid:
         dy = np.sin(direction)
 
         x_mid = x_start
-        y_mid = y_mid
+        y_mid = y_start
 
         traversed = []
         while (x_start, y_start) != indices_obstacles:
@@ -124,20 +128,18 @@ class Occupancygrid:
 
         return traversed
     
-    def get_robotPose(self):
-        self.robot_transform = self.buffer.lookup_transform("camera_color_optical_frame", "map", rospy.Time.now()) 
 
     def update_map(self):
-        transform_camera2map = self.buffer.lookup_transform(self.target_frame, self.source_frame, rospy.Time.now(), self.timeout)
+        transform_camera2map = self.buffer.lookup_transform(self.source_frame, self.target_frame, rospy.Time(0), self.timeout)
         #robot_pose## get ROBOT POSITION IN MAP FRAME 
-        x_r = self.get_i_index(self.robot_transform.transform.translation.x)
-        y_r = self.get_j_index(self.robot_transform.transform.translation.y)
+        x_r = self.get_i_index(-transform_camera2map.transform.translation.x)
+        y_r = self.get_j_index(-transform_camera2map.transform.translation.y)
 
         angle = self.laserscan.angle_min
         for dist in self.laserscan.ranges:
             distancePoseStamped = PoseStamped()
-            distancePoseStamped.pose.position.x = dist *np.cos(angle) #these need to be rotated into the map frame 
-            distancePoseStamped.pose.position.y = dist* np.sin(angle)
+            distancePoseStamped.pose.position.x = dist * np.cos(angle) #these need to be rotated into the map frame 
+            distancePoseStamped.pose.position.y = dist * np.sin(angle)
             obstacle_map_pose = tf2_geometry_msgs.do_transform_pose(distancePoseStamped, transform_camera2map) #continuous coordinates
             x_o = self.get_i_index(obstacle_map_pose.pose.position.x) #continuous 2 discrete
             y_o = self.get_j_index(obstacle_map_pose.pose.position.y)
@@ -184,17 +186,20 @@ class Occupancygrid:
 
     def workspace_callback(self, msg):
         self.vertices = msg.polygon.points
-        self.x_low = min(self.vertices[:, 0])
-        self.x_high = max(self.vertices[:, 0])
-        self.y_low = min(self.vertices[:, 1])
-        self.y_high = max(self.vertices[:, 1])
-
+        self.x_low = min(self.vertices, key=lambda point: point.x).x
+        self.x_high = max(self.vertices, key=lambda point: point.x).x
+        self.y_low = min(self.vertices, key=lambda point: point.y).y
+        self.y_high = max(self.vertices, key=lambda point: point.y).y
+        print(self.x_low)
+        print(self.x_high)
+        print(self.y_low)
+        print(self.y_high)
+    
     def run(self):
         while not rospy.is_shutdown():
             metadata = MapMetaData()
             # metadata.map_load_time =
             # metadata.origin =
-            self.get_robotPose()
             self.update_map()
             metadata.resolution = self.resolution
             metadata.width = self.cells_width
@@ -202,7 +207,11 @@ class Occupancygrid:
 
             occupancygrid_data = OccupancyGrid()
             occupancygrid_data.info = metadata
-            # occupancygrid_data.data =
+            header =  Header()
+            header.frame_id = "map"
+            header.stamp = rospy.Time.now()
+            occupancygrid_data.header = header
+            occupancygrid_data.data = list(self.grid.reshape(-1).astype(np.uint8))
 
             self.publisher_occupancygrid.publish(occupancygrid_data)
 
