@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
-from geometry_msgs.msg import Pose, PolygonStamped
+from geometry_msgs.msg import PoseStamped, PolygonStamped, TransformStamped
 import math
 import pandas as pd
 import numpy as np
@@ -34,30 +34,35 @@ class Occupancygrid:
         self.resolution = 5 / self.cells_width  # m/cell
         self.cells_height = 200  # number of cells for height : y ?
 
-        self.vertices_df = pd.read_csv(
-            "/home/robot/dd2419_ws/src/occupancy_grid/example_workspace.tsv", sep="\t"
-        )  # subscribe from workspace topic istead so only call on
-        # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
-        self.vertices = self.vertices_df.values
-        print(
-            f"vertices: {self.vertices}, x min:{min(self.vertices[:,0])}, xmax: {max(self.vertices[:,0])}, y min: {min(self.vertices[:, 1])}, y max : {max(self.vertices[:,1])}"
-        )
-        # self.xx_yy = [min(self.vertices[:,0]), max(self.vertices[:,0]), min(self.vertices[:,1]), max(self.vertices[:,1])]
-        self.x_low = min(self.vertices[:, 0])
-        self.x_high = max(self.vertices[:, 0])
-        self.y_low = min(self.vertices[:, 1])
-        self.y_high = max(self.vertices[:, 1])
+        self.vertices = 0
+        # print(
+        #     f"vertices: {self.vertices}, x min:{min(self.vertices[:,0])}, xmax: {max(self.vertices[:,0])}, y min: {min(self.vertices[:, 1])}, y max : {max(self.vertices[:,1])}"
+        # )
+        self.x_low = 0
+        self.x_high = 0
+        self.y_low = 0
+        self.y_high = 0
+
         self.x_n = 200  # number of cells in the x-direction for width
         self.y_n = 200  # number of cells in the y-direction for height
-        self.grid = np.zeros((self.x_n, self.y_n))
+        self.occupied_value = -1
+        self.freespace_value = 0
+        self.uknownspace_value = 1
+
+        self.grid = np.ones((self.x_n, self.y_n)) *self.uknownspace_value 
         # self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
-        self.source_frame = "camera"
+        self.source_frame = "camera_color_optical_frame"
         self.target_frame = "map"
         self.timeout = rospy.Duration(5)
 
         self.pcd = o3d.geometry.PointCloud()
+
+        self.robot_transform = TransformStamped()
+
+
+
 
         self.run()
 
@@ -100,12 +105,62 @@ class Occupancygrid:
         y += dy
         return [int(x), int(y)]
 
+    def raytrace(self, indices_robot, indices_obstacles, direction):
+        (x_start, y_start) = indices_robot
+        (x_end, y_end) = indices_obstacles
+        dx = np.cos(direction)
+        dy = np.sin(direction)
+
+        x_mid = x_start
+        y_mid = y_mid
+
+        traversed = []
+        while (x_start, y_start) != indices_obstacles:
+            x_mid = x_start + dx  
+            y_mid = y_start + dy
+
+            traversed.append((int(x_mid), int(y_mid)))
+
+
+        return traversed
+    
+    def get_robotPose(self):
+        self.robot_transform = self.buffer.lookup_transform("camera_color_optical_frame", "map", rospy.Time.now()) 
+
     def update_map(self):
+        transform_camera2map = self.buffer.lookup_transform(self.target_frame, self.source_frame, rospy.Time.now(), self.timeout)
+        #robot_pose## get ROBOT POSITION IN MAP FRAME 
+        x_r = self.get_i_index(self.robot_transform.transform.translation.x)
+        y_r = self.get_j_index(self.robot_transform.transform.translation.y)
+
+        angle = self.laserscan.angle_min
+        for dist in self.laserscan.ranges:
+            distancePoseStamped = PoseStamped()
+            distancePoseStamped.pose.position.x = dist *np.cos(angle) #these need to be rotated into the map frame 
+            distancePoseStamped.pose.position.y = dist* np.sin(angle)
+            obstacle_map_pose = tf2_geometry_msgs.do_transform_pose(distancePoseStamped, transform_camera2map) #continuous coordinates
+            x_o = self.get_i_index(obstacle_map_pose.pose.position.x) #continuous 2 discrete
+            y_o = self.get_j_index(obstacle_map_pose.pose.position.y)
+            self.grid[x_o, y_o] = self.occupied_value  # mark occupied space
+
+            traversed = self.raytrace((x_r, y_r), (x_o, y_o), angle)
+            for xt, yt, in zip(*traversed):
+                self.grid[xt, yt] = self.freespace_value # FREE SPACE
+            
+            angle += self.laserscan.angle_increment
+            #check if traversed
+
+        #for every distance in the range list coming from the msg
+        #find the transformation from camera optical color to map 
+        #robot coordinates [0,0]
+        #obstacle coordinates robot_coord[0] + dist*np.cos(angle)
+
         pass
+
 
     def scan_callback(self, msg):
         self.laserscan = msg
-        self.update_map()
+        # self.update_map()
         # for x, y in zip(*coordinate_list):
         #     obstacle_pos_dicrete_space = [self.get_i_index(x), self.get_j_index(y)]
         #     delta_y = obstacle_pos_dicrete_space[1] - robot_pos_disc_space[1]
@@ -139,6 +194,8 @@ class Occupancygrid:
             metadata = MapMetaData()
             # metadata.map_load_time =
             # metadata.origin =
+            self.get_robotPose()
+            self.update_map()
             metadata.resolution = self.resolution
             metadata.width = self.cells_width
             metadata.height = self.cells_height
