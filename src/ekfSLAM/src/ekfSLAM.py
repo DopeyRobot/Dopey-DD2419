@@ -298,6 +298,14 @@ class EkfSLAM:
     
     def _sendUpdateJumps(self):
         br = tf2_ros.StaticTransformBroadcaster()
+        #Get current pose of odom in map frame
+        transform2map = self.buffer.lookup_transform('map', 'odom', self.currHeaderStamp, rospy.Duration(20))
+        originPose = PoseStamped() #oigin in odom frame
+        originPose.header = self.currHeaderStamp
+        odomInMapPose = tf2_geometry_msgs.do_transform_pose(originPose, transform2map)
+        #yaw of odom in map frame
+        odomInMapYaw = tf_conversions.transformations.euler_from_quaternion([odomInMapPose.pose.orientation.x, odomInMapPose.pose.orientation.y, odomInMapPose.pose.orientation.z, odomInMapPose.pose.orientation.w])[2]
+        #----
         x_jump = self.mu_t[0,0]-self.mu_bar_odom_t[0,0]
         # print(x_jump)
         y_jump = self.mu_t[1,0]-self.mu_bar_odom_t[1,0]
@@ -306,9 +314,9 @@ class EkfSLAM:
         jump_t.header.frame_id = "map"
         jump_t.header.stamp = self.currHeaderStamp
         jump_t.child_frame_id = "odom"
-        jump_t.transform.translation.x = x_jump
-        jump_t.transform.translation.y = y_jump
-        q = tf_conversions.transformations.quaternion_from_euler(0, 0, yaw_jump)
+        jump_t.transform.translation.x = odomInMapPose.pose.position.x + x_jump
+        jump_t.transform.translation.y = odomInMapPose.pose.position.y + y_jump
+        q = tf_conversions.transformations.quaternion_from_euler(0, 0, odomInMapYaw+yaw_jump)
         jump_t.transform.rotation.x = q[0]
         jump_t.transform.rotation.y = q[1]
         jump_t.transform.rotation.z = q[2]
