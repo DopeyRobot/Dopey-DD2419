@@ -112,21 +112,27 @@ class EkfSLAM:
     def anchor_callback(self, msg):
         # rospy.logdebug("anchor callback")
         marker_dict = {"markers":[],"stamp":msg.header.stamp}
+        sawAnchor = False
         for marker in msg.markers:
             if marker.id == self.anchorID:
                 marker_dict["markers"].append(marker)
-        rospy.logdebug("adding anchor landmarks")
-        self.anchor_buffer.append(marker_dict)
+                sawAnchor = True
+        # rospy.logdebug("adding anchor landmarks")
+        if sawAnchor:
+            self.anchor_buffer.append(marker_dict)
                 
     
     def aruco_callback(self,msg):
         # rospy.logdebug("aruco callback")
         marker_dict = {"markers":[],"stamp":msg.header.stamp}
+        sawNonAnchor = False
         for marker in msg.markers:
             if marker.id != self.anchorID:
                 marker_dict["markers"].append(marker)
-        rospy.logdebug("adding regular landmarks")
-        self.landmarks_buffer.append(marker_dict)
+                sawNonAnchor = True
+        # rospy.logdebug("adding regular landmarks")
+        if sawNonAnchor:
+            self.landmarks_buffer.append(marker_dict)
 
     
     def add_landmark(self,arucoID,pose):
@@ -197,11 +203,11 @@ class EkfSLAM:
     
     def _aruco_in_frame(self,pose,parent_frame):
         #if self.buffer.can_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(2)):
-        pdb.set_trace()
+        #pdb.set_trace()
         poseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(pose)
         transform2odom = self.buffer.lookup_transform(parent_frame, self.aruco_frame, self.currHeaderStamp, rospy.Duration(20))
         odom_pose = tf2_geometry_msgs.do_transform_pose(poseStamped, transform2odom) #where the marker is in odom frame
-        pdb.set_trace()
+        #pdb.set_trace()
         
         return odom_pose
         # else:
@@ -286,7 +292,7 @@ class EkfSLAM:
 
         #collect the markers from self.anhcor_buffer and self.landmarks_buffer that have a timestamp within 0.1 seconds of self.currHeaderStamp
         landmarks = []
-        anchor_landmarks = []
+        anchor_landmark = []
         landmarks_stamp = None
         anchor_stamp = None
         for markers_dict in self.landmarks_buffer:
@@ -294,23 +300,32 @@ class EkfSLAM:
                 landmarks.append(markers_dict["markers"])
                 landmarks_stamp = markers_dict['stamp']
                 #remove markers_dict and all markers_dict before it from the buffer
+                # print(landmarks)#+anchor_landmark)
+
                 self.landmarks_buffer = self.landmarks_buffer[self.landmarks_buffer.index(markers_dict)+1:]
+        # print(self.anchor_buffer)
         for markers_dict in self.anchor_buffer:
             if abs((markers_dict['stamp'] - self.currHeaderStamp).to_sec()) < 0.1:
-                anchor_landmarks.append(markers_dict["markers"])
-                anchor_stamp = marker['stamp']
+                landmarks.append(markers_dict["markers"])
+                anchor_stamp = markers_dict['stamp']
                 #remove markers_dict and all markers_dict before it from the buffer
                 self.anchor_buffer = self.anchor_buffer[self.anchor_buffer.index(markers_dict)+1:]
+                # print(landmarks)#+anchor_landmark)
 
-        for marker in landmarks+anchor_landmarks:
+
+        for marker in landmarks:#+anchor_landmark:
+            # print(landmarks)#+anchor_landmark)
+            marker = marker[0]
             poseWithCov = PoseWithCovarianceStamped()
             poseWithCov.pose.pose = marker.pose.pose 
             poseWithCov.pose.covariance = marker.pose.covariance
             poseWithCov.header.frame_id = self.aruco_frame
-            if marker.id == self.anchorID:
-                poseWithCov.header.stamp = self.anchor_stamp
-            else:
-                poseWithCov.header.stamp = self.landmarks_stamp
+            # if marker.id == self.anchorID:
+            #     poseWithCov.header.stamp = self.anchor_stamp
+            # else:
+            #     poseWithCov.header.stamp = self.landmarks_stamp
+            poseWithCov.header.stamp = self.currHeaderStamp
+
 
             if marker.id not in self.seenLandmarks:
                 self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
