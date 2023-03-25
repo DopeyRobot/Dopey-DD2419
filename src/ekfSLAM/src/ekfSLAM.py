@@ -20,9 +20,9 @@ from geometry_msgs.msg import TwistStamped
 from odometry.estStateEncoder import EncoderState
 
 #TODO: find reason why landmarks are published to middle of base_link
-#1. Keep odometry separate from the update step
-#2. Do all odometry stuff on baselink in odom frame as it is now
-#3. All updates on mu_bar[0:3] should be implemented on the trasnform from odom to map and keep the base_link untouched
+#1. Check odometry and see if it's as good as odometryFUsion test of before (Heading 0 error and translation 1.6 m error) after driving like a maniac
+#2. Probably put R[2,2] < Q[2,2] (we trust the IMU more than the update from the aruco marker)
+#3. Fix the jumps between odom and map. IT's  drifting for now. 
 
 class EkfSLAM:
     def __init__(self,verbose=False) -> None:
