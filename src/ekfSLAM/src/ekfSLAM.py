@@ -71,7 +71,7 @@ class EkfSLAM:
 
         self.Fx = np.eye(3) #state transition matrix, will grow with 3*#landmarks column wise
         self.R = np.eye(3) #process noise matrix
-        self.Q = np.eye(3)*1e-2 #measurement noise matrix
+        self.Q = np.eye(3)*1e-5 #measurement noise matrix
         
         self.seenLandmarks = []#np.empty((1,0), int)#np.array([]) #List that tracks seen landmarks, keeps track of arucoID
 
@@ -189,7 +189,7 @@ class EkfSLAM:
             #add 3 rows to F
             #self.Fx = np.vstack((self.Fx,np.zeros((3,self.Fx.shape[1]))))
             #set bottom right 3x3 to identity
-            self.Fx[-3:,-3:] = np.eye(3)
+            # self.Fx[-3:,-3:] = np.eye(3)
             #add 3 rows to mu and mu_bar
             self.mu_t = np.vstack((self.mu_t,np.zeros((3,1))))
             self.mu_bar_t = np.vstack((self.mu_bar_t,np.zeros((3,1))))
@@ -282,6 +282,7 @@ class EkfSLAM:
                 self.old_stamps4landmarks[i] = t.header.stamp
     
     def odometry_prediction(self):
+        print(self.Fx)
         vOw = self.v/self.w
         self.mu_bar_t = self.mu_t + self.Fx.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
         G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
@@ -329,8 +330,8 @@ class EkfSLAM:
 
             if marker.id not in self.seenLandmarks:
                 self.add_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
-            else:
-                self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
+            #else:
+            self.update_landmark(marker.id,self._aruco_in_frame(poseWithCov,parent_frame="odom"))
 
     def run(self):
         while not rospy.is_shutdown():
