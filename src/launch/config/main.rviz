@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.7439024448394775
     Tree Height: 289
@@ -86,6 +87,8 @@ Visualization Manager:
         All Enabled: false
         arm_base_link:
           Value: false
+        aruco/detected 3:
+          Value: true
         base_link:
           Value: true
         camera_aligned_depth_to_color_frame:
@@ -106,6 +109,8 @@ Visualization Manager:
           Value: false
         imu_link:
           Value: false
+        landmark1:
+          Value: true
         map:
           Value: true
         odom:
@@ -118,6 +123,10 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
+          aruco/detected 3:
+            {}
+          landmark1:
+            {}
           odom:
             base_link:
               arm_base_link:
@@ -231,7 +240,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: odom
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
@@ -255,7 +264,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 5.114749431610107
+      Distance: 4.688441276550293
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -263,8 +272,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.41435715556144714
-        Y: 0.4880226254463196
+        X: 0.1259034276008606
+        Y: -0.0954849123954773
         Z: 3.4570693969726562e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
