@@ -72,8 +72,9 @@ class EkfSLAM:
         self.mu_bar_odom_t = None
 
         self.Fx = np.eye(3) #state transition matrix, will grow with 3*#landmarks column wise
-        self.R = np.eye(3) #process noise matrix
-        self.Q = np.eye(3)*1e-2 #measurement noise matrix
+        self.R = np.eye(3)*1e-10 #process noise matrix
+        self.R[2,2] = self.R[0,0]*1e-3 #Lower process noise for the heading since we trust the IMU
+        self.Q = self.R*1e-3#np.eye(3)*1e-2 #measurement noise matrix
         
         self.seenLandmarks = []#np.empty((1,0), int)#np.array([]) #List that tracks seen landmarks, keeps track of arucoID
 
@@ -117,8 +118,9 @@ class EkfSLAM:
         sawAnchor = False
         for marker in msg.markers:
             if marker.id == self.anchorID:
-                marker_dict["markers"].append(marker)
-                sawAnchor = True
+                if marker.pose.pose.position.z < 1:
+                    marker_dict["markers"].append(marker)
+                    sawAnchor = True
         # rospy.logdebug("adding anchor landmarks")
         if sawAnchor:
             self.anchor_buffer.append(marker_dict)
@@ -130,8 +132,10 @@ class EkfSLAM:
         sawNonAnchor = False
         for marker in msg.markers:
             if marker.id != self.anchorID:
-                marker_dict["markers"].append(marker)
-                sawNonAnchor = True
+                #print(marker.pose.pose.position.x,marker.pose.pose.position.y,marker.pose.pose.position.z)
+                if marker.pose.pose.position.z < 1:
+                    marker_dict["markers"].append(marker)
+                    sawNonAnchor = True
         # rospy.logdebug("adding regular landmarks")
         if sawNonAnchor:
             self.landmarks_buffer.append(marker_dict)
@@ -233,7 +237,7 @@ class EkfSLAM:
         self.startOK = True
 
     def sendCurrentRobotPose(self):
-        self._sendUpdateJumps()
+        # self._sendUpdateJumps()
         x = self.mu_t[0,0]
         y = self.mu_t[1,0]
         yaw = self.mu_t[2,0]
