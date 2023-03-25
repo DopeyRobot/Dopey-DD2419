@@ -259,15 +259,27 @@ class EkfSLAM:
         br = tf2_ros.TransformBroadcaster()
         N = int((self.mu_t.shape[0]-3)/3)
         for i in range(N):
+            #transform landmark pose to map from odom
+            transform2map = self.buffer.lookup_transform('map', 'odom', self.currHeaderStamp, rospy.Duration(20))
+            odom_pose = PoseStamped()
+            odom_pose.pose.position.x = self.mu_t[3+3*i,0]
+            odom_pose.pose.position.y = self.mu_t[4+3*i,0]
+            odom_pose.header = self.currHeaderStamp
+            map_pose = tf2_geometry_msgs.do_transform_pose(odom_pose, transform2map)
+            #----
             t = TransformStamped()
-            t.header.frame_id = "odom"
+            # t.header.frame_id = "odom"
+            t.header.frame_id = "map"
             t.header.stamp = self.currHeaderStamp
             t.child_frame_id = "landmark"+str(i+1)
             
 
-            t.transform.translation.x = self.mu_t[3+3*i,0]
-            t.transform.translation.y = self.mu_t[4+3*i,0]
-            q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.mu_t[5+3*i,0])
+            # t.transform.translation.x = self.mu_t[3+3*i,0]
+            # t.transform.translation.y = self.mu_t[4+3*i,0]
+            t.transform.translation.x = map_pose.pose.position.x
+            t.transform.translation.y = map_pose.pose.position.y
+            # q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.mu_t[5+3*i,0])
+            q = tf_conversions.transformations.quaternion_from_euler(0, 0, 0)
             t.transform.rotation.x = q[0]
             t.transform.rotation.y = q[1]
             t.transform.rotation.z = q[2]
@@ -282,7 +294,6 @@ class EkfSLAM:
                 self.old_stamps4landmarks[i] = t.header.stamp
     
     def odometry_prediction(self):
-        print(self.Fx)
         vOw = self.v/self.w
         self.mu_bar_t = self.mu_t + self.Fx.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
         G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
