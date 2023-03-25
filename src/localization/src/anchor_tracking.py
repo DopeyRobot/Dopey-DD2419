@@ -47,7 +47,7 @@ class AnchorTracking:
         self.latest_stamp2 = PoseStamped().header.stamp #Init empty stamp
         self.sendOld = False
         self.latest_t = None
-
+        self.Anchor_placed = False
 
         self.run()
 
@@ -69,41 +69,43 @@ class AnchorTracking:
         self.odom.step()
     
     def place_anchor(self):
-        if self.anchor:
-            transform_is_possible = self.buffer.can_transform("odom", self.aruco_frame, self.anchor.header.stamp, rospy.Duration(2))
-            
-            anchorPoseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(self.anchor)
-            if transform_is_possible:
+        if not self.Anchor_placed:
+            if self.anchor:
+                transform_is_possible = self.buffer.can_transform("odom", self.aruco_frame, self.anchor.header.stamp, rospy.Duration(2))
                 
-                #transform aruco_frame to odom
-                transform2odom = self.buffer.lookup_transform("odom", self.anchor.header.frame_id, self.anchor.header.stamp, rospy.Duration(20))
-                
-                anchor_odom_pose = tf2_geometry_msgs.do_transform_pose(anchorPoseStamped, transform2odom)
-                
-                #transform odom to map
-                t = TransformStamped()
-                t.header.frame_id = "odom"
-                t.child_frame_id = "map"
-                t.header.stamp = self.anchor.header.stamp
+                anchorPoseStamped = self._PoseWithCovarianceStamped_to_PoseStamped(self.anchor)
+                if transform_is_possible:
+                    
+                    #transform aruco_frame to odom
+                    transform2odom = self.buffer.lookup_transform("odom", self.anchor.header.frame_id, self.anchor.header.stamp, rospy.Duration(20))
+                    
+                    anchor_odom_pose = tf2_geometry_msgs.do_transform_pose(anchorPoseStamped, transform2odom)
+                    
+                    #transform odom to map
+                    t = TransformStamped()
+                    t.header.frame_id = "odom"
+                    t.child_frame_id = "map"
+                    t.header.stamp = self.anchor.header.stamp
 
-                t.transform.translation.x = anchor_odom_pose.pose.position.x
-                t.transform.translation.y = anchor_odom_pose.pose.position.y
-                t.transform.translation.z = anchor_odom_pose.pose.position.z
+                    t.transform.translation.x = anchor_odom_pose.pose.position.x
+                    t.transform.translation.y = anchor_odom_pose.pose.position.y
+                    t.transform.translation.z = anchor_odom_pose.pose.position.z
 
-                t.transform.rotation.x = anchor_odom_pose.pose.orientation.x
-                t.transform.rotation.y = anchor_odom_pose.pose.orientation.y
-                t.transform.rotation.z = anchor_odom_pose.pose.orientation.z
-                t.transform.rotation.w = anchor_odom_pose.pose.orientation.w
-                
-                #transform map to odom
-                t = self._inverse_transform(t)
-                #To avoid redudant tf warnings
-                if self.latest_stamp != t.header.stamp:
-                    if self.verbose:
-                        rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
-                    self.brStatic.sendTransform(t)
-                    self.latest_stamp = t.header.stamp
-                    self.latest_t = t
+                    t.transform.rotation.x = anchor_odom_pose.pose.orientation.x
+                    t.transform.rotation.y = anchor_odom_pose.pose.orientation.y
+                    t.transform.rotation.z = anchor_odom_pose.pose.orientation.z
+                    t.transform.rotation.w = anchor_odom_pose.pose.orientation.w
+                    
+                    #transform map to odom
+                    t = self._inverse_transform(t)
+                    #To avoid redudant tf warnings
+                    if self.latest_stamp != t.header.stamp:
+                        if self.verbose:
+                            rospy.logdebug(f"Publishing transform from {t.header.frame_id} to {t.child_frame_id}")
+                        self.brStatic.sendTransform(t)
+                        self.latest_stamp = t.header.stamp
+                        self.latest_t = t
+                        self.Anchor_placed = True
 
 
     def _inverse_transform(self, transform):
