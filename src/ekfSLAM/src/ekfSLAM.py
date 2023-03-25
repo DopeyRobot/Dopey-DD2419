@@ -68,6 +68,7 @@ class EkfSLAM:
         self.sigma_t = np.zeros((3,3)) #covariance matrix
         self.mu_bar_t = None
         self.sigma_bar_t = None
+        self.mu_bar_odom_t = None
 
         self.Fx = np.eye(3) #state transition matrix, will grow with 3*#landmarks column wise
         self.R = np.eye(3) #process noise matrix
@@ -298,6 +299,8 @@ class EkfSLAM:
         self.mu_bar_t = self.mu_t + self.Fx.T @ np.array([[-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[vOw*np.cos(self.mu_t[2,0]) - vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[self.w*self.dt]])
         G = np.eye(self.Fx.shape[1]) + self.Fx.T @ np.array([[0,0,-vOw*np.cos(self.mu_t[2,0]) + vOw*np.cos(self.mu_t[2,0] + self.w*self.dt)],[0,0,-vOw*np.sin(self.mu_t[2,0]) + vOw*np.sin(self.mu_t[2,0] + self.w*self.dt)],[0,0,0]]) @ self.Fx
         self.sigma_bar_t = G @ self.sigma_t @ G.T  + self.Fx.T @ self.R @ self.Fx
+        #save the current mu_bar generated from odometry 
+        self.mu_bar_odom_t = self.mu_bar_t
 
 
     def measurement_update(self):
