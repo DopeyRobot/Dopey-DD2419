@@ -95,7 +95,13 @@ class AnchorTracking:
                     t.transform.rotation.y = anchor_odom_pose.pose.orientation.y
                     t.transform.rotation.z = anchor_odom_pose.pose.orientation.z
                     t.transform.rotation.w = anchor_odom_pose.pose.orientation.w
-                    
+                    #
+                    Yaw = tf_conversions.transformations.euler_from_quaternion([t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w])[2]
+                    q = tf_conversions.transformations.quaternion_from_euler(0, 0, -Yaw+np.pi/2)
+                    t.transform.rotation.x = q[0]
+                    t.transform.rotation.y = q[1]
+                    t.transform.rotation.z = q[2]
+                    t.transform.rotation.w = q[3]
                     #transform map to odom
                     t = self._inverse_transform(t)
                     #To avoid redudant tf warnings
@@ -105,7 +111,7 @@ class AnchorTracking:
                         self.brStatic.sendTransform(t)
                         self.latest_stamp = t.header.stamp
                         self.latest_t = t
-                        self.Anchor_placed = True
+                        self.Anchor_placed = False
 
 
     def _inverse_transform(self, transform):
