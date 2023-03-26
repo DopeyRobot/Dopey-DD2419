@@ -26,7 +26,7 @@ import pdb
 class AnchorTracking:
     def __init__(self,verbose=False) -> None:
         self.sub_anchor = rospy.Subscriber(
-            "/aruco/markers", MarkerArray, self.anchor_callback
+            "/aruco500/markers", MarkerArray, self.anchor_callback
         )
         self.verbose = verbose
         # self.odom = OdometryCustom()
