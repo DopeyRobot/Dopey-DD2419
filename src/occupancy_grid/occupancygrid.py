@@ -31,9 +31,6 @@ class Occupancygrid:
         )
         self.laserscan = LaserScan()
 
-        self.cells_width = 200  # number of cells for width : x?
-        self.resolution = 5 / self.cells_width  # m/cell
-        self.cells_height = 200  # number of cells for height : y ?
 
         self.vertices = []
         # print(
@@ -44,18 +41,24 @@ class Occupancygrid:
         self.y_low = 0
         self.y_high = 0
 
-        self.x_n = 200  # number of cells in the x-direction for width
-        self.y_n = 200  # number of cells in the y-direction for height
-        self.occupied_value = -1
-        self.freespace_value = 0
-        self.uknownspace_value = 1
+        self.x_cells = 0
+        self.y_cells = 0
+        self.resolution = 0.025 # m per cell 
 
-        self.grid = np.ones((self.x_n, self.y_n)) *self.uknownspace_value 
+        self.y_n = int(1 / self.resolution)
+        self.x_n = int(1 / self.resolution)
+
+        self.occupied_value = 1
+        self.freespace_value = 0
+        self.uknownspace_value = -1
+
+
+        self.grid = np.ones((2, 2)) 
         # self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(1200.0))
         self.listener = tf2_ros.TransformListener(self.buffer)
-        self.source_frame = "camera_color_optical_frame"
+        self.source_frame = "camera_color_frame"
         self.target_frame = "map"
         self.transform_camera2map = TransformStamped()
         self.timeout = rospy.Duration(1)
@@ -66,13 +69,10 @@ class Occupancygrid:
 
         rospy.wait_for_message("/workspace", PolygonStamped)
 
-
-
-
         self.run()
 
     def get_i_index(self, x):
-        index = math.floor((x - self.x_low) * self.x_n / (self.x_high - self.x_low))
+        index = math.floor((x - self.x_low) * self.x_cells) 
         if index < 0:
             index = 0
         elif index > (self.x_n - 1):
@@ -80,11 +80,11 @@ class Occupancygrid:
         return index
 
     def get_j_index(self, y):
-        index = math.floor((y - self.y_low) * self.y_n / (self.y_high - self.y_low))
+        index = math.floor((y - self.y_low) * self.y_cells)
         if index < 0:
             index = 0
         elif index > (self.y_n - 1):
-            index = self.y_n - 1
+            index =  self.y_n - 1
         return index
 
     def get_x_pos(self, i):
@@ -133,13 +133,15 @@ class Occupancygrid:
     def update_map(self):
         # transform_camera2map = self.buffer.lookup_transform(self.source_frame, self.target_frame, rospy.Time(0), self.timeout)
         self.transform_camera2map = self.buffer.lookup_transform(self.target_frame, self.source_frame, rospy.Time(0), self.timeout)
-        print(self.transform_camera2map)
+        # print(self.transform_camera2map)
         #robot_pose## get ROBOT POSITION IN MAP FRAME 
         x_r = self.get_i_index(self.transform_camera2map.transform.translation.x)
         y_r = self.get_j_index(self.transform_camera2map.transform.translation.y)
+        print(f"robot indices:{x_r, y_r}")
 
         angle = self.laserscan.angle_min
-        for dist in self.laserscan.ranges:
+        for count, dist in enumerate(self.laserscan.ranges):
+            print(f"{count} dist:{dist}")
             distancePoseStamped = PoseStamped()
             distancePoseStamped.pose.position.x = dist * np.cos(angle) #these need to be rotated into the map frame 
             distancePoseStamped.pose.position.y = dist * np.sin(angle)
@@ -147,8 +149,11 @@ class Occupancygrid:
             x_o = self.get_i_index(obstacle_map_pose.pose.position.x) #continuous 2 discrete
             y_o = self.get_j_index(obstacle_map_pose.pose.position.y)
             self.grid[x_o, y_o] = self.occupied_value  # mark occupied space
+            print(f"occupied indices:{x_o, y_o}")
+            print(self.grid)
 
             traversed = self.raytrace((x_r, y_r), (x_o, y_o), angle)
+            print("successful raytracing")
             for xt, yt, in zip(*traversed):
                 self.grid[xt, yt] = self.freespace_value # FREE SPACE
             
@@ -193,10 +198,13 @@ class Occupancygrid:
         self.x_high = max(self.vertices, key=lambda point: point.x).x
         self.y_low = min(self.vertices, key=lambda point: point.y).y
         self.y_high = max(self.vertices, key=lambda point: point.y).y
-        print(self.x_low) #corners of the occupancy grid in the map frame
-        print(self.x_high)
-        print(self.y_low)
-        print(self.y_high)
+        # print(self.x_low) #corners of the occupancy grid in the map frame
+        # print(self.x_high)
+        # print(self.y_low)
+        # print(self.y_high)
+        self.x_cells = int((self.x_high - self.x_low) /self.resolution) #cells / m
+        self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
+        self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
     
     def run(self):
         while not rospy.is_shutdown():
@@ -204,14 +212,18 @@ class Occupancygrid:
             # metadata.map_load_time =
             # metadata.origin =
             self.update_map()
-            metadata.resolution = self.resolution
-            metadata.width = self.cells_width
-            metadata.height = self.cells_height
+            metadata.resolution = self.resolution #meters per cell 
+            metadata.width = self.x_cells # how many cells
+            metadata.height = self.y_cells # how many cells 
             originPose = Pose()
-            originPose.position.x = self.transform_camera2map.transform.translation.x - self.x_low
-            originPose.position.y = self.transform_camera2map.transform.translation.y - self.y_low
-            originPose.orientation = self.transform_camera2map.transform.rotation #same orientation as coming from the transformation
+            # originPose.position.x = self.transform_camera2map.transform.translation.x 
+            # originPose.position.y = self.transform_camera2map.transform.translation.y
+            originPose.position.x = self.x_low 
+            originPose.position.y = self.y_low
+            # originPose.orientation = self.transform_camera2map.transform.rotation #same orientation as coming from the transformation
             metadata.origin = originPose
+            # print(f"cameratransform:{self.transform_camera2map}")
+            # print(f"origin:{originPose}")
 
             occupancygrid_data = OccupancyGrid()
             occupancygrid_data.info = metadata
@@ -219,9 +231,10 @@ class Occupancygrid:
             header.frame_id = "map"
             header.stamp = rospy.Time.now()
             occupancygrid_data.header = header
-            print(f"grid:\n{self.grid}")
-            occupancygrid_data.data = list(self.grid.reshape(-1).astype(np.uint8))
-
+            
+            # print(f"Free space {sum(sum(self.grid == self.freespace_value))}\noccupied space: {sum(sum(self.grid == self.occupied_value))}\nunkown space: {sum(sum(self.grid == self.uknownspace_value))}")
+            occupancygrid_data.data = list(self.grid.reshape(-1).astype(np.int8))
+            # print(occupancygrid_data.data)
             self.publisher_occupancygrid.publish(occupancygrid_data)
 
             self.rate.sleep()
