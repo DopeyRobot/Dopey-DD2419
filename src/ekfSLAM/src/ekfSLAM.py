@@ -19,7 +19,7 @@ from geometry_msgs.msg import TwistStamped
 # # How to import modules from another package/directory https://roboticsbackend.com/ros-import-python-module-from-another-package/
 from odometry.estStateEncoder import EncoderState
 
-#TODO: find reason why landmarks are published to middle of base_link
+#TODO: 
 #1. Check odometry and see if it's as good as odometryFUsion test of before (Heading 0 error and translation 1.6 m error) after driving like a maniac
 #2. Probably put R[2,2] < Q[2,2] (we trust the IMU more than the update from the aruco marker)
 #3. Fix the jumps between odom and map. IT's  drifting for now. 
@@ -75,7 +75,9 @@ class EkfSLAM:
         self.R = np.eye(3)*1e-10 #process noise matrix
         self.R[2,2] = self.R[0,0]*1e-3 #Lower process noise for the heading since we trust the IMU
         self.Q = self.R*1e-3#np.eye(3)*1e-2 #measurement noise matrix
-        
+        self.R[2,2] = self.Q[2,2]*1e-3 #Lower process noise for the heading since we trust the IMU
+
+
         self.seenLandmarks = []#np.empty((1,0), int)#np.array([]) #List that tracks seen landmarks, keeps track of arucoID
 
         self.run()
