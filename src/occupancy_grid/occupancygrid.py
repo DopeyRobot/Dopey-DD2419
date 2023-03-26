@@ -2,7 +2,7 @@
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
 from std_msgs.msg import Header
-from geometry_msgs.msg import PoseStamped, PolygonStamped, TransformStamped, Point32
+from geometry_msgs.msg import PoseStamped, PolygonStamped, TransformStamped, Point32, Pose
 import math
 import pandas as pd
 import numpy as np
@@ -57,6 +57,7 @@ class Occupancygrid:
         self.listener = tf2_ros.TransformListener(self.buffer)
         self.source_frame = "camera_color_optical_frame"
         self.target_frame = "map"
+        self.transform_camera2map = TransformStamped()
         self.timeout = rospy.Duration(1)
 
         self.pcd = o3d.geometry.PointCloud()
@@ -130,17 +131,19 @@ class Occupancygrid:
     
 
     def update_map(self):
-        transform_camera2map = self.buffer.lookup_transform(self.source_frame, self.target_frame, rospy.Time(0), self.timeout)
+        # transform_camera2map = self.buffer.lookup_transform(self.source_frame, self.target_frame, rospy.Time(0), self.timeout)
+        self.transform_camera2map = self.buffer.lookup_transform(self.target_frame, self.source_frame, rospy.Time(0), self.timeout)
+        print(self.transform_camera2map)
         #robot_pose## get ROBOT POSITION IN MAP FRAME 
-        x_r = self.get_i_index(-transform_camera2map.transform.translation.x)
-        y_r = self.get_j_index(-transform_camera2map.transform.translation.y)
+        x_r = self.get_i_index(self.transform_camera2map.transform.translation.x)
+        y_r = self.get_j_index(self.transform_camera2map.transform.translation.y)
 
         angle = self.laserscan.angle_min
         for dist in self.laserscan.ranges:
             distancePoseStamped = PoseStamped()
             distancePoseStamped.pose.position.x = dist * np.cos(angle) #these need to be rotated into the map frame 
             distancePoseStamped.pose.position.y = dist * np.sin(angle)
-            obstacle_map_pose = tf2_geometry_msgs.do_transform_pose(distancePoseStamped, transform_camera2map) #continuous coordinates
+            obstacle_map_pose = tf2_geometry_msgs.do_transform_pose(distancePoseStamped, self.transform_camera2map) #continuous coordinates
             x_o = self.get_i_index(obstacle_map_pose.pose.position.x) #continuous 2 discrete
             y_o = self.get_j_index(obstacle_map_pose.pose.position.y)
             self.grid[x_o, y_o] = self.occupied_value  # mark occupied space
@@ -190,7 +193,7 @@ class Occupancygrid:
         self.x_high = max(self.vertices, key=lambda point: point.x).x
         self.y_low = min(self.vertices, key=lambda point: point.y).y
         self.y_high = max(self.vertices, key=lambda point: point.y).y
-        print(self.x_low)
+        print(self.x_low) #corners of the occupancy grid in the map frame
         print(self.x_high)
         print(self.y_low)
         print(self.y_high)
@@ -204,6 +207,11 @@ class Occupancygrid:
             metadata.resolution = self.resolution
             metadata.width = self.cells_width
             metadata.height = self.cells_height
+            originPose = Pose()
+            originPose.position.x = self.transform_camera2map.transform.translation.x - self.x_low
+            originPose.position.y = self.transform_camera2map.transform.translation.y - self.y_low
+            originPose.orientation = self.transform_camera2map.transform.rotation #same orientation as coming from the transformation
+            metadata.origin = originPose
 
             occupancygrid_data = OccupancyGrid()
             occupancygrid_data.info = metadata
@@ -211,6 +219,7 @@ class Occupancygrid:
             header.frame_id = "map"
             header.stamp = rospy.Time.now()
             occupancygrid_data.header = header
+            print(f"grid:\n{self.grid}")
             occupancygrid_data.data = list(self.grid.reshape(-1).astype(np.uint8))
 
             self.publisher_occupancygrid.publish(occupancygrid_data)
