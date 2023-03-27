@@ -1,11 +1,10 @@
 Panels:
   - Class: rviz/Displays
-    Help Height: 114
+    Help Height: 70
     Name: Displays
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.7439024448394775
     Tree Height: 209
@@ -26,7 +25,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: Image
+    SyncSource: ArUco
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -103,8 +102,12 @@ Visualization Manager:
           Value: false
         camera_link:
           Value: false
+        end_effector_frame:
+          Value: false
         imu_link:
           Value: false
+        landmark1:
+          Value: true
         map:
           Value: false
         object0:
@@ -125,6 +128,9 @@ Visualization Manager:
             {}
           odom:
             base_link:
+              arm_base_link:
+                end_effector_frame:
+                  {}
               camera_bottom_screw_frame:
                 camera_link:
                   camera_aligned_depth_to_color_frame:
@@ -181,7 +187,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /usb_cam/image_raw
       Max Value: 1
       Median window: 5
@@ -191,10 +197,10 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/Image
-      Enabled: true
-      Image Topic: /camera/color/image_raw
+      Enabled: false
+      Image Topic: /camera/color/image_bbs
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -203,7 +209,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/Polygon
       Color: 25; 255; 0
@@ -271,7 +277,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: odom
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
