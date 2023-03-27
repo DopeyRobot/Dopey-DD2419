@@ -27,7 +27,7 @@ class Occupancygrid:
         )
 
         self.sub_laserscan = rospy.Subscriber(
-            "/laserscan", LaserScan, self.scan_callback
+            "/scan", LaserScan, self.scan_callback
         )
 
         self.sub_workspace = rospy.Subscriber(
@@ -71,7 +71,7 @@ class Occupancygrid:
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(1200.0))
         self.listener = tf2_ros.TransformListener(self.buffer)
-        self.source_frame = "camera_color_frame"
+        self.source_frame = "camera_depth_frame"
         self.target_frame = "map"
         self.transform_camera2map = TransformStamped()
         self.timeout = rospy.Duration(1)
@@ -166,13 +166,15 @@ class Occupancygrid:
         self.transform_camera2map = self.buffer.lookup_transform(self.target_frame, self.source_frame, rospy.Time(0), self.timeout)
         x_r = self.get_i_index(self.transform_camera2map.transform.translation.x)
         y_r = self.get_j_index(self.transform_camera2map.transform.translation.y)
-
-        angle = self.laserscan.angle_min
-        for dist in self.laserscan.ranges:
+        N = int((self.laserscan.angle_max-self.laserscan.angle_min)/self.laserscan.angle_increment)
+        angles = np.linspace(self.laserscan.angle_min, self.laserscan.angle_max, N)
+        for dist, angle in list(zip(self.laserscan.ranges, angles))[::10]:
+            if np.isnan(dist):
+                continue
             distancePoseStamped = PoseStamped()
             distancePoseStamped.pose.position.x = dist * np.cos(angle) #these need to be rotated into the map frame 
             distancePoseStamped.pose.position.y = dist * np.sin(angle)
-            distancePoseStamped.header.frame_id = "camera_color_frame"
+            distancePoseStamped.header.frame_id = "camera_depth_frame"
             obstacle_map_pose = tf2_geometry_msgs.do_transform_pose(distancePoseStamped, self.transform_camera2map) #continuous coordinates
 
             x_o = self.get_i_index(obstacle_map_pose.pose.position.x) #continuous 2 discrete
@@ -188,7 +190,6 @@ class Occupancygrid:
             self.yf_list.append(y_o)
 
             
-            angle += self.laserscan.angle_increment
         
         update = OccupancyGridUpdate()
         update.x = min(self.xf_list)

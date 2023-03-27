@@ -6,8 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1/Frames1
+        - /LaserScan1
       Splitter Ratio: 0.7439024448394775
-    Tree Height: 209
+    Tree Height: 253
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -84,7 +85,9 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        aruco/detected 0:
+        arm_base_link:
+          Value: true
+        aruco/detected 500:
           Value: true
         base_link:
           Value: true
@@ -106,12 +109,8 @@ Visualization Manager:
           Value: false
         imu_link:
           Value: false
-        landmark1:
-          Value: true
         map:
           Value: false
-        object0:
-          Value: true
         odom:
           Value: true
       Marker Alpha: 1
@@ -122,9 +121,7 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          aruco/detected 0:
-            {}
-          object0:
+          aruco/detected 500:
             {}
           odom:
             base_link:
@@ -187,7 +184,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/Image
-      Enabled: false
+      Enabled: true
       Image Topic: /usb_cam/image_raw
       Max Value: 1
       Median window: 5
@@ -197,9 +194,9 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: false
+      Value: true
     - Class: rviz/Image
-      Enabled: false
+      Enabled: true
       Image Topic: /camera/color/image_bbs
       Max Value: 1
       Median window: 5
@@ -209,7 +206,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Class: rviz/Polygon
       Color: 25; 255; 0
