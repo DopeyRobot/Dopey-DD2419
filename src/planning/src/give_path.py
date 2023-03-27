@@ -24,7 +24,6 @@ class give_path():
         print('in path callback')
         self.path = msg
 
-
     def ready_for_path_callback(self, msg):
         self.ready_for_pose = msg.data
 
@@ -43,9 +42,6 @@ class give_path():
             else:
                 self.ready_for_path = False
                 self.ready_for_new_path.publish(self.ready_for_path)
-
-                                        
-                    
 
 
 if __name__ == "__main__":
