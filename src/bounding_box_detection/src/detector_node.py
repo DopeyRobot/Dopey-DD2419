@@ -33,7 +33,7 @@ class BoundingBoxNode:
         self.out_image_topic = "/camera/color/image_bbs"
         self.depth_topic = "/camera/aligned_depth_to_color/image_raw"
         self.camera_info_topic = "/camera/aligned_depth_to_color/camera_info"
-        self.model_path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/det_2023-03-02_14-23-34-390133.pt"
+        self.model_path = "/home/robot/Dopey-DD2419/src/bounding_box_detection/src/det_2023-03-22_13-57-06-487490.pt"
 
         self.camera_frame = "camera_color_optical_frame"
         self.map_frame = "map"
@@ -84,6 +84,7 @@ class BoundingBoxNode:
         self.run()
 
     def image_callback(self, msg):
+        start = time.time()
         timestamp = msg.header.stamp
         self.ros_img = msg
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
@@ -107,6 +108,8 @@ class BoundingBoxNode:
             timestamp, self.short_term_memory
         )
         self.publish_long_term_memory()
+        t = time.time() - start
+        print(f"inference time = {t}, FPS = {1/t}")
 
     def depth_callback(self, msg):
         self.ros_depth = msg

@@ -209,6 +209,16 @@ class LongTermMemory:
                     db_instance,
                     db.get_instance_position(db_instance),
                 )
+
+              #!!!!NCOMMENT THE FOLLOWING LINES ONCE THE JAMMIN BRANCH AND THIS ONE ARE MERGED!!!!
+                # # play sounds every time we either add or update an instance in the long term memory
+                # try:
+                #    play_tune = rospy.ServiceProxy('playTune', AudioService)
+                #    play_tune(self.get_class_name(db_instance) 
+                # # TODO: "+ color" # e.g. for plushies: oakie, kiki, binky, ... but for balls & cubes: blueball, greenball, ..., greencube, woodencube, ...#
+                #     )
+                # except rospy.ServiceException as e:
+                #     print("Service call failed: %s"%e)
     
     def __len__(self):
         return len(self.instances_in_memory)
