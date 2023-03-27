@@ -168,8 +168,6 @@ class RRTPlanner:
                     goal_node = RRTNode(self.goal[0], self.goal[1], new_node)
                     self.RRT.append(goal_node)
                     break
-            # self.plot_RRT_tree()
-            #print(f"done with iteration {i}")
 
     def generate_path(self):
         current_node = self.RRT[-1]
@@ -186,7 +184,6 @@ class RRTPlanner:
             self.path_msg.poses.append(pose_stamped)
             current_node = current_node.get_parent()
         self.path_msg.poses = self.path_msg.poses[::-1]
-
         
         for i, pose in enumerate(self.path_msg.poses):
             next_pose = None
@@ -228,7 +225,6 @@ class RRTPlanner:
 
         plt.show()
 
-
 if __name__ == "__main__":
     rospy.init_node("rrt")
     start = [0, 0]
@@ -239,5 +235,3 @@ if __name__ == "__main__":
     planner.plot_RRT_tree()
     planner.publish_path()
     rospy.spin()
-
-    # FIX: Tree = Dict, where the parent is the ID and value is the rrt node for the parent.
