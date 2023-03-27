@@ -19,7 +19,7 @@ class PointCloudToLaserScan:
         ## laserscan parameters
         self.min_angle = -0.78
         self.max_angle = 0.78
-        self.angle_increment = 0.1
+        self.angle_increment = 0.05
         self.scan_time = 1 / self.f
         self.range_min = 0.1
         self.range_max = 2.0
