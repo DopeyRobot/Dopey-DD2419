@@ -66,18 +66,18 @@ class Localization:
 
         rospy.sleep(1)
         #init static TF between map and odom
-        t = TransformStamped()
-        t.header.frame_id = "map"
-        t.child_frame_id = "odom"
-        t.header.stamp = rospy.Time.now()
-        t.transform.translation.x = 0
-        t.transform.translation.y = 0
-        t.transform.translation.z = 0
-        t.transform.rotation.x = 0
-        t.transform.rotation.y = 0
-        t.transform.rotation.z = 0
-        t.transform.rotation.w = 1
-        self.brStatic.sendTransform(t)
+        # t = TransformStamped()
+        # t.header.frame_id = "map"
+        # t.child_frame_id = "odom"
+        # t.header.stamp = rospy.Time.now()
+        # t.transform.translation.x = 0
+        # t.transform.translation.y = 0
+        # t.transform.translation.z = 0
+        # t.transform.rotation.x = 0
+        # t.transform.rotation.y = 0
+        # t.transform.rotation.z = 0
+        # t.transform.rotation.w = 1
+        # self.brStatic.sendTransform(t)
 
         self.run()
 

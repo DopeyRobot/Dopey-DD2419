@@ -4,7 +4,7 @@ Inspired by
 You only look once: Unified, real-time object detection, Redmon, 2016.
 """
 from typing import List, Optional, Tuple, TypedDict
-
+from utils import BoundingBox
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,31 +14,10 @@ from torchvision import models, transforms
 import albumentations as A
 
 
-class BoundingBox(TypedDict):
-    """Bounding box dictionary.
-
-    Attributes:
-        x: Top-left corner column
-        y: Top-left corner row
-        width: Width of bounding box in pixel
-        height: Height of bounding box in pixel
-        score: Confidence score of bounding box.
-        category: Category 
-    """
-
-    x: int
-    y: int
-    width: int
-    height: int
-    score: float
-    category_id: int
-
-
-
 class Detector(nn.Module):
     """Baseline module for object detection."""
 
-    def __init__(self, n_classes = 9) -> None:
+    def __init__(self, n_classes=9) -> None:
         """Create the module.
 
         Define all trainable layers.
@@ -48,7 +27,9 @@ class Detector(nn.Module):
         self.features = models.mobilenet_v2(pretrained=True).features
         # output of mobilenet_v2 will be 1280x15x20 for 480x640 input images
 
-        self.head = nn.Conv2d(in_channels=1280, out_channels=5+n_classes, kernel_size=1)
+        self.head = nn.Conv2d(
+            in_channels=1280, out_channels=5 + n_classes, kernel_size=1
+        )
         # 1x1 Convolution to reduce channels to out_channels without changing H and W
 
         # 1280x15x20 -> 5x15x20, where each element 5 channel tuple corresponds to
@@ -205,10 +186,10 @@ class Detector(nn.Module):
                 width = ann["bbox"][2] / self.x_resize_factor
                 height = ann["bbox"][3] / self.y_resize_factor
             else:
-                x = ann["bbox"][0] 
-                y = ann["bbox"][1] 
-                width = ann["bbox"][2] 
-                height = ann["bbox"][3] 
+                x = ann["bbox"][0]
+                y = ann["bbox"][1]
+                width = ann["bbox"][2]
+                height = ann["bbox"][3]
             bboxes.append([x, y, width, height])
             labels.append(ann["category_id"])
 
@@ -233,20 +214,27 @@ class Detector(nn.Module):
                     A.ISONoise(intensity=(0.10, 1.0), p=0.2),
                     A.HorizontalFlip(p=0.5),
                     A.PixelDropout(dropout_prob=0.002, p=0.1, per_channel=True),
-                    A.ColorJitter(p=0.2, hue = 0.05),
+                    A.ColorJitter(p=0.2, hue=0.05),
                     A.Downscale(scale_min=0.85, scale_max=0.95, p=0.1),
-                    A.augmentations.geometric.Affine(shear={"x": (-10, 10), "y": (0, 0)}, p=0.15, fit_output=False, mode=4),
+                    A.augmentations.geometric.Affine(
+                        shear={"x": (-10, 10), "y": (0, 0)},
+                        p=0.15,
+                        fit_output=False,
+                        mode=4,
+                    ),
                 ],
                 bbox_params=A.BboxParams(format="coco", label_fields=["class_labels"]),
             )
-            transformed = transform(image=np.asarray(image), bboxes = bboxes, class_labels=labels)
+            transformed = transform(
+                image=np.asarray(image), bboxes=bboxes, class_labels=labels
+            )
             image = transformed["image"]
             image = transforms.ToTensor()(image)
             image = transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
             )(image)
             bboxes = transformed["bboxes"]
-            labels= transformed["class_labels"]
+            labels = transformed["class_labels"]
 
         # Convert bounding boxes to target format
 
@@ -256,10 +244,12 @@ class Detector(nn.Module):
 
         # If there is no bb, the first 4 channels will not influence the loss
         # -> can be any number (will be kept at 0)
-        target = torch.zeros(5+self.n_classes, self.out_cells_y, self.out_cells_x)
+        target = torch.zeros(5 + self.n_classes, self.out_cells_y, self.out_cells_x)
         for bbox, label in zip(bboxes, labels):
             x, y, width, height = bbox
-            one_hot_encoding = F.one_hot(torch.tensor([int(label)]), num_classes=self.n_classes).squeeze()
+            one_hot_encoding = F.one_hot(
+                torch.tensor([int(label)]), num_classes=self.n_classes
+            ).squeeze()
 
             x_center = x + width / 2.0
             y_center = y + height / 2.0

@@ -88,7 +88,7 @@ class KinematicsSolver:
 
         return pe_b[:3]
 
-    def analytical_IK(self, desired_pos, desired_wrist_pitch, desired_theta5 = 0.0):
+    def analytical_IK(self, desired_pos, desired_wrist_pitch, desired_theta5 = 0.0, reflect_angle=False):
         """
         Solves the analytical IK sometimes, desired pos in robot base frame.
         """
@@ -107,18 +107,24 @@ class KinematicsSolver:
             c3 = (S*cb-A2)/(A3)
 
             beta= np.arccos(cb)
-            theta2 = alpha - beta
+            theta2 = alpha - beta 
             theta3 = np.arccos(c3)
             theta4 = (psi - theta2 - theta3)%(2*np.pi)
-            theta5 = desired_theta5
+            theta5 = desired_theta5 if reflect_angle is False else -theta1+np.pi/2
 
-            return JointData.from_np_array(
-                -np.array([-theta1, theta2, theta3, theta4, theta5])
-                )
         except:
             if self.verbose:
                 print("Could not find pose")
             return None
+                
+        sol = -np.array([-theta1, theta2, theta3 ,theta4, theta5])
+
+        if any(np.isnan(sol)):
+            return None
+
+        return JointData.from_np_array(
+            sol
+            )
 
     def get_link_normal(self, joint_data: JointData, link_number: int) -> np.ndarray:
         """
