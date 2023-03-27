@@ -17,12 +17,12 @@ class PointCloudToLaserScan:
 
         self.voxel_size = 0.01
         ## laserscan parameters
-        self.min_angle = -1.57
-        self.max_angle = 1.57
-        self.angle_increment = 0.01
+        self.min_angle = -0.78
+        self.max_angle = 0.78
+        self.angle_increment = 0.1
         self.scan_time = 1 / self.f
         self.range_min = 0.1
-        self.range_max = 3.0
+        self.range_max = 2.0
 
         self.target_frame = "map"
         self.source_frame = "camera_color_frame"
