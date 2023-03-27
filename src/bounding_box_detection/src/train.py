@@ -84,12 +84,12 @@ def train(device: str = "cpu") -> None:
 
     dataset = CocoDetection(
         root="./data/",
-        annFile="./annotations/train2.json",
+        annFile="./annotations/train3.json",
         transforms=partial(detector.input_transform, validation=False),
     )
     val_dataset = CocoDetection(
         root="./data/",
-        annFile="./annotations/val2.json",
+        annFile="./annotations/val3.json",
         transforms=partial(detector.input_transform, validation=True),
     )
 
