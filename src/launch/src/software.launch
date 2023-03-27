@@ -47,7 +47,6 @@
 	<node pkg="odometry" type="odometryMAIN.py" name="odometry_node" output="screen" />
 	<node pkg="ekfSLAM" type="ekfSLAM.py" name="ekfSLAM_node" output="screen" />
 
-	<!-- <node pkg="planning" type="move_to_goal.py" name="move_to_goal_node" output="screen" /> -->
 
 	<!-- launch planning nodes -->
 	<node pkg="planning" type="move_to_goal.py" name="move_to_goal_node" output="screen" />
