@@ -90,6 +90,9 @@ class BoundingBoxNode:
         req.path = String(path)
         self.pic_service(req)
 
+    def save_pic(self, image, path):
+        cv2.imwrite(path, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+
     def image_callback(self, msg):
         start = time.time()
         timestamp = msg.header.stamp
@@ -104,7 +107,7 @@ class BoundingBoxNode:
             bbs, confidence_threshold=0.70, diff_class_thresh=0.75
         )
         # add bbs to image and publish
-        self.show_bbs_in_image(self.bbs, self.array_image)
+        bb_image = self.show_bbs_in_image(self.bbs, self.array_image)
 
         for bb in self.bbs:
             class_name = self.get_class_name(bb)
@@ -114,7 +117,11 @@ class BoundingBoxNode:
         new_names = self.long_term_memory.checkForObjectsToRemember(
             timestamp, self.short_term_memory
         )
-        print(new_names)
+        if len(new_names)>0:
+            path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/evidence"
+            instances = "_".join(new_names)
+            full_path = path + "/" + instances + ".jpg"
+            self.save_pic(bb_image, full_path)
         self.publish_long_term_memory()
         t = time.time() - start
         # print(f"inference time = {t}, FPS = {1/t}")
@@ -145,6 +152,8 @@ class BoundingBoxNode:
             self.image_publisher.publish(ros_img)
         else:
             self.image_publisher.publish(self.ros_img)
+
+        return image
 
     def project_bb(self, bb: utils.BoundingBox):
         """
