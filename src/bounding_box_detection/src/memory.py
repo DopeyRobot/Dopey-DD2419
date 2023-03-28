@@ -135,7 +135,7 @@ class ShortTermMemory:
 class LongTermMemory:
     """Stores the objects that have been detected more than N times in the DetectionBuffer"""
 
-    def __init__(self, frames_needed_for_reconition = 5, distance_threshold = 0.02) -> None:
+    def __init__(self, frames_needed_for_reconition = 5, distance_threshold = 0.2) -> None:
         self.class_counter = (
             Counter()
         )  # keeps track of how many times a new element of every class has been detected
