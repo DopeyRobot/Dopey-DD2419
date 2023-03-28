@@ -125,13 +125,13 @@ class move_to_goal():
                 current_angel = self.get_current_pose().pose.orientation.w
                 error_ang2 = current_angel - self.goal_theta
                 
-                proportional_output_ang1 = self.Kp_ang1 * error_ang1
+                proportional_output_ang1 = self.Kp_ang1 * (error_ang1 + error_dist)
                 self.integral_error_ang1 += error_ang1
                 self.integral_output_ang1 = self.Ki_ang1 * self.integral_error_ang1
                 derivative_error_ang1 = error_ang1 - self.prev_error_ang1
                 self.prev_error_ang1 = error_ang1
                 derivative_output_ang1 = self.Kd_ang1 * derivative_error_ang1
-                total_output_ang1 = proportional_output_ang1 + self.integral_output_ang1 + derivative_output_ang1
+                total_output_ang1 = proportional_output_ang1 
 
                 proportional_output_dist = self.Kp_dist * error_dist
                 self.integral_error_dist += error_dist
@@ -157,12 +157,12 @@ class move_to_goal():
                     if abs(error_ang1) > self.threshold_ang1:
                         print('Adjusting ang1',error_ang1)
                         self.twist.angular.z = total_output_ang1
-                        self.twist.linear.x = 0.0
+                        #self.twist.linear.x = 0.0
         
-                    elif error_dist > self.threshold_dist:
+                    if error_dist > self.threshold_dist:
                         print("Correct angle! Adjusting dist", error_dist)
                         self.twist.linear.x = total_output_dist
-                        self.twist.angular.z = 0.0
+                        #self.twist.angular.z = 0.0
 
                     else:
                         rospy.loginfo("Correct pose!")
