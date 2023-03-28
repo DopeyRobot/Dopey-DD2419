@@ -3,15 +3,23 @@ from playsound import playsound
 import rospy
 from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
 from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
-
+AUDIO_PATH = "/home/robot/dd2419_ws/src/play_tunes/audio_files/"
 class AudioService:
     def __init__(self) -> None:
         self.play_tune = rospy.Service("playTune", playTune, self.play_tune_callback)
 
+    def cleanupStr(self, req:str):
+        req = req.split("_")[0]
+        req = req.lower()
+        req = req.replace("_", "")
+        req = req.replace("-", "")
+        req = req.replace (" ", "")
+        print(req)
+        return req
     
     def play_tune_callback(self,req:playTuneRequest) ->playTuneResponse:
         req = req.tuneToPlay.data
-        req = req.lower()
+        req = self.cleanupStr(req)
         # detected objects
         if req == "lebronjames":
             self.play_lebron()
@@ -79,53 +87,53 @@ class AudioService:
     #sound playing functions    
     #plushies
     def play_binky(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/binky.wav")
+        playsound(AUDIO_PATH+"binky.wav")
     def play_kiki(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/kiki.wav")
+        playsound(AUDIO_PATH+"kiki.wav")
     def play_hugo(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/hugo.wav")
+        playsound(AUDIO_PATH+"hugo.wav")
     def play_slush(self) ->None:  
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/slush.wav")
+        playsound(AUDIO_PATH+"slush.wav")
     def play_oakie(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/oakie.wav")
+        playsound(AUDIO_PATH+"oakie.wav")
     def play_muddles(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/muddles.wav")
+        playsound(AUDIO_PATH+"muddles.wav")
     #balls
     def play_greenball(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/greenball.wav")
+        playsound(AUDIO_PATH+"greenball.wav")
     def play_blueball(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/blueball.wav")
+        playsound(AUDIO_PATH+"blueball.wav")
     def play_redball(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/redball.wav")
+        playsound(AUDIO_PATH+"redball.wav")
     #cubes
     def play_bluecube(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/bluecube.wav")
+        playsound(AUDIO_PATH+"bluecube.wav")
     def play_redcube(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/redcube.wav")
+        playsound(AUDIO_PATH+"redcube.wav")
     def play_greencube(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/greencube.wav")
+        playsound(AUDIO_PATH+"greencube.wav")
     def play_woodencube(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/woodencube.wav")
+        playsound(AUDIO_PATH+"woodencube.wav")
         
 
 
     #memes
     def play_lebron(self)->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/LebronJames.mp3")
+        playsound(AUDIO_PATH+"LebronJames.mp3")
 
     def play_ugh(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/RobloxUgh.mp3")
+        playsound(AUDIO_PATH+"RobloxUgh.mp3")
 
     def play_agh(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/agh.mp3")
+        playsound(AUDIO_PATH+"agh.mp3")
 
     def play_gothim(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/HaGotHim.mp3")
+        playsound(AUDIO_PATH+"HaGotHim.mp3")
 
     def playMetalGear(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/metalgearsolid.swf.mp3")
+        playsound(AUDIO_PATH+"metalgearsolid.swf.mp3")
     def play_siu(self) ->None:
-        playsound("/home/robot/Dopey-DD2419/src/play_tunes/audio_files/justSiu.mp3")
+        playsound(AUDIO_PATH+"justSiu.mp3")
 
 
 

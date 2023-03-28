@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from tf2_geometry_msgs import PoseStamped
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
 from take_photos.srv import takePic, takePicRequest
+from play_tunes.srv import playTune, playTuneRequest
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 torch.cuda.set_per_process_memory_fraction(0.6, 0)
@@ -97,12 +98,19 @@ class BoundingBoxNode:
         self.short_term_memory = ShortTermMemory()
         self.long_term_memory = LongTermMemory(frames_needed_for_reconition=15)
         self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
+        self.play_tune_service = rospy.ServiceProxy('/playTune', playTune)
+    
         self.run()
 
     def take_pic(self, path):
         req = takePicRequest()
         req.path = String(path)
         self.pic_service(req)
+    
+    def play_tune(self, name):
+        req = playTuneRequest()
+        req.tuneToPlay = String(name)
+        self.play_tune_service(req)
 
     def save_pic(self, image, path):
         cv2.imwrite(path, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
@@ -136,6 +144,8 @@ class BoundingBoxNode:
             instances = "_".join(new_names)
             full_path = path + "/" + instances + ".jpg"
             self.save_pic(bb_image, full_path)
+            for name in new_names:
+                self.play_tune(name)
         self.publish_long_term_memory()
         
 
