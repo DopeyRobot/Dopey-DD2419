@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import rospy
 import math
-import tf2_ros
+from tf2_ros import Buffer, TransformListener, TransformStamped, TransformBroadcaster
 import tf_conversions
 import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped, Twist
 from geometry_msgs.msg import  Twist
-from tf2_geometry_msgs import PoseStamped
+from tf2_geometry_msgs import PoseStamped 
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
@@ -45,9 +45,9 @@ class move_to_goal():
         self.odom = Odometry()
         self.ready_for_pose = Bool()
 
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
-        self.br = tf2_ros.TransformBroadcaster()
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer)
+        self.br = TransformBroadcaster()
 
         self.f = 50
         self.rate = rospy.Rate(self.f)
@@ -91,20 +91,7 @@ class move_to_goal():
         (_, _, self.odom_theta) = tf_conversions.transformations.euler_from_quaternion([odom_q.w, odom_q.x, odom_q.y, odom_q.z])
 
 
-    def get_current_pose(self):                
-        robot_pose = PoseStamped()
-        robot_pose.pose.position.x = 0
-        robot_pose.pose.position.y = 0
-        robot_pose.pose.position.z = 0
-        robot_pose.header.frame_id = 'base_link'
-        robot_pose.header.stamp = rospy.Time.now()
 
-       
-        transform_to_map = self.buffer.lookup_transform("map", robot_pose.header.frame_id, robot_pose.header.stamp , rospy.Duration(1))           
-        current_pose = tf2_geometry_msgs.do_transform_pose(robot_pose, transform_to_map)
-
-        
-        return current_pose
         
 
 
@@ -119,12 +106,12 @@ class move_to_goal():
                 self.transformed_goal_pose = self.tf_buffer.transform(self.goal_pose, self.targetframe, self.timeout)
 
                 rot_q = self.goal_pose.pose.orientation
-                (_, _, self.goal_theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
+                (_, _, self.goal_theta) = euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
                 # (_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
-                current_angel = self.get_current_pose().pose.orientation.w
+                current_angel = 0.0
                 error_ang2 = current_angel - self.goal_theta
                 
                 proportional_output_ang1 = self.Kp_ang1 * error_ang1

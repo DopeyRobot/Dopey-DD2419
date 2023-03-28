@@ -3,7 +3,7 @@ import rospy
 import random
 import numpy as np
 import tf_conversions
-import tf2_ros
+from tf2_ros import Buffer, TransformListener, TransformStamped
 import tf2_geometry_msgs
 import matplotlib.pyplot as plt
 from geometry_msgs.msg import PoseStamped
@@ -18,8 +18,8 @@ class RRTNode:
         self.y = y
         self.parent = parent
 
-        self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
-        self.listener = tf2_ros.TransformListener(self.buffer)
+        self.buffer = Buffer(rospy.Duration(100.0))
+        self.listener = TransformListener(self.buffer)
 
     def set_parent(self, parent: "RRTNode"):
         self.parent = parent
@@ -27,23 +27,25 @@ class RRTNode:
     def get_parent(self):
         return self.parent
     
-    def get_start(self):                
-        
+    def get_start(self):    
+
         robot_pose = PoseStamped()
-        robot_pose.pose.position.x = 0
-        robot_pose.pose.position.y = 0
-        robot_pose.pose.position.z = 0
-        robot_pose.header.frame_id = 'base_link'
+
+
+       
+        transform_to_map:TransformStamped= self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))           
+        robot_pose.pose.position.z = transform_to_map.transform.translation.z
+        robot_pose.pose.position.x = transform_to_map.transform.translation.x
+        robot_pose.pose.position.y = transform_to_map.transform.translation.y
+        robot_pose.pose.orientation.w = transform_to_map.transform.rotation.w
+        robot_pose.pose.orientation.x = transform_to_map.transform.rotation.x
+        robot_pose.pose.orientation.y = transform_to_map.transform.rotation.y
+        robot_pose.pose.orientation.z = transform_to_map.transform.rotation.z
+
+        robot_pose.header.frame_id = "map"
         robot_pose.header.stamp = rospy.Time.now()
 
-        # try:
-        #     transform_to_map = self.buffer.lookup_transform("map", robot_pose.header.frame_id, robot_pose.header.stamp , rospy.Duration(1))           
-        #     start_pose = tf2_geometry_msgs.do_transform_pose(robot_pose, transform_to_map)
-
-        # except:
-        start_pose = [0, 0]
-        
-        return start_pose
+        return robot_pose
         
 
 class RRTPlanner:
