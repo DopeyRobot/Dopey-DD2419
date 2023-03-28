@@ -20,7 +20,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 # ROS Image message
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
+from take_photos.srv import takePic, takePicRequest, takePicResponse
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 
 # Instantiate CvBridge
@@ -37,15 +37,13 @@ class TakePhotos:
 
         rospy.Subscriber(image_topic, Image, self.image_callback)
         self.take_pic_service = rospy.Service(
-            "take_pic", String, self.take_pic_callback
+            "take_pic", takePic, self.take_pic_callback
         )
         # Spin until ctrl + c
         self.image = None
         self.counter = 0
         self.f = 10
         self.rate = rospy.Rate(self.f)
-
-        self.run()
 
     def image_callback(self, msg):
         try:
@@ -69,8 +67,8 @@ class TakePhotos:
                 print("no pic")
             self.rate.sleep()
 
-    def take_pic_callback(self, req):
-        path = req.data
+    def take_pic_callback(self, req:takePicRequest):
+        path = req.path.data
         try:
             # Convert your ROS Image message to OpenCV2
             cv2.imwrite(
@@ -84,6 +82,6 @@ class TakePhotos:
 
 
 if __name__ == "__main__":
-    rospy.init_node("image_listener")
+    rospy.init_node("photos_node")
     TakePhotos()
     rospy.spin()

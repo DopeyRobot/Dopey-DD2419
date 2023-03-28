@@ -45,7 +45,7 @@
 	<!-- launch the localization node -->
 	<node pkg="localization" type="localization.py" name="localization_node" output="screen" />
 	<!-- <node pkg="planning" type="move_to_goal.py" name="move_to_goal_node" output="screen" /> -->
-	<node pkg="take_photos" type="take_photos.py" name="take_photos_node" output="screen" />
+	<node pkg="take_photos" type="take_photos_node.py" name="take_photos_node" output="screen" />
 
 </launch>
 
