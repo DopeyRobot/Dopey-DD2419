@@ -54,11 +54,11 @@ class RRTPlanner:
         self.start = RRTNode(start[0], start[1])
 
         # # try:
-        # self.start.x = self.start.get_start().pose.position.x
-        # self.start.y = self.start.get_start().pose.position.y
+        self.start.x = self.start.get_start().pose.position.x
+        self.start.y = self.start.get_start().pose.position.y
         # except:
-        self.start.x = self.start.get_start()[0]
-        self.start.y = self.start.get_start()[1]
+        #self.start.x = self.start.get_start.p
+        #self.start.y = self.start.get_start()[1]
 
         self.goal = goal
 
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     rospy.init_node("rrt")
     start = [0, 0]
     goal = [0, 0]
-    planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.09)
+    planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.3)
     planner.generate_RRT()
     planner.generate_path()
     # planner.plot_RRT_tree()

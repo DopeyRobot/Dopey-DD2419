@@ -10,31 +10,43 @@ from tf2_geometry_msgs import PoseStamped
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
+import numpy as np
+
+class PID:
+    def __init__(self, P:float = 0.0, I:float = 0.0, D:float=0.0) -> None:
+        self.P = P
+        self.I = I
+        self.D = D
+
+        self.prev_error = 0.0
+        self.int_error = 0.0
+        self.dt = 0.1
+
+    def __call__(self, error):
+        P_err = error
+        D_err = P_err - self.prev_error
+        I_err = self.int_error
+
+        command = self.P*P_err + self.I*I_err + self.D*D_err
+        self.prev_error = P_err
+        self.int_error += P_err * self.dt
+
+        return command
+
+
+        
 
 class move_to_goal():
 
     def __init__(self):
 
-        self.Kp_ang1 = 0.05
-        self.Ki_ang1 = 0.0002
-        self.Kd_ang1 = 1.0
-        self.Kp_dist = 0.0008
-        self.Ki_dist = 0.0002
-        self.Kd_dist = 0.5
-        self.Kp_ang2 = 0.003
-        self.Ki_ang2 = 0.00001
-        self.Kd_ang2 = 1.0
+        self.ang1PID = PID(1e-1, 0.0, 0.0)
+        self.distPID = PID(1e-1, 0.0, 0.0)
+        self.ang2PID = PID(1e-1, 0.0, 0.0)
 
-        self.integral_error_ang1 = 0.0
-        self.integral_error_dist = 0.0
-        self.integral_error_ang2 = 0.0
-        self.prev_error_ang1 = 0.0
-        self.prev_error_dist = 0.0
-        self.prev_error_ang2 = 0.0
-
-        self.threshold_ang1 = 0.15
-        self.threshold_ang2 = 0.15
-        self.threshold_dist = 0.15
+        self.threshold_ang1 = 0.10
+        self.threshold_ang2 = 0.05
+        self.threshold_dist = 0.05
  
         self.goal_theta = 0.0
         self.odom_theta = 0.0
@@ -52,7 +64,7 @@ class move_to_goal():
         self.f = 50
         self.rate = rospy.Rate(self.f)
         self.targetframe = "base_link"
-        self.currentframe = "odom"
+        self.currentframe = "map"
         self.timeout = rospy.Duration(2)
 
 
@@ -114,57 +126,31 @@ class move_to_goal():
                 current_angel = 0.0
                 error_ang2 = current_angel - self.goal_theta
                 
-                proportional_output_ang1 = self.Kp_ang1 * error_ang1
-                self.integral_error_ang1 += error_ang1
-                self.integral_output_ang1 = self.Ki_ang1 * self.integral_error_ang1
-                derivative_error_ang1 = error_ang1 - self.prev_error_ang1
-                self.prev_error_ang1 = error_ang1
-                derivative_output_ang1 = self.Kd_ang1 * derivative_error_ang1
-                total_output_ang1 = proportional_output_ang1 + self.integral_output_ang1 + derivative_output_ang1
-
-                proportional_output_dist = self.Kp_dist * error_dist
-                self.integral_error_dist += error_dist
-                integral_output_dist = self.Ki_dist * self.integral_error_dist
-                derivative_error_dist = error_dist - self.prev_error_dist
-                self.prev_error_dist = error_dist
-                derivative_output_dist = self.Kd_dist * derivative_error_dist
-                total_output_dist = proportional_output_dist + integral_output_dist + derivative_output_dist
-
-                proportional_output_ang2 = self.Kp_ang2 * error_ang2
-                self.integral_error_ang2 += error_ang2
-                integral_output_ang2 = self.Ki_ang2 * self.integral_error_ang2
-                derivative_error_ang2 = error_ang2 - self.prev_error_ang2
-                self.prev_error_ang2 = error_ang2
-                derivative_output_ang2 = self.Kd_ang2 * derivative_error_ang2
-                total_output_ang2 = proportional_output_ang2 + integral_output_ang2 + derivative_output_ang2
-
-                if total_output_ang1 > 0.5:
-                    total_output_ang1 =0.5
+                ang1out = self.ang1PID(error_ang1)
+                distout = self.distPID(error_dist)
+                ang2out = self.ang2PID(error_ang2)
             
                 if not self.arrived2point:
                     
-                    if abs(error_ang1) > self.threshold_ang1:
-                        print('Adjusting ang1',error_ang1, total_output_ang1)
-                        self.twist.angular.z = total_output_ang1
-                        self.twist.linear.x = 0.0
-        
-                    elif error_dist > self.threshold_dist:
-                        print("Correct angle! Adjusting dist", error_dist)
-                        self.twist.linear.x = total_output_dist
-                        self.twist.angular.z = 0.0
+                    print('Adjusting ang1',error_ang1, ang1out)
+                    self.twist.angular.z = ang1out
+    
+                    print("Adjusting dist", error_dist)
+                    self.twist.linear.x = distout*np.exp(-np.abs(error_ang1)*10)
+                    
 
-                    else:
+                    if error_dist < self.threshold_dist and abs(error_ang1) < self.threshold_ang1:
                         rospy.loginfo("Correct pose!")
                         self.twist.angular.z = 0
                         self.twist.linear.x = 0
-                        total_output_ang1 = 0
-                        total_output_dist = 0
+                        ang1out = 0
+                        distout = 0
                         self.arrived2point = True
                 else:
                     if abs(error_ang2) > self.threshold_ang2:
                         print("Ajusting ang2", error_ang2)
                         self.twist.linear.x = 0.0
-                        self.twist.angular.z = total_output_ang2
+                        self.twist.angular.z = ang2out
 
                     else:
                         rospy.loginfo("Done")

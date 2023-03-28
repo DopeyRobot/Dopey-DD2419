@@ -1,15 +1,15 @@
 Panels:
   - Class: rviz/Displays
-    Help Height: 70
+    Help Height: 0
     Name: Displays
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /TF1
         - /TF1/Frames1
-        - /Map1
-        - /LaserScan1
+        - /Pose1
       Splitter Ratio: 0.7439024448394775
-    Tree Height: 204
+    Tree Height: 274
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -87,11 +87,9 @@ Visualization Manager:
       Frames:
         All Enabled: false
         arm_base_link:
-          Value: true
-        aruco/detected 2:
-          Value: true
+          Value: false
         aruco/detected 500:
-          Value: true
+          Value: false
         base_link:
           Value: true
         camera_aligned_depth_to_color_frame:
@@ -112,6 +110,8 @@ Visualization Manager:
           Value: false
         imu_link:
           Value: false
+        landmark1:
+          Value: true
         map:
           Value: false
         odom:
@@ -124,9 +124,9 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          aruco/detected 2:
-            {}
           aruco/detected 500:
+            {}
+          landmark1:
             {}
           odom:
             base_link:
@@ -234,7 +234,7 @@ Visualization Manager:
       Shaft Length: 1
       Shaft Radius: 0.05000000074505806
       Shape: Arrow
-      Topic: /move_base_simple/goal
+      Topic: /goal
       Unreliable: false
       Value: true
     - Alpha: 0.699999988079071
@@ -327,7 +327,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 6.4162983894348145
+      Distance: 2.7081944942474365
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -335,8 +335,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.1359333097934723
-        Y: 0.032816916704177856
+        X: -0.32247504591941833
+        Y: 0.04195716977119446
         Z: 3.0994415283203125e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
