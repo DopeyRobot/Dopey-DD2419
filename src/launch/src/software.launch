@@ -21,7 +21,7 @@
 		
 		<!-- <param name="fiducial_len_override" value="500: 0.175"/> -->
 		<param name="image_is_rectified" value="True"/>
-		<param name="marker_size"        value="0.175"/> <!-- in m -->
+		<param name="marker_size"        value="0.06"/> <!-- in m -->
 		<param name="reference_frame"    value="camera_color_optical_frame"/>   <!-- frame in which the marker pose will be refered -->
 		<param name="camera_frame"       value="camera_color_optical_frame"/>
 	
@@ -33,7 +33,7 @@
 		
 		<!-- <param name="fiducial_len_override" value="500: 0.175"/> -->
 		<param name="image_is_rectified" value="True"/>
-		<param name="marker_size"        value="0.175"/> <!-- in m -->
+		<param name="marker_size"        value="0.08"/> <!-- in m -->
 		<param name="reference_frame"    value="camera_color_optical_frame"/>   <!-- frame in which the marker pose will be refered -->
 		<param name="camera_frame"       value="camera_color_optical_frame"/>
 	</node>
@@ -43,9 +43,34 @@
 	<node pkg="workspace" type ="workspace2.py" name="workspace" output="screen"/>
 	
 	<!-- launch the localization node -->
-	<node pkg="localization" type="localization.py" name="localization_node" output="screen" />
 	<!-- <node pkg="planning" type="move_to_goal.py" name="move_to_goal_node" output="screen" /> -->
 	<node pkg="take_photos" type="take_photos_node.py" name="take_photos_node" output="screen" />
+	<node pkg="localization" type="anchor_tracking.py" name="anchor_tracking_node" output="screen" />
+	<node pkg="odometry" type="odometryMAIN.py" name="odometry_node" output="screen" />
+	<node pkg="ekfSLAM" type="ekfSLAM.py" name="ekfSLAM_node" output="screen" />
 
+
+	<!-- launch planning nodes -->
+	<node pkg="planning" type="move_to_goal.py" name="move_to_goal_node" output="screen" />
+	<!--<node pkg="planning" type="give_path.py" name="give_path" output="screen" /> -->
+	<!--<node pkg="planning" type="rrt.py" name="rrt" output="screen" /> -->
+	
+	<node name="depthimage_to_laserscan" pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" args="">
+
+    <remap from="image"       to="/camera/aligned_depth_to_color/image_raw"/> <!-- change here for your camera depth topic name. Default: "/camera/depth/image_raw" -->
+
+    <remap from="camera_info" to="/camera/aligned_depth_to_color/camera_info"/> 
+    <!-- the remap for camera_info by default uses the same path as the one given to the image topic. Default: "<path_to_image_topic>/camera_info>" -->
+
+    <!-- PARAMETERS: -->
+    <!-- These are the default values. --> 
+    <param name="scan_height"     type="int"    value="1"/> <!-- default: 1 pixel. Number of pixel rows used to generate laser scan. -->
+    <param name="scan_time"       type="double" value="0.033"/> <!-- default:0.033, 30 FPS . Time between scans. -->
+    <param name="range_min"       type="double" value="0.10"/> <!--default:0.45m. Ranges less than this are considered -Inf. -->
+    <param name="range_max"       type="double" value="2.0"/> <!--default: 10m. Ranges less than this are considered +Inf. -->
+    <param name="output_frame_id" type="str"    value="camera_depth_frame"/> <!--default: camera_depth_frame. Frame id of the laser scan. -->
+	
+  </node>
+	
 </launch>
 

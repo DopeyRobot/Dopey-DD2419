@@ -3,13 +3,15 @@ import rospy
 from geometry_msgs.msg import TransformStamped
 from robp_msgs.msg import Encoders
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped
 import tf_conversions
 import tf2_ros
 import math
 
-from odometry.estStateIMU import IMUState
-from odometry.estStateEncoder import EncoderState
+# from odometry.estStateIMU import IMUState #UNCOMMENT THESE LINES TO REVERT
+# from odometry.estStateEncoder import EncoderState #UNCOMMENT THESE LINES TO REVERT
+from estStateIMU import IMUState
+from estStateEncoder import EncoderState
 from sensor_msgs.msg import Imu
 
 import numpy as np
@@ -22,7 +24,7 @@ class OdometryFusion:
     def __init__(self,verbose=False) -> None:
         self.verbose = verbose
         self.odom_publisher = rospy.Publisher("/odometry", Odometry,queue_size=10)
-        self.state_publisher = rospy.Publisher("/odometry/curr_vel_state", Twist,queue_size=10)
+        self.state_publisher = rospy.Publisher("/odometry/curr_vel_state", TwistStamped,queue_size=10)
         self.sub_encoder = rospy.Subscriber(
             "/motor/encoders", Encoders, self.encoder_callback
         )
@@ -86,9 +88,10 @@ class OdometryFusion:
         # TODO: Fill in
         v,w = self.fusion()
         #publish the current v,w state for the controller
-        curr_state = Twist()
-        curr_state.linear.x = v
-        curr_state.angular.z = w
+        curr_state = TwistStamped()
+        curr_state.twist.linear.x = v
+        curr_state.twist.angular.z = w
+        curr_state.header.stamp = self.encoders.header.stamp
         self.state_publisher.publish(curr_state)
         #----
         vdt = v*self.dt
@@ -99,22 +102,29 @@ class OdometryFusion:
         self.yaw += wdt
 
         #----
-        br = tf2_ros.TransformBroadcaster()
-        odom = Odometry()
-
-        t = TransformStamped()
-        t.header.frame_id = "odom"
-        t.header.stamp = self.encoders.header.stamp
-        t.child_frame_id = "base_link"
-
-        t.transform.translation.x = self.x
-        t.transform.translation.y = self.y
         q = tf_conversions.transformations.quaternion_from_euler(0, 0, self.yaw)
-        t.transform.rotation.x = q[0]
-        t.transform.rotation.y = q[1]
-        t.transform.rotation.z = q[2]
-        t.transform.rotation.w = q[3]
+        #----
+        # br = tf2_ros.TransformBroadcaster()
 
+        # t = TransformStamped()
+        # t.header.frame_id = "odom"
+        # t.header.stamp = self.encoders.header.stamp
+        # t.child_frame_id = "base_link"
+
+        # t.transform.translation.x = self.x
+        # t.transform.translation.y = self.y
+        
+        # t.transform.rotation.x = q[0]
+        # t.transform.rotation.y = q[1]
+        # t.transform.rotation.z = q[2]
+        # t.transform.rotation.w = q[3]
+
+        # #to avoid redundat tf warnings
+        # if self.old_stamp != t.header.stamp:
+        #     br.sendTransform(t)
+        #     self.old_stamp = t.header.stamp
+        #----
+        odom = Odometry()
         odom.pose.pose.position.x = self.x
         odom.pose.pose.position.y = self.y
         odom.pose.pose.position.z = 0.0
@@ -131,10 +141,7 @@ class OdometryFusion:
         self.odom_publisher.publish(odom)
 
 
-        #to avoid redundat tf warnings
-        if self.old_stamp != t.header.stamp:
-            br.sendTransform(t)
-            self.old_stamp = t.header.stamp
+        
 
 
 if __name__ == "__main__":

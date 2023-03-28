@@ -11,12 +11,15 @@ from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Path
 from buildmap import map_data
 from typing import List, Tuple
+import math
 
 class RRTNode:
-    def __init__(self, x, y, parent=None) -> None:
+    def __init__(self, x, y, cost=0, parent=None, child=None) -> None:
         self.x = x
         self.y = y
+        self.cost = cost
         self.parent = parent
+        self.child = child
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
         self.listener = tf2_ros.TransformListener(self.buffer)
@@ -57,7 +60,8 @@ class RRTPlanner:
         except:
             self.start.x = self.start.get_start()[0]
             self.start.y = self.start.get_start()[1]
-
+        
+  
         self.goal = goal
 
         self.map_data = None
@@ -88,6 +92,20 @@ class RRTPlanner:
     def send_goal_callback(self, msg):
         self.goal = [msg.pose.position.x, msg.pose.position.y]
 
+
+    def rewire(self, new_node):
+        for node in self.RRT:
+            if node == new_node or node.parent == new_node:
+                continue
+            new_cost = new_node.cost + math.sqrt((node.x - new_node.x) ** 2 + (node.y - new_node.y) ** 2)
+            if new_cost < node.cost:
+                node.parent = new_node
+                node.cost = new_cost
+                for child in node.children:
+                    self.rewire(child)
+                # we only need to rewire once per node, so we can break the loop
+                break
+
     def sample_random(self) -> Tuple[int]:
         if random.random() > self.goal_sample_prob:
             return (
@@ -99,12 +117,13 @@ class RRTPlanner:
 
     def find_nearest(self, x, y) -> RRTNode:
         nearest_node = self.RRT[0]
+        min_cost = float('inf')
         for node in self.RRT:
-            if np.linalg.norm(
+            cost = node.cost + np.linalg.norm(
                 np.array([x, y]) - np.array([node.x, node.y])
-            ) < np.linalg.norm(
-                np.array([x, y]) - np.array([nearest_node.x, nearest_node.y])
-            ):
+            )
+            if cost < min_cost:
+                min_cost = cost
                 nearest_node = node
         return nearest_node
 
@@ -117,29 +136,30 @@ class RRTPlanner:
         return new_pos[0], new_pos[1]
 
     def check_map(self, x, y) -> bool:
-        # Check bounds   
-        if x < self.map_data.info.origin.position.x or y < self.map_data.info.origin.position.y:
-            return False
-        if x >= self.map_data.info.origin.position.x + self.map_data.info.width * self.map_data.info.resolution or y >= self.map_data.info.origin.position.y + self.map_data.info.height * self.map_data.info.resolution:
-            return False
+        return True
+        # # Check bounds   
+        # if x < self.map_data.info.origin.position.x or y < self.map_data.info.origin.position.y:
+        #     return False
+        # if x >= self.map_data.info.origin.position.x + self.map_data.info.width * self.map_data.info.resolution or y >= self.map_data.info.origin.position.y + self.map_data.info.height * self.map_data.info.resolution:
+        #     return False
 
-        # Convert the (x,y) coordinate to a grid cell index
-        col = int((x - self.map_data.info.origin.position.x) / self.map_data.info.resolution)
-        row = int((y - self.map_data.info.origin.position.y) / self.map_data.info.resolution)
+        # # Convert the (x,y) coordinate to a grid cell index
+        # col = int((x - self.map_data.info.origin.position.x) / self.map_data.info.resolution)
+        # row = int((y - self.map_data.info.origin.position.y) / self.map_data.info.resolution)
 
-        value = self.occupancy_grid[row][col]
-        if value == 0:
-            # Free
-            return True
-        elif value == 1:
-            # Obstacle
-            return False
-        else:
-            return True
-            # For now, its unknown..
+        # value = self.occupancy_grid[row][col]
+        # if value == 0:
+        #     # Free
+        #     return True
+        # elif value == 1:
+        #     # Obstacle
+        #     return False
+        # else:
+        #     return True
+        #     # For now, its unknown..
 
     def RRT_step(self, nearest_node: RRTNode, target_x, target_y):
-        new_node = RRTNode(nearest_node.x, nearest_node.y, nearest_node)
+        new_node = RRTNode(nearest_node.x, nearest_node.y, nearest_node.cost, nearest_node.parent, nearest_node.child)
         for step in range(self.n_steps):
             new_x, new_y = self.move_step(new_node.x, new_node.y, target_x, target_y)
             if self.check_map(new_x, new_y):
@@ -149,15 +169,21 @@ class RRTPlanner:
                 print("Ran into obstacle")
                 return None
 
+        distance = np.linalg.norm(np.array([new_node.x, new_node.y]) - np.array([nearest_node.x, nearest_node.y]))
+        cost = nearest_node.cost + distance
+        new_node.cost = cost
+
         return new_node
 
     def generate_RRT(self):
+        print(self.goal)
         for i in range(self.num_iterations):
             x_rand, y_rand = self.sample_random()
             nearest_node = self.find_nearest(x_rand, y_rand)
             new_node = self.RRT_step(nearest_node, x_rand, y_rand)
             if new_node is not None:
                 self.RRT.append(new_node)
+                self.rewire(new_node) 
                 if (
                     np.linalg.norm(
                         np.array([new_node.x, new_node.y]) - np.array(self.goal)
@@ -168,6 +194,7 @@ class RRTPlanner:
                     goal_node = RRTNode(self.goal[0], self.goal[1], new_node)
                     self.RRT.append(goal_node)
                     break
+
 
     def generate_path(self):
         current_node = self.RRT[-1]
@@ -184,6 +211,7 @@ class RRTPlanner:
             self.path_msg.poses.append(pose_stamped)
             current_node = current_node.get_parent()
         self.path_msg.poses = self.path_msg.poses[::-1]
+
         
         for i, pose in enumerate(self.path_msg.poses):
             next_pose = None
@@ -225,6 +253,7 @@ class RRTPlanner:
 
         plt.show()
 
+
 if __name__ == "__main__":
     rospy.init_node("rrt")
     start = [0, 0]
@@ -235,3 +264,5 @@ if __name__ == "__main__":
     planner.plot_RRT_tree()
     planner.publish_path()
     rospy.spin()
+
+    # FIX: Tree = Dict, where the parent is the ID and value is the rrt node for the parent.
