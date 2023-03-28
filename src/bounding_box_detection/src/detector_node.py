@@ -7,6 +7,7 @@ import torch
 from torchvision.transforms import ToTensor, Normalize
 from detector import Detector
 from sensor_msgs.msg import Image, CameraInfo
+from std_msgs.msg import String
 from cv_bridge import CvBridge
 import cv2
 from PIL import Image as PILImage
@@ -18,6 +19,7 @@ import time
 import matplotlib.pyplot as plt
 from tf2_geometry_msgs import PoseStamped
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
+from take_photos.srv import takePic, takePicRequest
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 torch.cuda.set_per_process_memory_fraction(0.6, 0)
@@ -33,7 +35,7 @@ class BoundingBoxNode:
         self.out_image_topic = "/camera/color/image_bbs"
         self.depth_topic = "/camera/aligned_depth_to_color/image_raw"
         self.camera_info_topic = "/camera/aligned_depth_to_color/camera_info"
-        self.model_path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/det_2023-03-27_17-22-20-042133.pt"
+        self.model_path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/models/det_2023-03-27_17-22-20-042133.pt"
 
         self.camera_frame = "camera_color_optical_frame"
         self.map_frame = "map"
@@ -80,8 +82,13 @@ class BoundingBoxNode:
 
         self.short_term_memory = ShortTermMemory()
         self.long_term_memory = LongTermMemory(frames_needed_for_reconition=15)
-
+        self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
         self.run()
+
+    def take_pic(self, path):
+        req = takePicRequest()
+        req.path = String(path)
+        self.pic_service(req)
 
     def image_callback(self, msg):
         start = time.time()
@@ -104,12 +111,13 @@ class BoundingBoxNode:
             position = self.project_bb(bb)
             self.short_term_memory.add(class_name, position, timestamp)
 
-        self.long_term_memory.checkForObjectsToRemember(
+        new_names = self.long_term_memory.checkForObjectsToRemember(
             timestamp, self.short_term_memory
         )
+        print(new_names)
         self.publish_long_term_memory()
         t = time.time() - start
-        print(f"inference time = {t}, FPS = {1/t}")
+        # print(f"inference time = {t}, FPS = {1/t}")
 
     def depth_callback(self, msg):
         self.ros_depth = msg

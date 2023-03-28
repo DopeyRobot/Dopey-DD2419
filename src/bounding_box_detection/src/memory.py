@@ -184,7 +184,7 @@ class LongTermMemory:
                 ] = "M"  # !!!FOR NOW ONLY OBJECTS IN MAP ARE STORED IN THE LONG TERM MEMORY!!!
                 self.positions[closest_instance_in_lt_memory] = position
                 self.last_time_seen[closest_instance_in_lt_memory] = timestamp
-                return
+                return None
 
         # if there is no instance in the long term memory of this class that is close enough to the one we want to add,
         # create a new instance and add it to the long term memory
@@ -197,18 +197,23 @@ class LongTermMemory:
         self.class_counter[
             class_name
         ] += 1  # we saw a new instance belonging to this class
+        return instance_name
 
     def checkForObjectsToRemember(self, timestamp, db: ShortTermMemory):
         """Checks if there are objects in the ShortTermMemory that have been detected more than N times and adds them to the LongTermMemory"""
+        new_names = []
         for db_instance, counter in db.instances_detected_counter.items():
             if counter > self.min_frames_needed:
-                self._updateMemory(
+                new_name = self._updateMemory(
                     timestamp,
                     db,
                     self.get_class_name(db_instance),
                     db_instance,
                     db.get_instance_position(db_instance),
                 )
+                if new_name is not None:
+                    new_names.append(new_name)
+        return new_names
 
               #!!!!NCOMMENT THE FOLLOWING LINES ONCE THE JAMMIN BRANCH AND THIS ONE ARE MERGED!!!!
                 # # play sounds every time we either add or update an instance in the long term memory
