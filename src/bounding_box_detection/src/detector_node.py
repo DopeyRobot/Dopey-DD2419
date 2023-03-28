@@ -25,6 +25,20 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 torch.cuda.set_per_process_memory_fraction(0.6, 0)
 torch.cuda.empty_cache()
 
+from functools import wraps
+import time
+
+
+def timeit(func):
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+        return result
+    return timeit_wrapper
 
 class BoundingBoxNode:
     def __init__(self) -> None:
@@ -94,37 +108,37 @@ class BoundingBoxNode:
         cv2.imwrite(path, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
 
     def image_callback(self, msg):
-        start = time.time()
         timestamp = msg.header.stamp
         self.ros_img = msg
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         self.image = PILImage.fromarray(image)
         self.array_image = np.asarray(image)
-
+        
         bbs = self.predict(self.image.copy())
         # supress multiple bbs
         self.bbs = utils.non_max_suppresion(
-            bbs, confidence_threshold=0.70, diff_class_thresh=0.75
+            bbs, confidence_threshold=0.80, diff_class_thresh=0.75
         )
         # add bbs to image and publish
         bb_image = self.show_bbs_in_image(self.bbs, self.array_image)
 
         for bb in self.bbs:
-            class_name = self.get_class_name(bb)
+            class_name = self.get_class_name(bb, self.array_image)
             position = self.project_bb(bb)
             self.short_term_memory.add(class_name, position, timestamp)
 
         new_names = self.long_term_memory.checkForObjectsToRemember(
             timestamp, self.short_term_memory
         )
+        
         if len(new_names)>0:
             path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/evidence"
             instances = "_".join(new_names)
             full_path = path + "/" + instances + ".jpg"
             self.save_pic(bb_image, full_path)
         self.publish_long_term_memory()
-        t = time.time() - start
-        # print(f"inference time = {t}, FPS = {1/t}")
+        
+
 
     def depth_callback(self, msg):
         self.ros_depth = msg
@@ -140,7 +154,7 @@ class BoundingBoxNode:
 
         out = self.model_trace(torch_image.unsqueeze(0)).cpu()
 
-        bbs = self.model.decode_output(out, 0.5, scale_bb=True)[0]
+        bbs = self.model.decode_output(out, 0.8, scale_bb=False)[0]
         return bbs
 
     def show_bbs_in_image(self, bbs: List[utils.BoundingBox], image) -> None:
@@ -179,7 +193,7 @@ class BoundingBoxNode:
         return class_name + "_" + instance_id
 
     def image_transforms(self, image):
-        image = cv2.resize(self.array_image, self.input_size)
+        # image = cv2.resize(self.array_image, self.input_size)
         image = ToTensor()(image)
         image = Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(image)
         if self.cuda:
@@ -187,13 +201,13 @@ class BoundingBoxNode:
 
         return image
 
-    def get_class_name(self, bb: utils.BoundingBox):
+    def get_class_name(self, bb: utils.BoundingBox, image):
         """
         returns the class name of a bounding box
         """
-        class_name = utils.CLASS_DICT[bb["category_id"]]
+        color = utils.detect_color(bb, image)
 
-        return class_name
+        return color
 
     def publish_to_tf(self, frame_name: str, position: np.ndarray):
         """

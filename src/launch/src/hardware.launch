@@ -29,6 +29,9 @@
 		<arg name="tf_prefix" value="camera"/>
 		<arg name="filters" value="pointcloud" />
 		<arg name="align_depth" value="true"/>
+		<arg name="color_width" value="640"/>
+		<arg name="color_height" value="480"/>
+		<arg name="color_fps" value="30"/>
 	</include>
 
 	<!-- launch the usb cam node -->
