@@ -36,12 +36,12 @@ class RRTNode:
         robot_pose.header.frame_id = 'base_link'
         robot_pose.header.stamp = rospy.Time.now()
 
-        try:
-            transform_to_map = self.buffer.lookup_transform("map", robot_pose.header.frame_id, robot_pose.header.stamp , rospy.Duration(1))           
-            start_pose = tf2_geometry_msgs.do_transform_pose(robot_pose, transform_to_map)
+        # try:
+        #     transform_to_map = self.buffer.lookup_transform("map", robot_pose.header.frame_id, robot_pose.header.stamp , rospy.Duration(1))           
+        #     start_pose = tf2_geometry_msgs.do_transform_pose(robot_pose, transform_to_map)
 
-        except:
-            start_pose = [0, 0]
+        # except:
+        start_pose = [0, 0]
         
         return start_pose
         
@@ -51,12 +51,12 @@ class RRTPlanner:
         
         self.start = RRTNode(start[0], start[1])
 
-        try:
-            self.start.x = self.start.get_start().pose.position.x
-            self.start.y = self.start.get_start().pose.position.y
-        except:
-            self.start.x = self.start.get_start()[0]
-            self.start.y = self.start.get_start()[1]
+        # # try:
+        # self.start.x = self.start.get_start().pose.position.x
+        # self.start.y = self.start.get_start().pose.position.y
+        # except:
+        self.start.x = self.start.get_start()[0]
+        self.start.y = self.start.get_start()[1]
 
         self.goal = goal
 
@@ -232,6 +232,6 @@ if __name__ == "__main__":
     planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.09)
     planner.generate_RRT()
     planner.generate_path()
-    planner.plot_RRT_tree()
+    # planner.plot_RRT_tree()
     planner.publish_path()
     rospy.spin()

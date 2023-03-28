@@ -3,7 +3,8 @@ import rospy
 import math
 import tf2_ros
 import tf_conversions
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import  Twist
+from tf2_geometry_msgs import PoseStamped
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
@@ -29,9 +30,9 @@ class move_to_goal():
         self.prev_error_dist = 0.0
         self.prev_error_ang2 = 0.0
 
-        self.threshold_ang1 = 0.3
-        self.threshold_ang2 = 0.1
-        self.threshold_dist = 0.1
+        self.threshold_ang1 = 0.15
+        self.threshold_ang2 = 0.15
+        self.threshold_dist = 0.15
  
         self.goal_theta = 0.0
         self.odom_theta = 0.0
@@ -100,7 +101,7 @@ class move_to_goal():
 
                 rot_q = self.goal_pose.pose.orientation
                 (_, _, self.goal_theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
-                #(_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
+                # (_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
@@ -130,13 +131,13 @@ class move_to_goal():
                 derivative_output_ang2 = self.Kd_ang2 * derivative_error_ang2
                 total_output_ang2 = proportional_output_ang2 + integral_output_ang2 + derivative_output_ang2
 
-                if total_output_ang1 > 2.0:
-                    total_output_ang1 = 0.0
+                if total_output_ang1 > 0.5:
+                    total_output_ang1 =0.5
             
                 if not self.arrived2point:
                     
                     if abs(error_ang1) > self.threshold_ang1:
-                        print('Adjusting ang1',error_ang1)
+                        print('Adjusting ang1',error_ang1, total_output_ang1)
                         self.twist.angular.z = total_output_ang1
                         self.twist.linear.x = 0.0
         
