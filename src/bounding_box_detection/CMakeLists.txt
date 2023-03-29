@@ -45,13 +45,14 @@ find_package(catkin REQUIRED roscpp rospy std_msgs message_generation)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  newNames.msg
+  StringArray.msg
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
   add2ShortTerm.srv
+  instanceNames.srv
 )
 
 ## Generate actions in the 'action' folder

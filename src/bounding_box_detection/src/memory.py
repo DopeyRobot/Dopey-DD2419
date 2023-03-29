@@ -6,12 +6,16 @@ from dataclasses import dataclass
 import rospy
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster
 from std_msgs.msg import String
+from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from bounding_box_detection.srv import (
     add2ShortTerm,
     add2ShortTermRequest,
     add2ShortTermResponse,
+    instanceNames,
+    instanceNamesRequest,
+    instanceNamesResponse,
 )
-from bounding_box_detection.msg import newNames
+from bounding_box_detection.msg import StringArray
 
 
 class Locations(Enum):
@@ -264,11 +268,14 @@ class MemoryNode:
         self.buffer = Buffer(rospy.Duration(1200.0))
         self.tranform_listener = TransformListener(self.buffer)
         self.tranform_broadcaster = TransformBroadcaster()
-        self.new_names_pub = rospy.Publisher("/new_names", newNames, queue_size=10)
+        self.new_names_pub = rospy.Publisher("/new_names", StringArray, queue_size=10)
         self.add2short_term_srv = rospy.Service(
             "/add2shortterm", add2ShortTerm, self.add2short_term_srv_cb
         )
-        self.run()
+        self.instance_names_srv = rospy.Service(
+            "/instance_names", instanceNames, self.instance_names_srv_cb
+        )
+        # self.run()
 
     def run(self):
         rate = rospy.Rate(self.f)
@@ -279,12 +286,17 @@ class MemoryNode:
 
     def publish_new_names(self, new_names):
         if len(new_names) > 0:
-            new_names_msg = newNames()
+            new_names_msg = StringArray()
+            msg_list = []
             for name in new_names:
                 name_msg = String()
                 name_msg.data = name
-                new_names_msg.names.append(name_msg)
+                msg_list.append(name_msg)
+            new_names_msg.array = msg_list
             self.new_names_pub.publish(new_names_msg)
+
+    def instance_names_srv_cb(self, req: instanceNamesRequest):
+        return instanceNamesResponse(self.lt.instances_in_memory)
 
     def add2short_term_srv_cb(self, req: add2ShortTermRequest):
         class_name = req.class_name.data
@@ -341,4 +353,6 @@ if __name__ == "__main__":
 
     rospy.init_node("memory_node")
     memory_node = MemoryNode()
+    memory_node.lt.instances_in_memory = ["dsqsd", "qsqds"]
+    memory_node.instance_names_srv_cb(EmptyRequest())
     rospy.spin()

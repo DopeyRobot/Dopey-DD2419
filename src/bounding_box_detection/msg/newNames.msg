@@ -1,1 +1,0 @@
-std_msgs/String[] new_names
