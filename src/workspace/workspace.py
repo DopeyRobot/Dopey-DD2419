@@ -16,7 +16,7 @@ class Workspace():
         self.rate = rospy.Rate(self.f)
         self.robot_position = None
         self.navgoal_position = None
-        self.navgoal = PoseStamped() #does that work?
+        self.navgoal = PoseStamped() 
         self.publisher_encoders = rospy.Publisher("/motor/encoders", Encoders, queue_size=10)
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
         self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.odom_callback)
@@ -271,7 +271,7 @@ class Workspace():
             ## CHECK
             if self.verbose:
                 rospy.loginfo(f"robot position:{self.robot_position} navgoal position:{self.navgoal_position}")
-            if self.robot_position is not None  and self.navgoal_position is not None:
+            if self.robot_position is not None and self.navgoal_position is not None:
                 self.robot_inside = self.checkpointinsidepoly(self.robot_position, self.pinf) #check robot position before boolean
                 if self.robot_inside:
                     # robot is inside

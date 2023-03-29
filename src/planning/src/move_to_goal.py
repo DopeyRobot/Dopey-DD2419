@@ -55,7 +55,7 @@ class move_to_goal():
 
         rospy.sleep(2)
 
-        self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+        self.publisher_twist = rospy.Publisher('motor_controller_preprocessor/twist', Twist, queue_size=10)
         self.goal_subscriber = rospy.Subscriber('move_base_simple/goal', PoseStamped, self.goal_callback) 
         self.odom_subscriber = rospy.Subscriber('odometry', Odometry, self.odom_callback) 
 
