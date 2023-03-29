@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from collections import Counter
 from enum import Enum
 import numpy as np
@@ -6,9 +7,9 @@ import rospy
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster
 from std_msgs.msg import String
 from bounding_box_detection.srv import (
-    Add2ShortTerm,
-    Add2ShortTermRequest,
-    Add2ShortTermResponse,
+    add2ShortTerm,
+    add2ShortTermRequest,
+    add2ShortTermResponse,
 )
 
 
@@ -261,19 +262,19 @@ class MemoryNode:
         self.buffer = Buffer(rospy.Duration(1200.0))
         self.tranform_listener = TransformListener(self.buffer)
         self.tranform_broadcaster = TransformBroadcaster()
-        self.new_names_pub = rospy.Publisher()
+        #self.new_names_pub = rospy.Publisher()
         self.add2short_term_srv = rospy.Service(
-            "/add2shortterm", Add2ShortTerm, self.add2short_term_srv_cb
+            "/add2shortterm", add2ShortTerm, self.add2short_term_srv_cb
         )
 
-    def add2short_term_srv_cb(self, req: Add2ShortTermRequest):
+    def add2short_term_srv_cb(self, req: add2ShortTermRequest):
         class_name = req.class_name.data
         position = np.array(req.position)
         timestamp = req.stamp
 
         self.add_to_short_term(class_name, position, timestamp)
 
-        return Add2ShortTermResponse(True)
+        return add2ShortTermResponse(True)
 
     def add_to_short_term(
         self, class_name: str, position: np.array, timestamp: rospy.Time
