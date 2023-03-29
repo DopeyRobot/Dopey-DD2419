@@ -1,7 +1,6 @@
 /data/
 dd2419_coco
 wandb 
-det_*
 data/
 # Byte-compiled / optimized / DLL files
 __pycache__/

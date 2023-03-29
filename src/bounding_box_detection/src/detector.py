@@ -24,6 +24,7 @@ class Detector(nn.Module):
         """
         super(Detector, self).__init__()
 
+        # self.features = models.mobilenet_v2(pretrained=True).features
         self.features = models.mobilenet_v2(pretrained=True).features
         # output of mobilenet_v2 will be 1280x15x20 for 480x640 input images
 
