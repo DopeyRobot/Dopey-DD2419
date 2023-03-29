@@ -296,7 +296,9 @@ class MemoryNode:
             self.new_names_pub.publish(new_names_msg)
 
     def instance_names_srv_cb(self, req: instanceNamesRequest):
-        return instanceNamesResponse(self.lt.instances_in_memory)
+        resp = instanceNamesResponse(self.lt.instances_in_memory)
+        print(resp)
+        return resp
 
     def add2short_term_srv_cb(self, req: add2ShortTermRequest):
         class_name = req.class_name.data
