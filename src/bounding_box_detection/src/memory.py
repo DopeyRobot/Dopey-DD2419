@@ -11,6 +11,7 @@ from bounding_box_detection.srv import (
     add2ShortTermRequest,
     add2ShortTermResponse,
 )
+from bounding_box_detection.msg import newNames
 
 
 class Locations(Enum):
@@ -255,6 +256,7 @@ class MemoryNode:
         distance_threshold=0.2,
         time_threshold=rospy.Duration(10),
     ) -> None:
+        self.f = 30
         self.db = ShortTermMemory(
             distance_threshold=distance_threshold, time_threshold=time_threshold
         )
@@ -262,10 +264,26 @@ class MemoryNode:
         self.buffer = Buffer(rospy.Duration(1200.0))
         self.tranform_listener = TransformListener(self.buffer)
         self.tranform_broadcaster = TransformBroadcaster()
-        #self.new_names_pub = rospy.Publisher()
+        self.new_names_pub = rospy.Publisher("/new_names", newNames, queue_size=10)
         self.add2short_term_srv = rospy.Service(
             "/add2shortterm", add2ShortTerm, self.add2short_term_srv_cb
         )
+
+    def run(self):
+        rate = rospy.Rate(self.f)
+        while not rospy.is_shutdown():
+            new_names = self.update_long_term(rospy.Time.now())
+            self.publish_new_names(new_names)
+            rate.sleep()
+
+    def publish_new_names(self, new_names):
+        if len(new_names) > 0:
+            new_names_msg = newNames()
+            for name in new_names:
+                name_msg = String()
+                name_msg.data = name
+                new_names_msg.names.append(name_msg)
+            self.new_names_pub.publish(new_names_msg)
 
     def add2short_term_srv_cb(self, req: add2ShortTermRequest):
         class_name = req.class_name.data
