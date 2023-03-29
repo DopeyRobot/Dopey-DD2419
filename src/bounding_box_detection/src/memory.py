@@ -268,6 +268,7 @@ class MemoryNode:
         self.add2short_term_srv = rospy.Service(
             "/add2shortterm", add2ShortTerm, self.add2short_term_srv_cb
         )
+        self.run()
 
     def run(self):
         rate = rospy.Rate(self.f)
@@ -291,7 +292,6 @@ class MemoryNode:
         timestamp = req.stamp
 
         self.add_to_short_term(class_name, position, timestamp)
-
         return add2ShortTermResponse(True)
 
     def add_to_short_term(
