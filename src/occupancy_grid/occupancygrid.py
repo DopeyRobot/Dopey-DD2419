@@ -181,7 +181,6 @@ class Occupancygrid:
             y_o = self.get_j_index(obstacle_map_pose.pose.position.y)
 
             traversed = self.raytrace((x_r, y_r), (x_o, y_o))
-            print("successful raytracing")
             for xt, yt in traversed:
                 self.grid[xt, yt] = self.freespace_value # FREE SPACE
             
