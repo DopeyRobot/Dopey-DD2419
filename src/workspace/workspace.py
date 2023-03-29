@@ -29,7 +29,7 @@ class Workspace():
         # self.dutyoff = False
         self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
         self.subscriber_plannertwist = rospy.Subscriber("motor_controller_preprocessor/twist", Twist, self.plannertwist_callback)
-        self.publisher_plannertiwst = rospy.Publisher("/motor_controller/twist", Twist)
+        self.publisher_motorcontroller = rospy.Publisher("/motor_controller/twist", Twist, queue_size= 10)
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
         self.plannertwist = Twist()
@@ -269,14 +269,15 @@ class Workspace():
 
 
             ## CHECK
-            if self.verbose:
-                rospy.loginfo(f"robot position:{self.robot_position} navgoal position:{self.navgoal_position}")
+            # if self.verbose:
+            rospy.loginfo(f"robot position:{self.robot_position} navgoal position:{self.navgoal_position}")
             if self.robot_position is not None and self.navgoal_position is not None:
                 self.robot_inside = self.checkpointinsidepoly(self.robot_position, self.pinf) #check robot position before boolean
+                print(f"robot_inside:{self.robot_inside}")
                 if self.robot_inside:
                     # robot is inside
                     # publish twist message created by planner node
-                    self.publisher_plannertiwst.publish(self.plannertwist) #this already uses the navgoal
+                    self.publisher_motorcontroller.publish(self.plannertwist) #this already uses the navgoal
                     if self.verbose:
                         rospy.loginfo("Robot Inside True")
                     #Robot inside poly
@@ -298,7 +299,7 @@ class Workspace():
                     twist_zero = Twist()
                     twist_zero.linear.x = 0
                     twist_zero.angular.z = 0
-                    self.publisher_plannertiwst.publish(twist_zero)
+                    self.publisher_motorcontroller.publish(twist_zero)
                     # such that the measured is zero, publish zero encoder values
                     encoder_zero = Encoders()
                     encoder_zero.delta_encoder_left = 0
