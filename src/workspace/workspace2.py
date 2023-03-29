@@ -8,6 +8,7 @@ import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from workspace.srv import PolyCheck
 
 class Workspace():
     def __init__(self):
@@ -30,6 +31,8 @@ class Workspace():
         self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
+
+        self.polygon_service = rospy.Service("polygon_service", PolyCheck, self.polycheck)
 
 
         self.robot_inside = True #will approach
@@ -248,6 +251,12 @@ class Workspace():
 
         # print(point_list)
 
+    def polycheck(self, req_pos1, req_pos2):
+        # returns a boolean value which tells you whether the point of interest is inside or outside the polygon
+        # req_pos1 = point of interest
+        # req_pos2 = point outside poly for comparison
+        # float64
+        return self.checkpointinsidepoly(req_pos1, req_pos2)
 
     def run(self):
         while not rospy.is_shutdown():

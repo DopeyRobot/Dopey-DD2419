@@ -1,0 +1,4 @@
+float64[] point #point of interest
+float64[] inf#point outside of polygon for comparison 
+---
+bool poly_bool
