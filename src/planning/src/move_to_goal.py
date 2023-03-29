@@ -38,10 +38,10 @@ class move_to_goal():
 
     def __init__(self):
         self.ang1PID = PID(1e-1, 0.0, 0.0)
-        self.distPID = PID(1e-1, 0.0, 0.0)
+        self.distPID = PID(3e-1, 0.0, 0.0)
         self.ang2PID = PID(1e-1, 0.0, 0.0)
 
-        self.threshold_ang1 = 0.10
+        self.threshold_ang1 = 0.05
         self.threshold_ang2 = 0.05
         self.threshold_dist = 0.05
  
@@ -138,7 +138,6 @@ class move_to_goal():
                 #current_angel = 0.0
                 current_angel = self.get_current_pose().pose.orientation.w
                 error_ang2 = current_angel - self.goal_theta
-                print(error_ang2)
                 
                 ang1out = self.ang1PID(error_ang1)
                 distout = self.distPID(error_dist)
@@ -152,7 +151,6 @@ class move_to_goal():
                     print("Adjusting dist", error_dist)
                     self.twist.linear.x = distout*np.exp(-np.abs(error_ang1)*10)
                     
-
                     if error_dist < self.threshold_dist and abs(error_ang1) < self.threshold_ang1:
                         rospy.loginfo("Correct pose!")
                         self.twist.angular.z = 0
@@ -161,18 +159,18 @@ class move_to_goal():
                         distout = 0
                         self.arrived2point = True
                 else:
-                    if abs(error_ang2) > self.threshold_ang2:
-                        print("Ajusting ang2", error_ang2)
-                        self.twist.linear.x = 0.0
-                        self.twist.angular.z = ang2out
+                    # if abs(error_ang2) > self.threshold_ang2:
+                    #     print("Ajusting ang2", error_ang2)
+                    #     self.twist.linear.x = 0.0
+                    #     self.twist.angular.z = ang2out
 
-                    else:
-                        rospy.loginfo("Done")
-                        self.twist.linear.x = 0.0
-                        self.twist.angular.z = 0.0
+                    # else:
+                    rospy.loginfo("Done")
+                    self.twist.linear.x = 0.0
+                    self.twist.angular.z = 0.0
 
-                        self.ready_for_pose.data = True
-                        self.ready_for_pose_publisher.publish(self.ready_for_pose)
+                    self.ready_for_pose.data = True
+                    self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
 
                 self.publisher_twist.publish(self.twist)

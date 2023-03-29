@@ -41,7 +41,7 @@ class give_path():
                 
                 #Kalla på function som kollar vart man är och om det är rätt skicka success.
 
-                self.pose_to_send = 0
+                #self.pose_to_send = 0
                 self.ready_for_path = True
                 self.ready_for_new_path.publish(self.ready_for_path)
 
