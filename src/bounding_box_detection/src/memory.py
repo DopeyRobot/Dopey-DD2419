@@ -3,6 +3,13 @@ from enum import Enum
 import numpy as np
 from dataclasses import dataclass
 import rospy
+from tf2_ros import Buffer, TransformListener, TransformBroadcaster
+from std_msgs.msg import String
+from bounding_box_detection.srv import (
+    Add2ShortTerm,
+    Add2ShortTermRequest,
+    Add2ShortTermResponse,
+)
 
 
 class Locations(Enum):
@@ -10,6 +17,7 @@ class Locations(Enum):
     BOX = "box"
     GRIPPER = "gripper"
     TRAY = "tray"
+
 
 @dataclass
 class LongTermInstance:
@@ -31,7 +39,9 @@ class ShortTermMemory:
     """The detection buffer is a filter to reject random false detections.
     It keeps track of how many times an instance has been detected and how many times a class has been detected."""
 
-    def __init__(self, distance_threshold=0.05, time_threshold= rospy.Duration(10)) -> None:
+    def __init__(
+        self, distance_threshold=0.05, time_threshold=rospy.Duration(10)
+    ) -> None:
         self.instances_detected_counter = (
             Counter()
         )  # keeps track of how many times the same instance has been detected
@@ -135,7 +145,7 @@ class ShortTermMemory:
 class LongTermMemory:
     """Stores the objects that have been detected more than N times in the DetectionBuffer"""
 
-    def __init__(self, frames_needed_for_reconition = 5, distance_threshold = 0.2) -> None:
+    def __init__(self, frames_needed_for_reconition=5, distance_threshold=0.2) -> None:
         self.class_counter = (
             Counter()
         )  # keeps track of how many times a new element of every class has been detected
@@ -215,57 +225,101 @@ class LongTermMemory:
                     new_names.append(new_name)
         return new_names
 
-              #!!!!NCOMMENT THE FOLLOWING LINES ONCE THE JAMMIN BRANCH AND THIS ONE ARE MERGED!!!!
-                # # play sounds every time we either add or update an instance in the long term memory
-                # try:
-                #    play_tune = rospy.ServiceProxy('playTune', AudioService)
-                #    play_tune(self.get_class_name(db_instance) 
-                # # TODO: "+ color" # e.g. for plushies: oakie, kiki, binky, ... but for balls & cubes: blueball, greenball, ..., greencube, woodencube, ...#
-                #     )
-                # except rospy.ServiceException as e:
-                #     print("Service call failed: %s"%e)
-    
+        #!!!!NCOMMENT THE FOLLOWING LINES ONCE THE JAMMIN BRANCH AND THIS ONE ARE MERGED!!!!
+        # # play sounds every time we either add or update an instance in the long term memory
+        # try:
+        #    play_tune = rospy.ServiceProxy('playTune', AudioService)
+        #    play_tune(self.get_class_name(db_instance)
+        # # TODO: "+ color" # e.g. for plushies: oakie, kiki, binky, ... but for balls & cubes: blueball, greenball, ..., greencube, woodencube, ...#
+        #     )
+        # except rospy.ServiceException as e:
+        #     print("Service call failed: %s"%e)
+
     def __len__(self):
         return len(self.instances_in_memory)
-    
+
     def __getitem__(self, key):
-        name= self.instances_in_memory[key]
+        name = self.instances_in_memory[key]
         return LongTermInstance(
             name,
             self.positions[name],
             self.last_time_seen[name],
         )
 
+
+class MemoryNode:
+    def __init__(
+        self,
+        frames_needed_for_reconition=5,
+        distance_threshold=0.2,
+        time_threshold=rospy.Duration(10),
+    ) -> None:
+        self.db = ShortTermMemory(
+            distance_threshold=distance_threshold, time_threshold=time_threshold
+        )
+        self.lt = LongTermMemory(frames_needed_for_reconition, distance_threshold)
+        self.buffer = Buffer(rospy.Duration(1200.0))
+        self.tranform_listener = TransformListener(self.buffer)
+        self.tranform_broadcaster = TransformBroadcaster()
+        self.new_names_pub = rospy.Publisher()
+        self.add2short_term_srv = rospy.Service(
+            "/add2shortterm", Add2ShortTerm, self.add2short_term_srv_cb
+        )
+
+    def add2short_term_srv_cb(self, req: Add2ShortTermRequest):
+        class_name = req.class_name.data
+        position = np.array(req.position)
+        timestamp = req.stamp
+
+        self.add_to_short_term(class_name, position, timestamp)
+
+        return Add2ShortTermResponse(True)
+
+    def add_to_short_term(
+        self, class_name: str, position: np.array, timestamp: rospy.Time
+    ):
+        self.db.add(class_name, position, timestamp)
+
+    def update_long_term(self, timestamp):
+        new_names = self.lt.checkForObjectsToRemember(timestamp, self.db)
+        return new_names
+
+
 if __name__ == "__main__":
-    import time
-    db = ShortTermMemory()
-    lt = LongTermMemory(1, 0.05)
-    start = time.time()
-    print(db.get_class_name("person_0"))
-    print(db.get_next_instance_name("person"))
-    db.add("person", np.array([0, 0, 0]), 4)
-    db.add("person", np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    db.add("person", np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    db.add("person", -np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    db.add("kiki", np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    db.add("kiki", np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    db.add("kiki", -np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    lt.checkForObjectsToRemember(4, db)
-    print(lt.instances_in_memory)
-    db.add("kiki", np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    db.add("kiki", np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    db.add("kiki", -np.array([0.1, 0.1, 0.1]), 4)
-    print(db.instances_detected_counter)
-    lt.checkForObjectsToRemember(4, db)
-    print(lt.instances_in_memory)
-    print(f"Time: {time.time()-start}")
-    for instance in lt:
-        print(instance)
+    # import time
+
+    # db = ShortTermMemory()
+    # lt = LongTermMemory(1, 0.05)
+    # start = time.time()
+    # print(db.get_class_name("person_0"))
+    # print(db.get_next_instance_name("person"))
+    # db.add("person", np.array([0, 0, 0]), 4)
+    # db.add("person", np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # db.add("person", np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # db.add("person", -np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # db.add("kiki", np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # db.add("kiki", np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # db.add("kiki", -np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # lt.checkForObjectsToRemember(4, db)
+    # print(lt.instances_in_memory)
+    # db.add("kiki", np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # db.add("kiki", np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # db.add("kiki", -np.array([0.1, 0.1, 0.1]), 4)
+    # print(db.instances_detected_counter)
+    # lt.checkForObjectsToRemember(4, db)
+    # print(lt.instances_in_memory)
+    # print(f"Time: {time.time()-start}")
+    # for instance in lt:
+    #     print(instance)
+
+    rospy.init_node("memory_node")
+    memory_node = MemoryNode()
+    rospy.spin()
