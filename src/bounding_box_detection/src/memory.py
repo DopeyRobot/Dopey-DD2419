@@ -46,7 +46,7 @@ class ShortTermMemory:
     It keeps track of how many times an instance has been detected and how many times a class has been detected."""
 
     def __init__(
-        self, distance_threshold=0.05, time_threshold=rospy.Duration(10)
+        self, distance_threshold=0.05, time_threshold=rospy.Duration(5)
     ) -> None:
         self.instances_detected_counter = (
             Counter()
@@ -227,6 +227,9 @@ class LongTermMemory:
                     db_instance,
                     db.get_instance_position(db_instance),
                 )
+                if self.get_class_name(db_instance).lower() == "box":
+                    # call box rosservice
+                    pass
                 if new_name is not None:
                     new_names.append(new_name)
         return new_names

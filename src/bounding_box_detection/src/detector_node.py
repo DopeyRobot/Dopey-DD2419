@@ -97,7 +97,7 @@ class BoundingBoxNode:
         )
         self.K = np.array(self.camera_info.K).reshape(3, 3)
 
-        self.short_term_memory = ShortTermMemory()
+        self.short_term_memory = ShortTermMemory(distance_threshold = 0.2, time_threshold=rospy.Duration(3))
         self.long_term_memory = LongTermMemory(frames_needed_for_reconition=15)
         self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
         self.play_tune_service = rospy.ServiceProxy("/playTune", playTune)
