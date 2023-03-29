@@ -51,7 +51,7 @@
 
 
 	<!-- launch planning nodes -->
-	<node pkg="planning" type="move_to_goal.py" name="move_to_goal_node" output="screen" />
+	<!-- <node pkg="planning" type="move_to_goal.py" name="move_to_goal" output="screen" /> -->
 	<!--<node pkg="planning" type="give_path.py" name="give_path" output="screen" /> -->
 	<!--<node pkg="planning" type="rrt.py" name="rrt" output="screen" /> -->
 	

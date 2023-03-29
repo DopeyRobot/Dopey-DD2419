@@ -5,8 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1/Frames1
-        - /LaserScan1
+        - /TF1
+        - /Pose1
       Splitter Ratio: 0.7439024448394775
     Tree Height: 140
   - Class: rviz/Selection
@@ -106,6 +106,8 @@ Visualization Manager:
         end_effector_frame:
           Value: true
         imu_link:
+          Value: false
+        landmark1:
           Value: false
         map:
           Value: false
@@ -218,19 +220,19 @@ Visualization Manager:
       Class: rviz/Pose
       Color: 255; 25; 0
       Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
+      Head Length: 0.05000000074505806
+      Head Radius: 0.009999999776482582
       Name: Pose
       Queue Size: 10
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
+      Shaft Length: 0.10000000149011612
+      Shaft Radius: 0.004999999888241291
       Shape: Arrow
-      Topic: /move_base_simple/goal
+      Topic: /goal
       Unreliable: false
       Value: true
     - Alpha: 0.699999988079071
       Class: rviz/Map
-      Color Scheme: map
+      Color Scheme: costmap
       Draw Behind: false
       Enabled: true
       Name: Map
@@ -265,6 +267,30 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /path_topic
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -302,9 +328,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.1359333097934723
-        Y: 0.032816916704177856
-        Z: 3.0994415283203125e-06
+        X: 0.5282993316650391
+        Y: -0.10572406649589539
+        Z: 3.2186508178710938e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -312,7 +338,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 0.4097978174686432
       Target Frame: <Fixed Frame>
-      Yaw: 3.315415859222412
+      Yaw: 3.880420684814453
     Saved: ~
 Window Geometry:
   ArUco:

@@ -10,8 +10,8 @@ class send_goal():
         self.publisher_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=10)
 
         self.goal = PoseStamped()
-        self.goal_pose_x = np.random.random()
-        self.goal_pose_y = np.random.random()
+        self.goal_pose_x = np.random.random()*2
+        self.goal_pose_y = np.random.random()*2
 
         self.run()
 
@@ -22,7 +22,7 @@ class send_goal():
 
             self.goal.pose.position.x = self.goal_pose_x
             self.goal.pose.position.y = self.goal_pose_y
-
+            self.goal.header.frame_id = "map"
             self.publisher_goal.publish(self.goal)
 
 
