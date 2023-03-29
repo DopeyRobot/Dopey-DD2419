@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 import math
-from tf2_ros import Buffer, TransformListener, TransformStamped, TransformBroadcaster
+import numpy as np
 import tf_conversions
 import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped, Twist
@@ -10,7 +10,7 @@ from tf2_geometry_msgs import PoseStamped
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
-import numpy as np
+from tf2_ros import Buffer, TransformListener, TransformStamped, TransformBroadcaster
 
 class PID:
     def __init__(self, P:float = 0.0, I:float = 0.0, D:float=0.0) -> None:
@@ -34,12 +34,9 @@ class PID:
         return command
 
 
-        
-
 class move_to_goal():
 
     def __init__(self):
-
         self.ang1PID = PID(1e-1, 0.0, 0.0)
         self.distPID = PID(1e-1, 0.0, 0.0)
         self.ang2PID = PID(1e-1, 0.0, 0.0)
@@ -75,8 +72,8 @@ class move_to_goal():
         self.goal_subscriber = rospy.Subscriber('/goal', PoseStamped, self.goal_callback) 
         self.odom_subscriber = rospy.Subscriber('/odometry', Odometry, self.odom_callback) 
 
-        self.ready_for_pose.data = True # Maybe not needed?
-        self.ready_for_pose_publisher.publish(self.ready_for_pose)
+        #self.ready_for_pose.data = True # Maybe not needed?
+        #self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
         self.arrived2point = False
         self.run() 
@@ -95,16 +92,30 @@ class move_to_goal():
         print(self.goal_pose.pose)
 
         self.arrived2point = False
-        
+
+    def get_current_pose(self):    
+
+        robot_pose = PoseStamped()
+        robot_pose.header.stamp = rospy.Time.now()
+
+        transform_to_map:TransformStamped= self.tf_buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  
+                 
+        robot_pose.pose.position.z = transform_to_map.transform.translation.z
+        robot_pose.pose.position.x = transform_to_map.transform.translation.x
+        robot_pose.pose.position.y = transform_to_map.transform.translation.y
+        robot_pose.pose.orientation.w = transform_to_map.transform.rotation.w
+        robot_pose.pose.orientation.x = transform_to_map.transform.rotation.x
+        robot_pose.pose.orientation.y = transform_to_map.transform.rotation.y
+        robot_pose.pose.orientation.z = transform_to_map.transform.rotation.z
+
+        robot_pose.header.frame_id = "map"
+
+        return robot_pose 
 
     def odom_callback(self, msg):
         self.odom = msg
         odom_q = self.odom.pose.pose.orientation
         (_, _, self.odom_theta) = tf_conversions.transformations.euler_from_quaternion([odom_q.w, odom_q.x, odom_q.y, odom_q.z])
-
-
-
-        
 
 
     def run(self):
@@ -123,8 +134,11 @@ class move_to_goal():
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
-                current_angel = 0.0
+
+                #current_angel = 0.0
+                current_angel = self.get_current_pose().pose.orientation.w
                 error_ang2 = current_angel - self.goal_theta
+                print(error_ang2)
                 
                 ang1out = self.ang1PID(error_ang1)
                 distout = self.distPID(error_dist)

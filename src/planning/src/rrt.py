@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Path
-from buildmap import map_data
 from typing import List, Tuple
 
 class RRTNode:
@@ -30,21 +29,24 @@ class RRTNode:
     def get_start(self):    
 
         robot_pose = PoseStamped()
+        robot_pose.header.stamp = rospy.Time.now()
+        base_link_origin = PoseStamped()
+        base_link_origin.header.stamp = robot_pose.header.stamp
 
+        transform_to_map:TransformStamped= self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  
+        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
-       
-        transform_to_map:TransformStamped= self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))           
-        robot_pose.pose.position.z = transform_to_map.transform.translation.z
-        robot_pose.pose.position.x = transform_to_map.transform.translation.x
-        robot_pose.pose.position.y = transform_to_map.transform.translation.y
-        robot_pose.pose.orientation.w = transform_to_map.transform.rotation.w
-        robot_pose.pose.orientation.x = transform_to_map.transform.rotation.x
-        robot_pose.pose.orientation.y = transform_to_map.transform.rotation.y
-        robot_pose.pose.orientation.z = transform_to_map.transform.rotation.z
+        robot_pose.pose.position.z = baseInMapPose.pose.position.z
+        robot_pose.pose.position.x = baseInMapPose.pose.position.x
+        robot_pose.pose.position.y = baseInMapPose.pose.position.y
+        robot_pose.pose.orientation.w = baseInMapPose.pose.orientation.w
+        robot_pose.pose.orientation.x = baseInMapPose.pose.orientation.x
+        robot_pose.pose.orientation.y = baseInMapPose.pose.orientation.y
+        robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
 
         robot_pose.header.frame_id = "map"
-        robot_pose.header.stamp = rospy.Time.now()
-
+        print('get_start',robot_pose.pose.position.x, robot_pose.pose.position.y)
+        
         return robot_pose
         
 
@@ -52,13 +54,8 @@ class RRTPlanner:
     def __init__(self, start, goal, num_iterations=100, step_size=2, n_steps=1):
         
         self.start = RRTNode(start[0], start[1])
-
-        # # try:
         self.start.x = self.start.get_start().pose.position.x
         self.start.y = self.start.get_start().pose.position.y
-        # except:
-        #self.start.x = self.start.get_start.p
-        #self.start.y = self.start.get_start()[1]
 
         self.goal = goal
 
@@ -82,6 +79,7 @@ class RRTPlanner:
         self.fig, self.ax = plt.subplots()
 
         self.RRT: List[RRTNode] = [self.start]
+        print(self.start.x, self.start.y)
 
     def get_map_callback(self, msg):
         self.map_data = msg
@@ -93,8 +91,8 @@ class RRTPlanner:
     def sample_random(self) -> Tuple[int]:
         if random.random() > self.goal_sample_prob:
             return (
-                np.random.uniform(0, map_data.shape[0]),
-                np.random.uniform(0, map_data.shape[1]),
+                np.random.uniform(0, self.occupancy_grid.shape[0]),
+                np.random.uniform(0, self.occupancy_grid.shape[1]),
             )
         else:
             return self.goal
@@ -198,7 +196,6 @@ class RRTPlanner:
                 dx = next_pose.pose.position.x - pose.pose.position.x
 
                 orientation = np.arctan2(dy, dx)
-                #print(orientation)
                 quaternian = tf_conversions.transformations.quaternion_from_euler(0,0,orientation)
 
                 pose.pose.orientation.w = quaternian[3]
