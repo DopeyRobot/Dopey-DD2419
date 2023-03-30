@@ -7,7 +7,10 @@
 	<!-- launch the odometry node -->
 	<!-- <node pkg="odometry" type="odometry.py" name="odometry_node" output="screen" /> -->
 	<!-- launch the pointcloud object detection node -->
-	<!-- <node pkg="object_detection" type="cloud_detection.py" name="cloud_object_detection" output="screen"/> -->
+	<node pkg="object_detection" type="cloud_detection.py" name="cloud_object_detection" output="screen"/>
+
+		<!-- launch the aruco detector for marker 500 and RViz dissplayer node -->
+	<node pkg="aruco_detection" type="display_marker500.py" name="display_marker500_node" output="screen" />
 
 	<!-- launch the aruco detector and RViz dissplayer node -->
 	<node pkg="aruco_detection" type="display_markers.py" name="display_markers_node" output="screen" />
@@ -16,11 +19,26 @@
 		<remap from="/camera_info" to="/camera/color/camera_info"/>
 		<remap from="/image" to="/camera/color/image_raw"/>
 		
+		<!-- <param name="fiducial_len_override" value="500: 0.175"/> -->
 		<param name="image_is_rectified" value="True"/>
 		<param name="marker_size"        value="0.06"/> <!-- in m -->
 		<param name="reference_frame"    value="camera_color_optical_frame"/>   <!-- frame in which the marker pose will be refered -->
 		<param name="camera_frame"       value="camera_color_optical_frame"/>
+	
 	</node>
+
+	<node name="aruco500" pkg="aruco_ros" type="marker_publisher">
+		<remap from="/camera_info" to="/camera/color/camera_info"/>
+		<remap from="/image" to="/camera/color/image_raw"/>
+		
+		<!-- <param name="fiducial_len_override" value="500: 0.175"/> -->
+		<param name="image_is_rectified" value="True"/>
+		<param name="marker_size"        value="0.175"/> <!-- in m -->
+		<param name="reference_frame"    value="camera_color_optical_frame"/>   <!-- frame in which the marker pose will be refered -->
+		<param name="camera_frame"       value="camera_color_optical_frame"/>
+	</node>
+
+
 
 	<node pkg="workspace" type ="workspace2.py" name="workspace" output="screen"/>
 	
