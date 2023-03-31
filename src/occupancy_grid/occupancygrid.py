@@ -14,6 +14,7 @@ import tf2_geometry_msgs
 from math import fabs
 from map_msgs.msg import OccupancyGridUpdate
 import math
+from workspace.srv import PolyCheck
 
 
 
@@ -57,11 +58,11 @@ class Occupancygrid:
         self.x_n = int(1 / self.resolution)
 
         self.occupied_value = 1
-        self.c_space=2
+        self.c_space = 2
         self.freespace_value = 0
         self.uknownspace_value = -1
-        self.radius = 1
-
+        self.radius = 1 
+ 
         self.xf_list = []
         self.yf_list = []
 
@@ -77,6 +78,8 @@ class Occupancygrid:
         self.timeout = rospy.Duration(1)
 
         self.pcd = o3d.geometry.PointCloud()
+
+        self.polygon_client = rospy.ServiceProxy("/polygon_service", PolyCheck)
 
         self.robot_transform = TransformStamped()
         self.gotcb = False  
@@ -104,7 +107,7 @@ class Occupancygrid:
         step = (self.x_high - self.x_low) / self.x_cells
         x_pos = (
             self.x_low + step * i + step / 2
-        )  # added step / 2 so that; the coordinate is in the middle of the cell
+        ) 
         return x_pos
 
     def get_y_pos(self, j):
@@ -163,6 +166,12 @@ class Occupancygrid:
     
 
     def update_map(self):
+        for x in self.x_cells:
+            for y in self.y_cells:
+                if not self.polygon_client(self.get_x_pos(x), self.get_y_pos(y)):
+                    #continuous point is outside polygon
+                    self.grid[x, y] = self.occupied_value
+
         self.transform_camera2map = self.buffer.lookup_transform(self.target_frame, self.source_frame, rospy.Time(0), self.timeout)
         x_r = self.get_i_index(self.transform_camera2map.transform.translation.x)
         y_r = self.get_j_index(self.transform_camera2map.transform.translation.y)
@@ -285,6 +294,9 @@ class Occupancygrid:
             self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
 
 
+for x in self.x_cells:
+    for y in self.y_cells:
+        self.get_x_pose(x), 
 
     def run(self):
         while not rospy.is_shutdown():

@@ -8,6 +8,7 @@ import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from workspace.srv import PolyCheck
 
 class Workspace():
     def __init__(self):
@@ -30,6 +31,7 @@ class Workspace():
         self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
+        self.polygon_service = rospy.Service("/polygon_service", PolyCheck, self.callback_polycheck)
 
 
         self.robot_inside = True #will approach
@@ -38,6 +40,7 @@ class Workspace():
         
         self.navgoalnew = False
         self.run()
+
     
     def navgoal_callback(self, navgoalmsg):
         self.navgoal = PoseStamped()
@@ -214,6 +217,12 @@ class Workspace():
             point_type.y = vertice[1]
             point_list.append(point_type)
         return point_list
+
+    def callback_polycheck(self, req):
+        #points need to be in continuous space
+        p_check = req.point_of_interest
+        p_inf = req.point_at_infinity
+        return self.checkpointinsidepoly(p_check, p_inf)
     
     # def polygoncentroid(self):
     #     #centroid of non self intersecting polygon
