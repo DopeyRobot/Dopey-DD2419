@@ -14,7 +14,7 @@ import tf2_geometry_msgs
 from math import fabs
 from map_msgs.msg import OccupancyGridUpdate
 import math
-from workspace.srv import PolyCheck
+from workspace.srv import PolyCheck, PolyCheckRequest
 
 
 
@@ -23,22 +23,7 @@ class Occupancygrid:
         self.f = 10
         self.rate = rospy.Rate(self.f)
 
-        self.publisher_occupancygrid = rospy.Publisher(
-            "/occupancygrid", OccupancyGrid, queue_size=10
-        )
 
-        self.sub_laserscan = rospy.Subscriber(
-            "/scan", LaserScan, self.scan_callback
-        )
-
-        self.sub_workspace = rospy.Subscriber(
-            "/workspace", PolygonStamped, self.workspace_callback
-        )
-        self.publisher_mapupdates= rospy.Publisher(
-            "map_updates", OccupancyGridUpdate, queue_size=10
-            )
-        
-        self.laserscan = LaserScan()
 
 
         self.vertices = []
@@ -53,6 +38,7 @@ class Occupancygrid:
         self.x_cells = 0
         self.y_cells = 0
         self.resolution = 0.025 # m per cell 
+        self.map_metadata = MapMetaData()
 
         self.y_n = int(1 / self.resolution)
         self.x_n = int(1 / self.resolution)
@@ -62,9 +48,9 @@ class Occupancygrid:
         self.freespace_value = 0
         self.uknownspace_value = -1
         self.radius = 1 
- 
-        self.xf_list = []
-        self.yf_list = []
+
+
+        self.pinf = [1000.0, 1000.0]
 
 
         self.grid = np.ones((2, 2)) 
@@ -82,10 +68,44 @@ class Occupancygrid:
         self.polygon_client = rospy.ServiceProxy("/polygon_service", PolyCheck)
 
         self.robot_transform = TransformStamped()
-        self.gotcb = False  
-        rospy.wait_for_message("/workspace", PolygonStamped)
+        self.gotcb = False
+
+        self.publisher_occupancygrid = rospy.Publisher(
+            "/occupancygrid", OccupancyGrid, queue_size=10
+        )
+
+        self.sub_laserscan = rospy.Subscriber(
+            "/scan", LaserScan, self.scan_callback
+        )
+
+        polygon = rospy.wait_for_message("/workspace", PolygonStamped)
+        self.workspace_callback(polygon)
+        self.setup_metadata()
+        for x in range(self.x_cells):
+            for y in range(self.y_cells):
+                poly_req = PolyCheckRequest()
+                poly_req.point_at_infinity = self.pinf
+                poly_req.point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
+                poly_resp = self.polygon_client.call(poly_req)
+
+                if not poly_resp.poly_bool:
+                    #continuous point is outside polygon
+                    self.grid[x, y] = self.occupied_value
         self.gotcb=True
+
+
+
+        self.laserscan = LaserScan()
         self.run()
+
+    def setup_metadata(self):
+        self.map_metadata.resolution = self.resolution #meters per cell 
+        self.map_metadata.width = self.x_cells # how many cells
+        self.map_metadata.height = self.y_cells # how many cells 
+        originPose = Pose()
+        originPose.position.x = self.x_low 
+        originPose.position.y = self.y_low
+        self.map_metadata.origin = originPose
 
     def get_i_index(self, x):
         index = math.floor((x - self.x_low)/self.resolution) 
@@ -166,11 +186,6 @@ class Occupancygrid:
     
 
     def update_map(self):
-        for x in self.x_cells:
-            for y in self.y_cells:
-                if not self.polygon_client(self.get_x_pos(x), self.get_y_pos(y)):
-                    #continuous point is outside polygon
-                    self.grid[x, y] = self.occupied_value
 
         self.transform_camera2map = self.buffer.lookup_transform(self.target_frame, self.source_frame, rospy.Time(0), self.timeout)
         x_r = self.get_i_index(self.transform_camera2map.transform.translation.x)
@@ -179,7 +194,10 @@ class Occupancygrid:
         angles = np.linspace(self.laserscan.angle_min, self.laserscan.angle_max, N)
         for dist, angle in list(zip(self.laserscan.ranges, angles))[::10]:
             if np.isnan(dist):
-                continue
+                if dist >=0:
+                    dist = self.laserscan.range_max
+                else:
+                    dist = self.laserscan.range_min
             distancePoseStamped = PoseStamped()
             distancePoseStamped.pose.position.x = dist * np.cos(angle) #these need to be rotated into the map frame 
             distancePoseStamped.pose.position.y = dist * np.sin(angle)
@@ -194,18 +212,8 @@ class Occupancygrid:
                 self.grid[xt, yt] = self.freespace_value # FREE SPACE
             
             self.grid[x_o, y_o] = self.occupied_value 
-            self.xf_list.append(x_o)
-            self.yf_list.append(y_o)
 
-            
-        
-        update = OccupancyGridUpdate()
-        update.x = min(self.xf_list)
-        update.y = min(self.yf_list)
-        update.width = max(self.xf_list) - update.x + 1
-        update.height = max(self.yf_list) - update.y + 1
-        update.data = []
-        return update
+
     def inflate_map(self, grid_map):
         """For C only!
         Inflate the map with self.c_space assuming the robot
@@ -255,21 +263,9 @@ class Occupancygrid:
         return grid_map
     def scan_callback(self, msg):
         self.laserscan = msg
-        metadata = MapMetaData()
-        update = self.update_map()
-        self.publisher_mapupdates.publish(update)
-        metadata.resolution = self.resolution #meters per cell 
-        metadata.width = self.x_cells # how many cells
-        metadata.height = self.y_cells # how many cells 
-        originPose = Pose()
-
-        originPose.position.x = self.x_low 
-        originPose.position.y = self.y_low
-        metadata.origin = originPose
-
-
+        self.update_map()
         occupancygrid_data = OccupancyGrid()
-        occupancygrid_data.info = metadata
+        occupancygrid_data.info = self.map_metadata
         header =  Header()
         header.frame_id = "map"
         header.stamp = rospy.Time.now()
@@ -291,12 +287,8 @@ class Occupancygrid:
         self.x_cells = int((self.x_high - self.x_low) /self.resolution) #cells / m
         self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
         if not self.gotcb:
+            print("reset map")
             self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
-
-
-for x in self.x_cells:
-    for y in self.y_cells:
-        self.get_x_pose(x), 
 
     def run(self):
         while not rospy.is_shutdown():

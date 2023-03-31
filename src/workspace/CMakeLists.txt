@@ -57,6 +57,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs message_generation
 add_service_files(
   FILES
   PolyCheck.srv
+  OccupancyProcess.srv
 )
 
 ## Generate actions in the 'action' folder
