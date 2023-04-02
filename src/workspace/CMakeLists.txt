@@ -10,7 +10,7 @@ project(workspace)
 # find_package(catkin REQUIRED COMPONENTS
 #   rospy
 # )
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs message_generation)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs nav_msgs message_generation)
 
 
 ## System dependencies are found with CMake's conventions
@@ -58,6 +58,7 @@ add_service_files(
   FILES
   PolyCheck.srv
   OccupancyProcess.srv
+  OccupancyCheck.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -71,6 +72,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
+  nav_msgs
 )
 
 ################################################

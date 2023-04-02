@@ -14,7 +14,10 @@ import tf2_geometry_msgs
 from math import fabs
 from map_msgs.msg import OccupancyGridUpdate
 import math
-from workspace.srv import PolyCheck, PolyCheckRequest
+from workspace.srv import PolyCheck, PolyCheckRequest, OccupancyCheck, OccupancyCheckRequest
+# from std_srvs.srv import Empty
+from std_msgs.msg import Empty
+
 
 
 
@@ -66,6 +69,7 @@ class Occupancygrid:
         self.pcd = o3d.geometry.PointCloud()
 
         self.polygon_client = rospy.ServiceProxy("/polygon_service", PolyCheck)
+        self.occupancy_client = rospy.ServiceProxy("/occupancy_service", OccupancyCheck)
 
         self.robot_transform = TransformStamped()
         self.gotcb = False
@@ -81,16 +85,19 @@ class Occupancygrid:
         polygon = rospy.wait_for_message("/workspace", PolygonStamped)
         self.workspace_callback(polygon)
         self.setup_metadata()
-        for x in range(self.x_cells):
-            for y in range(self.y_cells):
-                poly_req = PolyCheckRequest()
-                poly_req.point_at_infinity = self.pinf
-                poly_req.point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
-                poly_resp = self.polygon_client.call(poly_req)
 
-                if not poly_resp.poly_bool:
-                    #continuous point is outside polygon
-                    self.grid[x, y] = self.occupied_value
+        self.occupancy_array = self.occupancy_client(Empty())
+        self.occupancy_grid = np.array(self.occupancy_array).reshape(self.x_cells, self.y_cells) # call workspace callback first!
+        self.grid[self.occupancy_grid == self.occupied_value] = self.occupied_value
+        # for x in range(self.x_cells):
+        #     for y in range(self.y_cells):
+        #         poly_req = PolyCheckRequest()
+        #         poly_req.point_at_infinity = self.pinf
+        #         poly_req.point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
+        #         poly_resp = self.polygon_client.call(poly_req)
+        #         if not poly_resp.poly_bool:
+        #             #continuous point is outside polygon
+        #             self.grid[x, y] = self.occupied_value
         self.gotcb=True
 
 
@@ -209,7 +216,8 @@ class Occupancygrid:
 
             traversed = self.raytrace((x_r, y_r), (x_o, y_o))
             for xt, yt in traversed:
-                self.grid[xt, yt] = self.freespace_value # FREE SPACE
+                if not self.occupancy_grid[xt, yt] == self.occupied_value:
+                    self.grid[xt, yt] = self.freespace_value # FREE SPACE
             
             self.grid[x_o, y_o] = self.occupied_value 
 

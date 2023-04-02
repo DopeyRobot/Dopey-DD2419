@@ -1,0 +1,3 @@
+std_msgs/Empty resp
+---
+int64[] occupancy_array

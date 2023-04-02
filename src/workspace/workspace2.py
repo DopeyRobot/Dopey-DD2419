@@ -8,7 +8,7 @@ import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from workspace.srv import PolyCheck, PolyCheckRequest
+from workspace.srv import PolyCheck, PolyCheckRequest, OccupancyCheck, OccupancyCheckRequest
 
 class Workspace():
     def __init__(self):
@@ -22,7 +22,22 @@ class Workspace():
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
         self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.odom_callback)
         self.frame_id = "map"
+
         self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        xs, ys = zip(*self.vertices_list)
+        self.x_high = max(xs)
+        self.x_low = min(xs)
+        self.y_low = min(ys)
+        self.y_high = max(ys)
+        print(self.x_high, self.x_low, self.y_low, self.y_high)
+        self.resolution = 0.025 # m per cell 
+        self.uknownspace_value = -1
+        self.occupied_value = 1
+        self.x_cells = int((self.x_high - self.x_low) /self.resolution) #cells / m
+        self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
+        self.occupancy_grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
+
+
         # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
 
         self.vertices = self.vertices_df.values
@@ -32,13 +47,28 @@ class Workspace():
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
         self.polygon_service = rospy.Service("/polygon_service", PolyCheck, self.callback_polycheck)
-
+        self.occupancy_service = rospy.Service("/occupancy_service", OccupancyCheck, self.callback_occupancycheck)
         self.robot_inside = True #will approach
         self.navgoal_inside = True #will aproach
         self.pinf = [10000, 10000] #point can be anywhere
         
+
         self.navgoalnew = False
         self.run()
+
+    def get_x_pos(self, i):
+        step = (self.x_high - self.x_low) / self.x_cells
+        x_pos = (
+            self.x_low + step * i + step / 2
+        ) 
+        return x_pos
+
+    def get_y_pos(self, j):
+        step = (self.y_high - self.y_low) / self.y_cells
+        y_pos = (
+            self.y_low + step * j + step / 2
+        )  # added step/2 so that the coordinate is in the middle of the cells
+        return y_pos
 
     
     def navgoal_callback(self, navgoalmsg):
@@ -124,7 +154,7 @@ class Workspace():
     def checkpointinsidepoly(self, point_interest, point_infinity):
         # return 1 if inside polygon
         n_edges = len(self.vertices)
-        point_infinity[1] = point_interest[1]
+        point_infinity[1] = point_interest[1] #same height
         if self.verbose:
             print("\n\n") 
             print(f"vertices: {self.vertices}")
@@ -222,6 +252,18 @@ class Workspace():
         p_check = list(req.point_of_interest)
         p_inf = list(req.point_at_infinity)
         return self.checkpointinsidepoly(p_check, p_inf)
+    
+    def callback_occupancycheck(self, req):
+        for x in range(self.x_cells):
+            for y in range(self.y_cells):
+                point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
+                if not self.checkpointinsidepoly(point_of_interest, self.pinf):
+                    self.occupancy_grid[x, y] = self.occupied_value
+        occupancy_array = np.asarray(self.occupancy_grid).reshape(-1)
+        return occupancy_array
+        
+    
+        #input occupancy grid
     
     # def polygoncentroid(self):
     #     #centroid of non self intersecting polygon
