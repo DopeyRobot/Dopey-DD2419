@@ -27,7 +27,7 @@ class Workspace():
         self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
-        print("vertices_list", self.vertices_list)
+
         self.x_low = min(self.vertices_list, key=lambda point: point[0])[0]
         self.x_high = max(self.vertices_list, key=lambda point: point[0])[0]
         self.y_low = min(self.vertices_list, key=lambda point: point[1])[1]
@@ -39,7 +39,6 @@ class Workspace():
         self.x_cells = int((self.x_high - self.x_low) /self.resolution) #cells / m
         self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
         self.occupancy_grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
-
 
         # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
 
@@ -255,7 +254,6 @@ class Workspace():
         return self.checkpointinsidepoly(p_check, p_inf)
     
     def callback_occupancycheck(self, req:OccupancyCheckRequest):
-        print("occupancycheck service cb")
         for x in range(self.x_cells):
             for y in range(self.y_cells):
                 point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
@@ -267,10 +265,9 @@ class Workspace():
         occupancy_metadata.resolution = self.resolution
         occupancy_metadata.width = self.x_cells
         occupancy_metadata.height = self.y_cells
-        print("ok")
-        return (occupancy_array,), occupancy_metadata, (self.vertices_extrema,)
+        return occupancy_array, occupancy_metadata, self.vertices_extrema
         
-    
+
         #input occupancy grid
     
     # def polygoncentroid(self):

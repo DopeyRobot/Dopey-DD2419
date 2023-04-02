@@ -38,13 +38,7 @@ class Occupancygrid:
         self.y_low = 0
         self.y_high = 0
 
-        # self.x_cells = 0
-        # self.y_cells = 0
-        # self.resolution = 0.025 # m per cell 
         self.map_metadata = MapMetaData()
-
-        self.y_n = int(1 / self.resolution)
-        self.x_n = int(1 / self.resolution)
 
         self.occupied_value = 1
         self.c_space = 2
@@ -72,7 +66,7 @@ class Occupancygrid:
         self.occupancy_client = rospy.ServiceProxy("/occupancy_service", OccupancyCheck)
 
         self.robot_transform = TransformStamped()
-        self.gotcb = False
+        # self.gotcb = False
 
         self.publisher_occupancygrid = rospy.Publisher(
             "/occupancygrid", OccupancyGrid, queue_size=10
@@ -80,10 +74,8 @@ class Occupancygrid:
 
 
 
-        polygon = rospy.wait_for_message("/workspace", PolygonStamped)
-        self.workspace_callback(polygon)
-        self.setup_metadata()
-        print("before occupancy client")
+        # polygon = rospy.wait_for_message("/workspace", PolygonStamped)
+        # self.workspace_callback(polygon)
         OC = self.occupancy_client(Empty())
         self.occupancy_array = OC.occupancy_array
         self.occupancy_metadata = OC.metadata
@@ -92,20 +84,18 @@ class Occupancygrid:
         self.y_low= OC.vertices_list[2]
         self.x_high = OC.vertices_list[3]
 
-        print(self.occupancy_metadata)
         self.x_cells = self.occupancy_metadata.width
         self.y_cells = self.occupancy_metadata.height
         self.resolution = self.occupancy_metadata.resolution
         self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
   
-        print(self.occupancy_array )      
+        self.setup_metadata()
+ 
         
         self.sub_laserscan = rospy.Subscriber(
             "/scan", LaserScan, self.scan_callback
         )
-        print("after occupancy client")
-        print(self.x_low) #corners of the occupancy grid in the map frame
-        print(self.x_high)
+
         self.occupancy_grid = np.array(self.occupancy_array).reshape(self.x_cells, self.y_cells) # call workspace callback first!
         self.grid[self.occupancy_grid == self.occupied_value] = self.occupied_value
         # for x in range(self.x_cells):
@@ -117,7 +107,7 @@ class Occupancygrid:
         #         if not poly_resp.poly_bool:
         #             #continuous point is outside polygon
         #             self.grid[x, y] = self.occupied_value
-        self.gotcb=True
+        # self.gotcb=True
 
 
 
