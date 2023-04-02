@@ -78,15 +78,21 @@ class Occupancygrid:
             "/occupancygrid", OccupancyGrid, queue_size=10
         )
 
-        self.sub_laserscan = rospy.Subscriber(
-            "/scan", LaserScan, self.scan_callback
-        )
+
 
         polygon = rospy.wait_for_message("/workspace", PolygonStamped)
         self.workspace_callback(polygon)
         self.setup_metadata()
-
-        self.occupancy_array = self.occupancy_client(Empty())
+        print("before occupancy client")
+        self.occupancy_array = self.occupancy_client(Empty()).occupancy_array  
+        print(self.occupancy_array )      
+        
+        self.sub_laserscan = rospy.Subscriber(
+            "/scan", LaserScan, self.scan_callback
+        )
+        print("after occupancy client")
+        print(self.x_low) #corners of the occupancy grid in the map frame
+        print(self.x_high)
         self.occupancy_grid = np.array(self.occupancy_array).reshape(self.x_cells, self.y_cells) # call workspace callback first!
         self.grid[self.occupancy_grid == self.occupied_value] = self.occupied_value
         # for x in range(self.x_cells):
@@ -288,11 +294,10 @@ class Occupancygrid:
         self.x_high = max(self.vertices, key=lambda point: point.x).x
         self.y_low = min(self.vertices, key=lambda point: point.y).y
         self.y_high = max(self.vertices, key=lambda point: point.y).y
-        # print(self.x_low) #corners of the occupancy grid in the map frame
-        # print(self.x_high)
+
         # print(self.y_low)
         # print(self.y_high)
-        self.x_cells = int((self.x_high - self.x_low) /self.resolution) #cells / m
+        self.x_cells = int((self.x_high - self.x_low) /self.resolution)+1 #cells / m
         self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
         if not self.gotcb:
             print("reset map")

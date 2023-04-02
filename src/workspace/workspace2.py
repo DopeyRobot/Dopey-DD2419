@@ -24,24 +24,25 @@ class Workspace():
         self.frame_id = "map"
 
         self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
-        xs, ys = zip(*self.vertices_list)
-        self.x_high = max(xs)
-        self.x_low = min(xs)
-        self.y_low = min(ys)
-        self.y_high = max(ys)
-        print(self.x_high, self.x_low, self.y_low, self.y_high)
+        self.vertices = self.vertices_df.values
+        self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
+        self.x_low = min(self.vertices_list, key=lambda point: point[0])[0]
+        self.x_high = max(self.vertices_list, key=lambda point: point[0])[0]
+        self.y_low = min(self.vertices_list, key=lambda point: point[1])[1]
+        self.y_high = max(self.vertices_list, key=lambda point: point[1])[1]
         self.resolution = 0.025 # m per cell 
         self.uknownspace_value = -1
         self.occupied_value = 1
         self.x_cells = int((self.x_high - self.x_low) /self.resolution) #cells / m
         self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
+        rospy.loginfo(self.x_high)
+        rospy.loginfo(self.x_low)
         self.occupancy_grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
 
 
         # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
 
-        self.vertices = self.vertices_df.values
-        self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
+
         # self.dutyoff = False
         self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
@@ -253,14 +254,17 @@ class Workspace():
         p_inf = list(req.point_at_infinity)
         return self.checkpointinsidepoly(p_check, p_inf)
     
-    def callback_occupancycheck(self, req):
+    def callback_occupancycheck(self, req:OccupancyCheckRequest):
+        print("in cb")
         for x in range(self.x_cells):
             for y in range(self.y_cells):
                 point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
-                if not self.checkpointinsidepoly(point_of_interest, self.pinf):
+                bool_poly = self.checkpointinsidepoly(point_of_interest, self.pinf)
+                if not bool_poly:
                     self.occupancy_grid[x, y] = self.occupied_value
-        occupancy_array = np.asarray(self.occupancy_grid).reshape(-1)
-        return occupancy_array
+        occupancy_array = list(self.occupancy_grid.reshape(-1).astype(np.int64))
+        print("ok")
+        return (occupancy_array,)
         
     
         #input occupancy grid
