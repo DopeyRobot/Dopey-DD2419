@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from workspace.srv import PolyCheck, PolyCheckRequest, OccupancyCheck, OccupancyCheckRequest
+from nav_msgs.msg import MapMetaData
 
 class Workspace():
     def __init__(self):
@@ -26,24 +27,23 @@ class Workspace():
         self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
+        print("vertices_list", self.vertices_list)
         self.x_low = min(self.vertices_list, key=lambda point: point[0])[0]
         self.x_high = max(self.vertices_list, key=lambda point: point[0])[0]
         self.y_low = min(self.vertices_list, key=lambda point: point[1])[1]
         self.y_high = max(self.vertices_list, key=lambda point: point[1])[1]
+        self.vertices_extrema = [self.x_low, self.x_high, self.y_low, self.y_high]
         self.resolution = 0.025 # m per cell 
         self.uknownspace_value = -1
         self.occupied_value = 1
         self.x_cells = int((self.x_high - self.x_low) /self.resolution) #cells / m
         self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
-        rospy.loginfo(self.x_high)
-        rospy.loginfo(self.x_low)
         self.occupancy_grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
 
 
         # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
 
 
-        # self.dutyoff = False
         self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
@@ -255,7 +255,7 @@ class Workspace():
         return self.checkpointinsidepoly(p_check, p_inf)
     
     def callback_occupancycheck(self, req:OccupancyCheckRequest):
-        print("in cb")
+        print("occupancycheck service cb")
         for x in range(self.x_cells):
             for y in range(self.y_cells):
                 point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
@@ -263,8 +263,12 @@ class Workspace():
                 if not bool_poly:
                     self.occupancy_grid[x, y] = self.occupied_value
         occupancy_array = list(self.occupancy_grid.reshape(-1).astype(np.int64))
+        occupancy_metadata = MapMetaData()
+        occupancy_metadata.resolution = self.resolution
+        occupancy_metadata.width = self.x_cells
+        occupancy_metadata.height = self.y_cells
         print("ok")
-        return (occupancy_array,)
+        return (occupancy_array,), occupancy_metadata, (self.vertices_extrema,)
         
     
         #input occupancy grid

@@ -38,9 +38,9 @@ class Occupancygrid:
         self.y_low = 0
         self.y_high = 0
 
-        self.x_cells = 0
-        self.y_cells = 0
-        self.resolution = 0.025 # m per cell 
+        # self.x_cells = 0
+        # self.y_cells = 0
+        # self.resolution = 0.025 # m per cell 
         self.map_metadata = MapMetaData()
 
         self.y_n = int(1 / self.resolution)
@@ -56,7 +56,7 @@ class Occupancygrid:
         self.pinf = [1000.0, 1000.0]
 
 
-        self.grid = np.ones((2, 2)) 
+        # self.grid = np.ones((2, 2)) 
         # self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(1200.0))
@@ -84,7 +84,20 @@ class Occupancygrid:
         self.workspace_callback(polygon)
         self.setup_metadata()
         print("before occupancy client")
-        self.occupancy_array = self.occupancy_client(Empty()).occupancy_array  
+        OC = self.occupancy_client(Empty())
+        self.occupancy_array = OC.occupancy_array
+        self.occupancy_metadata = OC.metadata
+        self.x_low = OC.vertices_list[0]
+        self.x_high = OC.vertices_list[1]
+        self.y_low= OC.vertices_list[2]
+        self.x_high = OC.vertices_list[3]
+
+        print(self.occupancy_metadata)
+        self.x_cells = self.occupancy_metadata.width
+        self.y_cells = self.occupancy_metadata.height
+        self.resolution = self.occupancy_metadata.resolution
+        self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
+  
         print(self.occupancy_array )      
         
         self.sub_laserscan = rospy.Subscriber(
@@ -297,11 +310,11 @@ class Occupancygrid:
 
         # print(self.y_low)
         # print(self.y_high)
-        self.x_cells = int((self.x_high - self.x_low) /self.resolution)+1 #cells / m
-        self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
+        # self.x_cells = int((self.x_high - self.x_low) /self.resolution)+1 #cells / m
+        # self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
         if not self.gotcb:
             print("reset map")
-            self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
+            # self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
 
     def run(self):
         while not rospy.is_shutdown():
