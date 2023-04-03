@@ -26,7 +26,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ArUco
+    SyncSource: Image
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -107,8 +107,6 @@ Visualization Manager:
           Value: true
         imu_link:
           Value: false
-        map:
-          Value: false
         odom:
           Value: true
       Marker Alpha: 1
@@ -118,24 +116,7 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          odom:
-            base_link:
-              arm_base_link:
-                end_effector_frame:
-                  {}
-              camera_bottom_screw_frame:
-                camera_link:
-                  camera_aligned_depth_to_color_frame:
-                    camera_color_optical_frame:
-                      {}
-                  camera_color_frame:
-                    {}
-                  camera_depth_frame:
-                    camera_depth_optical_frame:
-                      {}
-            imu_link:
-              {}
+        {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -168,7 +149,7 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /aruco/result
       Max Value: 1
       Median window: 5
@@ -178,7 +159,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/Image
       Enabled: true
       Image Topic: /usb_cam/image_raw
@@ -319,7 +300,7 @@ Window Geometry:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 1136
+  Height: 1016
   Hide Left Dock: false
   Hide Right Dock: false
   Image:
