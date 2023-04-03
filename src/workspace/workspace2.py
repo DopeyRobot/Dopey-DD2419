@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from workspace.srv import PolyCheck, PolyCheckRequest, OccupancyCheck, OccupancyCheckRequest
 from nav_msgs.msg import MapMetaData
+import matplotlib.path as mplPath
 
 class Workspace():
     def __init__(self):
@@ -24,7 +25,9 @@ class Workspace():
         self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.odom_callback)
         self.frame_id = "map"
 
-        self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("/home/robot/Dopey_ws/Dopey-DD2419/src/workspace/example_workspace.tsv", sep="\t")
+
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
 
@@ -40,7 +43,6 @@ class Workspace():
         self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
         self.occupancy_grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
 
-        # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
 
 
         self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
@@ -69,8 +71,8 @@ class Workspace():
             self.y_low + step * j + step / 2
         )  # added step/2 so that the coordinate is in the middle of the cells
         return y_pos
-
     
+
     def navgoal_callback(self, navgoalmsg):
         self.navgoal = PoseStamped()
         self.navgoal.pose = navgoalmsg.pose
@@ -194,48 +196,12 @@ class Workspace():
             # return 0 if even number of intersections => outside 
         return count % 2
 
-    def checkpointinsidepoly2(self, point_interest, point_infinity):
-        # return 1 if inside polygon
-        n_edges = len(self.vertices)
-        if self.verbose:
-            print("\n\n") 
-            print(f"vertices: {self.vertices}")
-            print(f"number of edges: {n_edges}")
-        if n_edges < 3:
-            return False
-        i = 0
+    def checkpointinsidepoly2(self, point_interest):
+        #returns true if inside map
+        poly_path = mplPath.Path((self.vertices_list))
+        bool_poly = poly_path.contains_point(point_interest)
+        return bool_poly
 
-        count = 0
-        if self.verbose:
-            print(f"Current position of robot:{point_interest}")
-        while True:
-            #find point of edge of polygon
-            edge1 = self.vertices[i]
-            edge2 = self.vertices[i + 1]
-            if self.verbose:
-                print(f"edge{i}:", edge1)
-                print(f"edge{i+1}:", edge2)
-                
-            if self.checkintersection(edge1, edge2, point_interest, point_infinity):
-                #if the point is on the edge then its definitely inside aka return True
-                if self.direction(edge1, point_interest, edge2) == 0:
-                    return self.checkonline(point_interest, edge1, edge2)
-                count += 1
-                if self.verbose:
-                    print("intersection count:", count)
-            else:
-                if self.verbose:
-                    print("No intersection")
-
-            i = (i+1) % (n_edges-1)
-            if self.verbose:
-                print("new i:", i)
-            if i == 0:
-                #break if it exceeds the edge count
-                break
-            # return 1 if odd number of intersection => inside
-            # return 0 if even number of intersections => outside 
-        return count & 1
 
     def polygon(self):
         point_list = []
@@ -254,55 +220,23 @@ class Workspace():
         return self.checkpointinsidepoly(p_check, p_inf)
     
     def callback_occupancycheck(self, req:OccupancyCheckRequest):
-        for x in range(self.x_cells):
-            for y in range(self.y_cells):
-                point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
-                bool_poly = self.checkpointinsidepoly(point_of_interest, self.pinf)
-                if not bool_poly:
-                    self.occupancy_grid[x, y] = self.occupied_value
+        # for x in range(self.x_cells):
+        #     for y in range(self.y_cells):
+        #         point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
+        #         bool_poly = self.checkpointinsidepoly(point_of_interest, self.pinf)
+        #         if not bool_poly:
+        #             self.occupancy_grid[x, y] = self.occupied_value
+        points = [(self.get_x_pos(x), self.get_y_pos(y)) for x in range(self.x_cells) for y in range(self.y_cells)]
+        for point in points:
+            poly_bool = self.checkpointinsidepoly2(point)
+            if not poly_bool:
+                self.occupancy_grid[x, y] = self.occupied_value
         occupancy_array = list(self.occupancy_grid.reshape(-1).astype(np.int64))
         occupancy_metadata = MapMetaData()
         occupancy_metadata.resolution = self.resolution
         occupancy_metadata.width = self.x_cells
         occupancy_metadata.height = self.y_cells
         return occupancy_array, occupancy_metadata, self.vertices_extrema
-        
-
-        #input occupancy grid
-    
-    # def polygoncentroid(self):
-    #     #centroid of non self intersecting polygon
-    #     for vertice in self.vertices_list:
-        
-    #     return xc, yc
-
-
-
-        # if not (self.navgoal_pos is None or self.p is None): # fix since it should be done independently
-        #     if (self.checkpointinsidepoly(self.navgoal_pos, [1000, self.navgoal_pos[1]])):
-        #         # navgoal inside polygon
-        #         if (self.checkpointinsidepoly(self.p, [1000, self.p[1]])):
-        #             self.dutyoff = False
-        #             if self.verbose:
-        #                 print("robot inside workspace")
-        #             ## insert code for stopping motors/dutycycle
-        #         else:
-        #             if self.verbose:
-        #                 print("robot outside polygon")
-        #             rospy.loginfo("Warning: robot outside workspace")
-        #             self.dutyoff = True
-        #     else:
-        #         #navgoal outside poly, publish new navgoal
-        #         self.navgoalnew = True
-        #         if self.verbose:
-        #             print("navgoal outside workspace")
-
-        
-        # return point_list
-            
-
-        # print(point_list)
-
 
     def run(self):
         while not rospy.is_shutdown():
@@ -313,7 +247,27 @@ class Workspace():
             poly_points.header.frame_id = self.frame_id
             self.publisher_vertices.publish(poly_points)
 
-            # Calculate the center point of the polygon
+            ################################################# TESTING CHECKPOINTINSIDEPOLY ALG ######################################
+            # x = [self.get_x_pos(x) for x in range(self.x_cells)]
+            # y = [self.get_y_pos(y) for y in range(self.y_cells)]
+            # # points = list(zip(x, y))
+            # points = [(self.get_x_pos(x), self.get_y_pos(y)) for x in range(self.x_cells) for y in range(self.y_cells)]
+
+            # wrong_points = []
+            # occupied_points = []
+            # for point in points:
+            #     poly_bool = self.checkpointinsidepoly2(point) 
+            #     alice_bool = self.checkpointinsidepoly([point[0], point[1]], self.pinf)
+            #     if poly_bool !=  alice_bool:
+            #         # print(f"WARNING: POI: {point} DIFFERENT RESULT")
+            #         wrong_points.append(point)
+            #     if poly_bool is not True:
+            #         occupied_points.append(point)
+            # # print(wrong_points)
+            # plt.plot([i for i, j in occupied_points], [j for i, j in occupied_points], ".")
+            # # plt.plot([i for i, j in wrong_points], [j for i, j in wrong_points], "r.")c
+            # plt.show()
+            #########################################################################################################################
 
 
             ## CHECK
