@@ -28,33 +28,35 @@ class give_path():
         self.ready_for_pose = msg.data
 
     def update(self):
+        if self.ready_for_pose and self.path.poses != []:
+            print('Ready for new pose!')
+            self.ready_for_pose = False
+            self.ready_for_pose_pub.publish(self.ready_for_pose)
+            self.goal_pub.publish(self.path.poses[self.pose_to_send])
+            self.pose_to_send = self.pose_to_send + 1
 
-            if self.ready_for_pose and self.path.poses != []:
-                print('Ready for new pose!')
-                self.ready_for_pose = False
-                self.ready_for_pose_pub.publish(self.ready_for_pose)
-                self.goal_pub.publish(self.path.poses[self.pose_to_send])
-                self.pose_to_send = self.pose_to_send + 1
-
-                #Send RUNNING to behaviour tree
-                return pt.common.Status.RUNNING
+            #Send RUNNING to behaviour tree
+            return pt.common.Status.RUNNING
+        
+        if self.pose_to_send == len(self.path.poses):
             
-            if self.pose_to_send == len(self.path.poses):
-                
-                #Kalla på function som kollar vart man är och om det är rätt skicka success.
+            #Kalla på function som kollar vart man är och om det är rätt skicka success.
 
-                self.pose_to_send = 0
-                self.ready_for_path = True
-                self.ready_for_new_path.publish(self.ready_for_path)
+            self.pose_to_send = 0
+            self.ready_for_path = True
+            self.ready_for_new_path.publish(self.ready_for_path)
 
-                #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
-                #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
-                    #Send SUCCESS to behaviour tree
-                return pt.common.Status.SUCCESS
-            
-                #Else send FAILURE to behaviour tree
-                # return pt.common.Status.FAILURE
+            #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
+            #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
+                #Send SUCCESS to behaviour tree
+            return pt.common.Status.SUCCESS
+        
+            #Else send FAILURE to behaviour tree
+            # return pt.common.Status.FAILURE
 
-            else:
-                self.ready_for_path = False
-                self.ready_for_new_path.publish(self.ready_for_path)
+        else:
+            self.ready_for_path = False
+            self.ready_for_new_path.publish(self.ready_for_path)
+
+        # become a behaviour
+        super(give_path, self).__init__("Detecting Cube!")
