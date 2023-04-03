@@ -33,7 +33,7 @@ class RRTNode:
         base_link_origin = PoseStamped()
         base_link_origin.header.stamp = robot_pose.header.stamp
 
-        transform_to_map:TransformStamped= self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  
+        transform_to_map = self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  
         baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
         robot_pose.pose.position.z = baseInMapPose.pose.position.z
