@@ -38,10 +38,10 @@ class move_to_goal():
 
     def __init__(self):
         self.ang1PID = PID(1e-1, 0.0, 0.0)
-        self.distPID = PID(1e-1, 0.0, 0.0)
+        self.distPID = PID(3e-1, 0.0, 0.0)
         self.ang2PID = PID(1e-1, 0.0, 0.0)
 
-        self.threshold_ang1 = 0.10
+        self.threshold_ang1 = 0.05
         self.threshold_ang2 = 0.05
         self.threshold_dist = 0.05
  
@@ -97,20 +97,23 @@ class move_to_goal():
 
         robot_pose = PoseStamped()
         robot_pose.header.stamp = rospy.Time.now()
+        base_link_origin = PoseStamped()
+        base_link_origin.header.stamp = robot_pose.header.stamp
 
-        transform_to_map:TransformStamped= self.tf_buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  
-                 
-        robot_pose.pose.position.z = transform_to_map.transform.translation.z
-        robot_pose.pose.position.x = transform_to_map.transform.translation.x
-        robot_pose.pose.position.y = transform_to_map.transform.translation.y
-        robot_pose.pose.orientation.w = transform_to_map.transform.rotation.w
-        robot_pose.pose.orientation.x = transform_to_map.transform.rotation.x
-        robot_pose.pose.orientation.y = transform_to_map.transform.rotation.y
-        robot_pose.pose.orientation.z = transform_to_map.transform.rotation.z
+        transform_to_map = self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  
+        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
+
+        robot_pose.pose.position.z = baseInMapPose.pose.position.z
+        robot_pose.pose.position.x = baseInMapPose.pose.position.x
+        robot_pose.pose.position.y = baseInMapPose.pose.position.y
+        robot_pose.pose.orientation.w = baseInMapPose.pose.orientation.w
+        robot_pose.pose.orientation.x = baseInMapPose.pose.orientation.x
+        robot_pose.pose.orientation.y = baseInMapPose.pose.orientation.y
+        robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
 
         robot_pose.header.frame_id = "map"
-
-        return robot_pose 
+        
+        return robot_pose
 
     def odom_callback(self, msg):
         self.odom = msg
@@ -129,16 +132,15 @@ class move_to_goal():
                 self.transformed_goal_pose = self.tf_buffer.transform(self.goal_pose, self.targetframe, self.timeout)
 
                 rot_q = self.goal_pose.pose.orientation
-                (_, _, self.goal_theta) = euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
+                (_, _, self.goal_theta) = euler_from_quaternion([rot_q.x, rot_q.x, rot_q.y, rot_q.z])
+                #(_, _, self.goal_theta) = euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
                 # (_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
 
-                #current_angel = 0.0
                 current_angel = self.get_current_pose().pose.orientation.w
                 error_ang2 = current_angel - self.goal_theta
-                print(error_ang2)
                 
                 ang1out = self.ang1PID(error_ang1)
                 distout = self.distPID(error_dist)
@@ -152,7 +154,6 @@ class move_to_goal():
                     print("Adjusting dist", error_dist)
                     self.twist.linear.x = distout*np.exp(-np.abs(error_ang1)*10)
                     
-
                     if error_dist < self.threshold_dist and abs(error_ang1) < self.threshold_ang1:
                         rospy.loginfo("Correct pose!")
                         self.twist.angular.z = 0
@@ -162,17 +163,17 @@ class move_to_goal():
                         self.arrived2point = True
                 else:
                     if abs(error_ang2) > self.threshold_ang2:
-                        print("Ajusting ang2", error_ang2)
-                        self.twist.linear.x = 0.0
-                        self.twist.angular.z = ang2out
+                         print("Ajusting ang2", error_ang2)
+                         self.twist.linear.x = 0.0
+                         self.twist.angular.z = ang2out
 
                     else:
-                        rospy.loginfo("Done")
-                        self.twist.linear.x = 0.0
-                        self.twist.angular.z = 0.0
+                         rospy.loginfo("Done")
+                         self.twist.linear.x = 0.0
+                         self.twist.angular.z = 0.0
 
-                        self.ready_for_pose.data = True
-                        self.ready_for_pose_publisher.publish(self.ready_for_pose)
+                    self.ready_for_pose.data = True
+                    self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
 
                 self.publisher_twist.publish(self.twist)

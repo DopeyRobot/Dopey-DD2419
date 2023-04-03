@@ -33,7 +33,7 @@ class RRTNode:
         base_link_origin = PoseStamped()
         base_link_origin.header.stamp = robot_pose.header.stamp
 
-        transform_to_map:TransformStamped= self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  
+        transform_to_map = self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  
         baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
         robot_pose.pose.position.z = baseInMapPose.pose.position.z
@@ -45,7 +45,6 @@ class RRTNode:
         robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
 
         robot_pose.header.frame_id = "map"
-        print('get_start',robot_pose.pose.position.x, robot_pose.pose.position.y)
         
         return robot_pose
         
@@ -79,7 +78,6 @@ class RRTPlanner:
         self.fig, self.ax = plt.subplots()
 
         self.RRT: List[RRTNode] = [self.start]
-        print(self.start.x, self.start.y)
 
     def get_map_callback(self, msg):
         self.map_data = msg
@@ -183,6 +181,18 @@ class RRTPlanner:
             pose_stamped.pose.orientation.w = 1.0
             self.path_msg.poses.append(pose_stamped)
             current_node = current_node.get_parent()
+        #add start back :)
+        pose_stamped = PoseStamped()
+        pose_stamped.header = self.path_msg.header
+        pose_stamped.pose.position.x = current_node.x
+        pose_stamped.pose.position.y = current_node.y
+        pose_stamped.pose.position.z = 0.0
+        pose_stamped.pose.orientation.x = 0.0
+        pose_stamped.pose.orientation.y = 0.0
+        pose_stamped.pose.orientation.z = 0.0
+        pose_stamped.pose.orientation.w = 1.0
+        self.path_msg.poses.append(pose_stamped)
+
         self.path_msg.poses = self.path_msg.poses[::-1]
         
         for i, pose in enumerate(self.path_msg.poses):
@@ -231,6 +241,6 @@ if __name__ == "__main__":
     planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.3)
     planner.generate_RRT()
     planner.generate_path()
-    # planner.plot_RRT_tree()
+    #planner.plot_RRT_tree()
     planner.publish_path()
     rospy.spin()
