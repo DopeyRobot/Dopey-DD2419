@@ -71,6 +71,9 @@
     <param name="output_frame_id" type="str"    value="camera_depth_frame"/> <!--default: camera_depth_frame. Frame id of the laser scan. -->
 	
   </node>
+
+  <!-- Launch behaviour tree  -->
+  <node pkg="behaviour_tree" type="tree.py" name="behaviour_tree_node" output="screen" />
 	
 </launch>
 
