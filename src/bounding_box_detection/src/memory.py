@@ -275,8 +275,8 @@ class MemoryNode:
         self.add2short_term_srv = rospy.Service(
             "/add2shortterm", add2ShortTerm, self.add2short_term_srv_cb
         )
-        self.instance_names_srv = rospy.Service(
-            "/instance_names", instanceNames, self.instance_names_srv_cb
+        self.instances_in_LTM_srv = rospy.Service(
+            "/instances_in_LTM", instanceNames, self.instances_in_LTM_srv_cb
         )
         # self.run()
 
@@ -298,7 +298,7 @@ class MemoryNode:
             new_names_msg.array = msg_list
             self.new_names_pub.publish(new_names_msg)
 
-    def instance_names_srv_cb(self, req: instanceNamesRequest):
+    def instances_in_LTM_srv_cb(self, req: instanceNamesRequest):
         resp = instanceNamesResponse(self.lt.instances_in_memory)
         print(resp)
         return resp
