@@ -4,20 +4,31 @@ from kinematics_utils import JointData, RefPoses
 from kinematics_solver import KinematicsSolver, D1, A2, A3, D5
 from sensor_msgs.msg import JointState
 from kinematics.srv import JointAngles, IKData, JointAnglesRequest
-from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
+from std_srvs.srv import (
+    Empty,
+    EmptyResponse,
+    EmptyRequest,
+    Trigger,
+    TriggerRequest,
+    TriggerResponse,
+)
 from std_msgs.msg import String
 from tf2_geometry_msgs import PoseStamped
 from tf2_ros import Buffer, TransformListener
 from kinematics.srv import GripStrength, GripStrengthRequest
 import numpy as np
 
+
 class IKService:
     """
     Service node to move the robot to a specific position in space
     """
+
     def __init__(self) -> None:
         self.solver = KinematicsSolver()
-        self.joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback)
+        self.joint_state_sub = rospy.Subscriber(
+            "/joint_states", JointState, self.joint_state_callback
+        )
         self.cur_joint_state = JointState()
         self.buffer = Buffer(rospy.Duration(2))
         self.listener = TransformListener(self.buffer)
@@ -28,9 +39,13 @@ class IKService:
         self.gripper_close_service = rospy.ServiceProxy("gripper/close", GripStrength)
         self.pickup_goal = PoseStamped()
         self.inverse_k_service = rospy.Service("IK_service", IKData, self.IK_callback)
-        self.pickup_goal_sub = rospy.Subscriber("pickup_goal", PoseStamped, self.pickup_goal_callback)
+        self.pickup_goal_sub = rospy.Subscriber(
+            "pickup_goal", PoseStamped, self.pickup_goal_callback
+        )
         self.pickup_service = rospy.Service("pickup_pose", Empty, self.pickup_callback)
-        self.full_pickup_service = rospy.Service("full_pickup_pose", Empty, self.pickup_routine_callback)
+        self.full_pickup_service = rospy.Service(
+            "full_pickup_pose", Trigger, self.pickup_routine_callback
+        )
 
         self.angle_increment = 0.1
 
@@ -41,11 +56,15 @@ class IKService:
         msg.header.frame_id = "base_link"
         self.pickup_goal = msg
 
-    def pickup_callback(self, req:Empty):
+    def pickup_callback(self, req: Empty):
         """
         goes to the pickup goal
         """
-        x,y,z = self.pickup_goal.pose.position.x, self.pickup_goal.pose.position.y, self.pickup_goal.pose.position.z
+        x, y, z = (
+            self.pickup_goal.pose.position.x,
+            self.pickup_goal.pose.position.y,
+            self.pickup_goal.pose.position.z,
+        )
         psi = -np.pi
         rot = 0
 
@@ -59,21 +78,26 @@ class IKService:
         self.IK_callback(req)
 
         return EmptyResponse()
-    
-    def transform_to_arm_frame(self, pose:PoseStamped) ->PoseStamped:
-        transformed_pose = self.buffer.transform(pose, self.arm_frame, rospy.Duration(2))
+
+    def transform_to_arm_frame(self, pose: PoseStamped) -> PoseStamped:
+        transformed_pose = self.buffer.transform(
+            pose, self.arm_frame, rospy.Duration(2)
+        )
         return transformed_pose
 
-
-    def IK_callback(self, req:IKData):
+    def IK_callback(self, req: IKData):
         pose = PoseStamped()
         pose.pose.position.x = req.x
         pose.pose.position.y = req.y
         pose.pose.position.z = req.z
         pose.header.stamp = rospy.Time.now()
         pose.header.frame_id = "base_link"
-        transformed_pose:PoseStamped = self.transform_to_arm_frame(pose)
-        pos = transformed_pose.pose.position.x, transformed_pose.pose.position.y, transformed_pose.pose.position.z
+        transformed_pose: PoseStamped = self.transform_to_arm_frame(pose)
+        pos = (
+            transformed_pose.pose.position.x,
+            transformed_pose.pose.position.y,
+            transformed_pose.pose.position.z,
+        )
         rospy.loginfo(pos)
         psi = req.wrist_pitch
         rot = req.gripper_rotation
@@ -82,7 +106,7 @@ class IKService:
         if not sucess:
             rospy.loginfo("trying a new angle")
             for i in range(1, 10):
-                sucess = self.move_to(pos, psi - self.angle_increment*i, rot)
+                sucess = self.move_to(pos, psi - self.angle_increment * i, rot)
                 if sucess:
                     break
 
@@ -101,8 +125,8 @@ class IKService:
         else:
             rospy.loginfo(f"couldn't solve pose for wrist pictch {wrist_pitch}")
             return False
-        
-    def pickup_routine_callback(self, req:EmptyRequest) -> EmptyResponse:
+
+    def pickup_routine_callback(self, req: TriggerRequest) -> TriggerResponse:
         rospy.loginfo("pickup routine started")
         self.pose_service(RefPoses.HOME.value.to_joint_angles_req())
         rospy.sleep(2)
@@ -121,10 +145,10 @@ class IKService:
         rospy.loginfo("going back home")
         self.pose_service(RefPoses.HOME.value.to_joint_angles_req())
         rospy.sleep(2)
-        return EmptyResponse()
+        return TriggerResponse(True, "pickup routine finished")
+
 
 if __name__ == "__main__":
     rospy.init_node("IK_service")
     IKService()
     rospy.spin()
-
