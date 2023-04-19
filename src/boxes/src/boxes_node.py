@@ -30,7 +30,7 @@ class BoxNode:
         self.broadcaster = TransformBroadcaster()
         self.memory_list_srv = rospy.ServiceProxy("/instances_in_LTM", instanceNames)
         self.distance_threshold = (
-            0.2  # distance between box and obstacle to still be considered a bo
+            0.35  # distance between box and obstacle to still be considered a bo
         )
         self.delta = 0.1  # distance between two points in the laser scan to still be considered part of the box
         self.run()
@@ -48,7 +48,7 @@ class BoxNode:
         pose = PoseStamped()
         try:
             transform = self.buffer.lookup_transform(
-                self.reference_frame, frame_id, rospy.Time(0)
+                self.camera_frame_id, frame_id, rospy.Time(0)
             )
             pose.header.frame_id = transform.header.frame_id
             pose.pose.position.x = transform.transform.translation.x
@@ -109,19 +109,24 @@ class BoxNode:
             # check if any of the box_poses coincides with any of the obstacle_poses if so save the index
             for box_pose in box_poses:
                 matching_pose_idx = self.find_closest_obstacle(box_pose, obstacle_poses)
+                self.measure_box(obstacle_poses, matching_pose_idx)
 
     def find_closest_obstacle(self, box, obstacles: List[PoseStamped]) -> List[str]:
         """Checks if there is an instance in the long term memory that is close enough
-        to the position we want to add and returns the name of the closest one"""
+        to the position we want to add and return the name of the closest one"""
         idx_closest_pt = 0
         dist = float("inf")
         prev_dist = float("inf")
+        rospy.loginfo(len(obstacles))
         for i in range(len(obstacles)):
             dist = self.get_distance(box, obstacles[i])
+            rospy.loginfo(dist)
+
             if dist < self.distance_threshold:
                 if dist < prev_dist:
                     prev_dist = dist
                     idx_closest_pt = i
+                    rospy.loginfo(idx_closest_pt)
         if idx_closest_pt != 0:
             return idx_closest_pt
         else:
