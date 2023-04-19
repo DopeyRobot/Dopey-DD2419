@@ -5,7 +5,7 @@ from std_msgs.msg import Bool
 from nav_msgs.msg import Path
 import py_trees as pt
 
-class give_path():
+class give_path(pt.behaviour.Behaviour):
 
     def __init__(self):
         self.goal_pub = rospy.Publisher('/goal', PoseStamped, queue_size=10)
@@ -29,7 +29,7 @@ class give_path():
 
     def update(self):
         if self.ready_for_pose and self.path.poses != []:
-            print('Ready for new pose!')
+            print('Ready for new pose! Sending RUNNING in tree')
             self.ready_for_pose = False
             self.ready_for_pose_pub.publish(self.ready_for_pose)
             self.goal_pub.publish(self.path.poses[self.pose_to_send])
@@ -49,6 +49,7 @@ class give_path():
             #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
             #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
                 #Send SUCCESS to behaviour tree
+            print("Reached final pose, sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
         
             #Else send FAILURE to behaviour tree
@@ -59,4 +60,4 @@ class give_path():
             self.ready_for_new_path.publish(self.ready_for_path)
 
         # become a behaviour
-        super(give_path, self).__init__("Detecting Cube!")
+        super(give_path, self).__init__("Give path!")

@@ -8,8 +8,6 @@ project(behaviour_tree)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  py_trees
-  py_trees_ros
   roscpp
   rospy
   std_msgs

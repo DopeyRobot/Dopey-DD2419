@@ -56,7 +56,7 @@ class RRTPlanner:
         self.start.x = self.start.get_start().pose.position.x
         self.start.y = self.start.get_start().pose.position.y
 
-        self.goal = goal
+        self.goal = None #goal
 
         self.map_data = None
         self.occupancy_grid = None
@@ -66,7 +66,7 @@ class RRTPlanner:
         self.n_steps = n_steps
         self.goal_sample_prob = 0.1
 
-        self.pub_path = rospy.Publisher("/path_topic", Path, queue_size=10)
+        self.pub_path = rospy.Publisher("/path_topic", Path, queue_size=10,latch=True)
         self.sub_goal = rospy.Subscriber("/send_goal", PoseStamped, self.send_goal_callback)
         self.sub_map = rospy.Subscriber('/occupancygrid', OccupancyGrid, self.get_map_callback)
         self.rate = rospy.Rate(1)
@@ -78,6 +78,8 @@ class RRTPlanner:
         self.fig, self.ax = plt.subplots()
 
         self.RRT: List[RRTNode] = [self.start]
+
+        self.run()
 
     def get_map_callback(self, msg):
         self.map_data = msg
@@ -234,13 +236,32 @@ class RRTPlanner:
 
         plt.show()
 
+    def run(self):
+        while not rospy.is_shutdown():
+            #planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.3)
+            if self.goal is not None:
+                self.generate_RRT()
+                self.generate_path()
+                #planner.plot_RRT_tree()
+                self.publish_path()
+                self.goal = None
+
 if __name__ == "__main__":
     rospy.init_node("rrt")
-    start = [0, 0]
-    goal = [0, 0]
-    planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.3)
-    planner.generate_RRT()
-    planner.generate_path()
-    #planner.plot_RRT_tree()
-    planner.publish_path()
+    # buffer = Buffer(rospy.Duration(100.0))
+    # if buffer.can_transform("map", "base_link", rospy.Time.now(), rospy.Duration(2)):
+
+    RRTPlanner(start=None, goal=None, num_iterations=1000, step_size=0.3)
+    # try:
+    #     start = [0, 0]
+    #     goal = [0, 0]
+    #     while not rospy.is_shutdown():
+    #         planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.3)
+    #         planner.generate_RRT()
+    #         planner.generate_path()
+    #         #planner.plot_RRT_tree()
+    #         planner.publish_path()
+    # except Exception as e:
+    #     print("Passing in RRT due to:")
+    #     print(e)
     rospy.spin()

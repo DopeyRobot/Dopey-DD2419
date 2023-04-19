@@ -14,16 +14,13 @@ class send_goal():
         self.goal_pose_y = np.random.random()*2
 
         self.run()
-
     
     def run(self):
 
-        while not rospy.is_shutdown():
-
-            self.goal.pose.position.x = self.goal_pose_x
-            self.goal.pose.position.y = self.goal_pose_y
-            self.goal.header.frame_id = "map"
-            self.publisher_goal.publish(self.goal)
+        self.goal.pose.position.x = self.goal_pose_x
+        self.goal.pose.position.y = self.goal_pose_y
+        self.goal.header.frame_id = "map"
+        self.publisher_goal.publish(self.goal)
 
 
 if __name__ == "__main__":
