@@ -26,7 +26,7 @@ class Workspace():
         self.frame_id = "map"
 
         # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
-        self.vertices_df = pd.read_csv("/home/robot/Dopey_ws/Dopey-DD2419/src/workspace/example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
 
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
@@ -226,10 +226,13 @@ class Workspace():
         #         bool_poly = self.checkpointinsidepoly(point_of_interest, self.pinf)
         #         if not bool_poly:
         #             self.occupancy_grid[x, y] = self.occupied_value
-        points = [(self.get_x_pos(x), self.get_y_pos(y)) for x in range(self.x_cells) for y in range(self.y_cells)]
-        for point in points:
-            poly_bool = self.checkpointinsidepoly2(point)
+        points = [((self.get_x_pos(x), self.get_y_pos(y)), (x,y)) for x in range(self.x_cells) for y in range(self.y_cells)]
+        
+        for point_float, point_int in points:
+            poly_bool = self.checkpointinsidepoly2(point_float)
             if not poly_bool:
+                x = point_int[0]
+                y = point_int[1]
                 self.occupancy_grid[x, y] = self.occupied_value
         occupancy_array = list(self.occupancy_grid.reshape(-1).astype(np.int64))
         occupancy_metadata = MapMetaData()
