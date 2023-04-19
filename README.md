@@ -74,6 +74,11 @@
 ### Joystick Package
 `sudo apt-get install ros-noetic-joy`
 
+### py_trees and py_trees_ros
+`sudo apt install ros-noetic-py-trees`
+
+`sudo apt install ros-noetic-py-trees-ros`
+
 ### Cam Packages
 
 
