@@ -24,15 +24,17 @@ class BoxNode:
         self.marker_pub = rospy.Publisher("/visualization_marker", Marker, queue_size=2)
         self.scan: LaserScan = rospy.wait_for_message("/scan", LaserScan, timeout=5.0)
         self.reference_frame = "map"
-        self.camera_frame_id = LaserScan.header.frame_id  # "camera_color_optical_frame"
-        self.buffer = Buffer()
+        self.camera_frame_id = self.scan.header.frame_id  # "camera_color_optical_frame"
+        self.buffer = Buffer(rospy.Duration(1200))
         self.listener = TransformListener(self.buffer)
         self.broadcaster = TransformBroadcaster()
         self.memory_list_srv = rospy.ServiceProxy("/instances_in_LTM", instanceNames)
         self.distance_threshold = (
-            0.2  # distance between box and obstacle to still be considered a box
+            0.2  # distance between box and obstacle to still be considered a bo
         )
         self.delta = 0.1  # distance between two points in the laser scan to still be considered part of the box
+        self.run()
+        
 
     def laser_scan_callback(self, msg: LaserScan) -> None:
         self.scan = msg
@@ -75,11 +77,11 @@ class BoxNode:
 
         # look through the laser scan and find the points that are in the box
         N = int(
-            (self.laserscan.angle_max - self.laserscan.angle_min)
-            / self.laserscan.angle_increment
+            (self.scan.angle_max - self.scan.angle_min)
+            / self.scan.angle_increment
         )
-        angles = np.linspace(self.laserscan.angle_min, self.laserscan.angle_max, N)
-        for dist, angle in list(zip(self.laserscan.ranges, angles))[::10]:
+        angles = np.linspace(self.scan.angle_min, self.scan.angle_max, N)
+        for dist, angle in list(zip(self.scan.ranges, angles))[::10]:
             if np.isnan(dist):
                 continue
             distancePoseStamped = PoseStamped()

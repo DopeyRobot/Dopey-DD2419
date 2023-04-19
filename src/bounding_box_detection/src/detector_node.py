@@ -21,6 +21,8 @@ from tf2_geometry_msgs import PoseStamped
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
 from take_photos.srv import takePic, takePicRequest
 from play_tunes.srv import playTune, playTuneRequest
+from bounding_box_detection.srv import add2ShortTerm, add2ShortTermRequest, add2ShortTermResponse, instanceNames, instanceNamesRequest, instanceNamesResponse
+from bounding_box_detection.msg import StringArray
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 torch.cuda.set_per_process_memory_fraction(0.6, 0)
@@ -97,12 +99,17 @@ class BoundingBoxNode:
         )
         self.K = np.array(self.camera_info.K).reshape(3, 3)
 
-        self.short_term_memory = ShortTermMemory(distance_threshold = 0.2, time_threshold=rospy.Duration(3))
-        self.long_term_memory = LongTermMemory(frames_needed_for_reconition=15)
+        self.short_term_mem_proxy = rospy.ServiceProxy("/add2shortterm", add2ShortTerm)
+        self.new_names_sub = rospy.Subscriber("/new_names", StringArray)
+        self.new_names = StringArray()
         self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
         self.play_tune_service = rospy.ServiceProxy("/playTune", playTune)
 
         self.run()
+
+    def new_names_cb(self, msg:StringArray):
+        self.new_names = msg
+
 
     def take_pic(self, path):
         req = takePicRequest()
@@ -133,22 +140,19 @@ class BoundingBoxNode:
         bb_image = self.show_bbs_in_image(self.bbs, self.array_image)
 
         for bb in self.bbs:
-            class_name = self.get_class_name(bb, self.array_image)
+            class_name = String(self.get_class_name(bb, self.array_image))
             position = self.project_bb(bb)
-            self.short_term_memory.add(class_name, position, timestamp)
+            add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())
+            self.short_term_mem_proxy(add_req)
 
-        new_names = self.long_term_memory.checkForObjectsToRemember(
-            timestamp, self.short_term_memory
-        )
 
-        if len(new_names) > 0:
+        if len(self.new_names.array) > 0:
             path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/evidence"
-            instances = "_".join(new_names)
+            instances = "_".join(self.new_names.array)
             full_path = path + "/" + instances + ".jpg"
             self.save_pic(bb_image, full_path)
-            for name in new_names:
+            for name in self.new_names.array:
                 self.play_tune(name)
-        self.publish_long_term_memory()
 
     def depth_callback(self, msg):
         self.ros_depth = msg
@@ -254,9 +258,6 @@ class BoundingBoxNode:
 
         t.child_frame_id = frame_name
         self.broadcaster.sendTransform(t)
-
-    def get_transform_to_instance(self, instance_name: str):
-        pass
 
     def publish_long_term_memory(self):
         for instance in self.long_term_memory:

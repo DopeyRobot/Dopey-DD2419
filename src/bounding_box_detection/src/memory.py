@@ -4,7 +4,7 @@ from enum import Enum
 import numpy as np
 from dataclasses import dataclass
 import rospy
-from tf2_ros import Buffer, TransformListener, TransformBroadcaster
+from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformStamped
 from std_msgs.msg import String
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from bounding_box_detection.srv import (
@@ -16,6 +16,7 @@ from bounding_box_detection.srv import (
     instanceNamesResponse,
 )
 from bounding_box_detection.msg import StringArray
+from tf2_geometry_msgs import PoseStamped
 
 
 class Locations(Enum):
@@ -278,13 +279,16 @@ class MemoryNode:
         self.instances_in_LTM_srv = rospy.Service(
             "/instances_in_LTM", instanceNames, self.instances_in_LTM_srv_cb
         )
-        # self.run()
+        self.camera_frame = "camera_color_optical_frame"
+
+        self.run()
 
     def run(self):
         rate = rospy.Rate(self.f)
         while not rospy.is_shutdown():
             new_names = self.update_long_term(rospy.Time.now())
             self.publish_new_names(new_names)
+            self.publish_long_term_memory()
             rate.sleep()
 
     def publish_new_names(self, new_names):
@@ -299,7 +303,10 @@ class MemoryNode:
             self.new_names_pub.publish(new_names_msg)
 
     def instances_in_LTM_srv_cb(self, req: instanceNamesRequest):
-        resp = instanceNamesResponse(self.lt.instances_in_memory)
+        resp_list = []
+        for name in self.lt.instances_in_memory:
+            resp_list.append(String(name))
+        resp = instanceNamesResponse(resp_list)
         print(resp)
         return resp
 
@@ -319,6 +326,50 @@ class MemoryNode:
     def update_long_term(self, timestamp):
         new_names = self.lt.checkForObjectsToRemember(timestamp, self.db)
         return new_names
+    
+
+    def publish_to_tf(self, frame_name: str, position: np.ndarray):
+        """
+        Publish a transform from the camera frame to the map frame
+        """
+        pose = PoseStamped()
+        pose.header.frame_id = self.camera_frame
+        pose.header.stamp = rospy.Time.now()
+        pose.pose.position.x = position[0]
+        pose.pose.position.y = position[1]
+        pose.pose.position.z = position[2]
+
+        pose.pose.orientation.x = 0.5
+        pose.pose.orientation.y = 0.5
+        pose.pose.orientation.z = 0.5
+        pose.pose.orientation.w = 0.5
+
+        transformed_pose = self.buffer.transform(
+            pose, "map", rospy.Duration(1.0)
+        )
+
+        t = TransformStamped()
+        t.header.stamp = transformed_pose.header.stamp
+        t.header.frame_id = "map"
+
+        t.transform.translation.x = transformed_pose.pose.position.x
+        t.transform.translation.y = transformed_pose.pose.position.y
+        t.transform.translation.z = transformed_pose.pose.position.z
+
+        t.transform.rotation.x = transformed_pose.pose.orientation.x
+        t.transform.rotation.y = transformed_pose.pose.orientation.y
+        t.transform.rotation.z = transformed_pose.pose.orientation.z
+        t.transform.rotation.w = transformed_pose.pose.orientation.w
+
+        t.child_frame_id = frame_name
+        self.tranform_broadcaster.sendTransform(t)
+
+    def publish_long_term_memory(self):
+        for instance in self.lt:
+            self.publish_to_tf(
+                instance.instance_name,
+                instance.position,
+            )
 
 
 if __name__ == "__main__":
@@ -358,6 +409,4 @@ if __name__ == "__main__":
 
     rospy.init_node("memory_node")
     memory_node = MemoryNode()
-    memory_node.lt.instances_in_memory = ["dsqsd", "qsqds"]
-    memory_node.instance_names_srv_cb(EmptyRequest())
     rospy.spin()
