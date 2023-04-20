@@ -8,6 +8,7 @@ import py_trees as pt
 class give_path(pt.behaviour.Behaviour):
 
     def __init__(self):
+        self.name = "give_path"
         self.goal_pub = rospy.Publisher('/goal', PoseStamped, queue_size=10)
         self.path_sub = rospy.Subscriber('/path_topic', Path, self.path_callback) 
         self.ready_for_pose_sub = rospy.Subscriber('/ready_for_pose', Bool, self.ready_for_path_callback)
@@ -18,8 +19,9 @@ class give_path(pt.behaviour.Behaviour):
         self.ready_for_pose = Bool()
         self.ready_for_path = Bool()
         self.pose_to_send = 0
-
-        self.main()
+        # become a behaviour
+        super(give_path, self).__init__("Give path!")
+        self.update()
 
     def path_callback(self, msg):
         self.path = msg
@@ -59,5 +61,4 @@ class give_path(pt.behaviour.Behaviour):
             self.ready_for_path = False
             self.ready_for_new_path.publish(self.ready_for_path)
 
-        # become a behaviour
-        super(give_path, self).__init__("Give path!")
+        

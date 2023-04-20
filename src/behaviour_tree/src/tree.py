@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import py_trees as pt, py_trees_ros as ptr, rospy
 from reactive_sequence import RSequence
 from behaviours import *
@@ -40,10 +41,15 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # #...
         # #... add more nodes
         # #...
-        
-        give_path_behaviour = behaviours.give_path
-        tree = give_path_behaviour
 
+        # root = pt.composites.Parallel(
+        # name="root",
+        #     )
+        
+        give_path_behaviour = behaviours.give_path()
+        # root.add_child(give_path_behaviour)
+        tree = give_path_behaviour
+        # tree = root 
         super(BehaviourTree, self).__init__(tree)
 
         rospy.sleep(5)
