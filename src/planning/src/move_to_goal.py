@@ -80,7 +80,7 @@ class move_to_goal():
 
 
     def goal_callback(self, msg):
-        rospy.loginfo("Recived new goal")
+        # rospy.loginfo("Recived new goal")
 
         self.ready_for_pose.data = False
         self.ready_for_pose_publisher.publish(self.ready_for_pose)
@@ -89,7 +89,7 @@ class move_to_goal():
         self.goal_pose.header.stamp = msg.header.stamp
         self.goal_pose.header.frame_id = msg.header.frame_id
 
-        print(self.goal_pose.pose)
+        # print(self.goal_pose.pose)
 
         self.arrived2point = False
 
@@ -148,14 +148,16 @@ class move_to_goal():
             
                 if not self.arrived2point:
                     
-                    print('Adjusting ang1',error_ang1, ang1out)
+                    rospy.logdebug('Adjusting ang1')
+                    rospy.logdebug(error_ang1)
                     self.twist.angular.z = ang1out
     
-                    print("Adjusting dist", error_dist)
+                    rospy.logdebug("Adjusting dist")
+                    rospy.logdebug(error_dist)
                     self.twist.linear.x = distout*np.exp(-np.abs(error_ang1)*10)
                     
                     if error_dist < self.threshold_dist and abs(error_ang1) < self.threshold_ang1:
-                        rospy.loginfo("Correct pose!")
+                        rospy.logdebug("Correct pose!")
                         self.twist.angular.z = 0
                         self.twist.linear.x = 0
                         ang1out = 0
@@ -163,12 +165,13 @@ class move_to_goal():
                         self.arrived2point = True
                 else:
                     if abs(error_ang2) > self.threshold_ang2:
-                         print("Ajusting ang2", error_ang2)
+                         rospy.logdebug("Ajusting ang2")
+                         rospy.logdebug(error_ang2)
                          self.twist.linear.x = 0.0
                          self.twist.angular.z = ang2out
 
                     else:
-                         rospy.loginfo("Done")
+                         rospy.logdebug("Done")
                          self.twist.linear.x = 0.0
                          self.twist.angular.z = 0.0
 
@@ -181,7 +184,7 @@ class move_to_goal():
 
 if __name__ == "__main__":
     try:
-        rospy.init_node("move_to_goal") 
+        rospy.init_node("move_to_goal")#,log_level=rospy.DEBUG)
         move_to_goal()      
         rospy.spin()
     except rospy.ROSInterruptException:
