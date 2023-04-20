@@ -8,6 +8,9 @@ import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from workspace.srv import PolyCheck, PolyCheckRequest, OccupancyCheck, OccupancyCheckRequest
+from nav_msgs.msg import MapMetaData
+import matplotlib.path as mplPath
 
 class Workspace():
     def __init__(self):
@@ -21,24 +24,55 @@ class Workspace():
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
         self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.odom_callback)
         self.frame_id = "map"
-        self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
-        # self.vertices_df = pd.read_csv("example_workspace.tsv", sep="\t")
+
+        # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
 
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
-        # self.dutyoff = False
+
+        self.x_low = min(self.vertices_list, key=lambda point: point[0])[0]
+        self.x_high = max(self.vertices_list, key=lambda point: point[0])[0]
+        self.y_low = min(self.vertices_list, key=lambda point: point[1])[1]
+        self.y_high = max(self.vertices_list, key=lambda point: point[1])[1]
+        self.vertices_extrema = [self.x_low, self.x_high, self.y_low, self.y_high]
+        self.resolution = 0.025 # m per cell 
+        self.uknownspace_value = -1
+        self.occupied_value = 1
+        self.x_cells = int((self.x_high - self.x_low) /self.resolution) #cells / m
+        self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
+        self.occupancy_grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
+
+
+
         self.subscriber_navgoal = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.navgoal_callback)
         self.publisher_goal = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
         self.robo_posestamped = Odometry()
-
-
+        self.polygon_service = rospy.Service("/polygon_service", PolyCheck, self.callback_polycheck)
+        self.occupancy_service = rospy.Service("/occupancy_service", OccupancyCheck, self.callback_occupancycheck)
         self.robot_inside = True #will approach
         self.navgoal_inside = True #will aproach
         self.pinf = [10000, 10000] #point can be anywhere
         
+
         self.navgoalnew = False
         self.run()
+
+    def get_x_pos(self, i):
+        step = (self.x_high - self.x_low) / self.x_cells
+        x_pos = (
+            self.x_low + step * i + step / 2
+        ) 
+        return x_pos
+
+    def get_y_pos(self, j):
+        step = (self.y_high - self.y_low) / self.y_cells
+        y_pos = (
+            self.y_low + step * j + step / 2
+        )  # added step/2 so that the coordinate is in the middle of the cells
+        return y_pos
     
+
     def navgoal_callback(self, navgoalmsg):
         self.navgoal = PoseStamped()
         self.navgoal.pose = navgoalmsg.pose
@@ -122,7 +156,7 @@ class Workspace():
     def checkpointinsidepoly(self, point_interest, point_infinity):
         # return 1 if inside polygon
         n_edges = len(self.vertices)
-        point_infinity[1] = point_interest[1]
+        point_infinity[1] = point_interest[1] #same height
         if self.verbose:
             print("\n\n") 
             print(f"vertices: {self.vertices}")
@@ -162,48 +196,12 @@ class Workspace():
             # return 0 if even number of intersections => outside 
         return count % 2
 
-    def checkpointinsidepoly2(self, point_interest, point_infinity):
-        # return 1 if inside polygon
-        n_edges = len(self.vertices)
-        if self.verbose:
-            print("\n\n") 
-            print(f"vertices: {self.vertices}")
-            print(f"number of edges: {n_edges}")
-        if n_edges < 3:
-            return False
-        i = 0
+    def checkpointinsidepoly2(self, point_interest):
+        #returns true if inside map
+        poly_path = mplPath.Path((self.vertices_list))
+        bool_poly = poly_path.contains_point(point_interest)
+        return bool_poly
 
-        count = 0
-        if self.verbose:
-            print(f"Current position of robot:{point_interest}")
-        while True:
-            #find point of edge of polygon
-            edge1 = self.vertices[i]
-            edge2 = self.vertices[i + 1]
-            if self.verbose:
-                print(f"edge{i}:", edge1)
-                print(f"edge{i+1}:", edge2)
-                
-            if self.checkintersection(edge1, edge2, point_interest, point_infinity):
-                #if the point is on the edge then its definitely inside aka return True
-                if self.direction(edge1, point_interest, edge2) == 0:
-                    return self.checkonline(point_interest, edge1, edge2)
-                count += 1
-                if self.verbose:
-                    print("intersection count:", count)
-            else:
-                if self.verbose:
-                    print("No intersection")
-
-            i = (i+1) % (n_edges-1)
-            if self.verbose:
-                print("new i:", i)
-            if i == 0:
-                #break if it exceeds the edge count
-                break
-            # return 1 if odd number of intersection => inside
-            # return 0 if even number of intersections => outside 
-        return count & 1
 
     def polygon(self):
         point_list = []
@@ -214,40 +212,34 @@ class Workspace():
             point_type.y = vertice[1]
             point_list.append(point_type)
         return point_list
+
+    def callback_polycheck(self, req:PolyCheckRequest):
+        #points need to be in continuous space
+        p_check = list(req.point_of_interest)
+        p_inf = list(req.point_at_infinity)
+        return self.checkpointinsidepoly(p_check, p_inf)
     
-    # def polygoncentroid(self):
-    #     #centroid of non self intersecting polygon
-    #     for vertice in self.vertices_list:
+    def callback_occupancycheck(self, req:OccupancyCheckRequest):
+        # for x in range(self.x_cells):
+        #     for y in range(self.y_cells):
+        #         point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
+        #         bool_poly = self.checkpointinsidepoly(point_of_interest, self.pinf)
+        #         if not bool_poly:
+        #             self.occupancy_grid[x, y] = self.occupied_value
+        points = [((self.get_x_pos(x), self.get_y_pos(y)), (x,y)) for x in range(self.x_cells) for y in range(self.y_cells)]
         
-    #     return xc, yc
-
-
-
-        # if not (self.navgoal_pos is None or self.p is None): # fix since it should be done independently
-        #     if (self.checkpointinsidepoly(self.navgoal_pos, [1000, self.navgoal_pos[1]])):
-        #         # navgoal inside polygon
-        #         if (self.checkpointinsidepoly(self.p, [1000, self.p[1]])):
-        #             self.dutyoff = False
-        #             if self.verbose:
-        #                 print("robot inside workspace")
-        #             ## insert code for stopping motors/dutycycle
-        #         else:
-        #             if self.verbose:
-        #                 print("robot outside polygon")
-        #             rospy.loginfo("Warning: robot outside workspace")
-        #             self.dutyoff = True
-        #     else:
-        #         #navgoal outside poly, publish new navgoal
-        #         self.navgoalnew = True
-        #         if self.verbose:
-        #             print("navgoal outside workspace")
-
-        
-        # return point_list
-            
-
-        # print(point_list)
-
+        for point_float, point_int in points:
+            poly_bool = self.checkpointinsidepoly2(point_float)
+            if not poly_bool:
+                x = point_int[0]
+                y = point_int[1]
+                self.occupancy_grid[x, y] = self.occupied_value
+        occupancy_array = list(self.occupancy_grid.reshape(-1).astype(np.int64))
+        occupancy_metadata = MapMetaData()
+        occupancy_metadata.resolution = self.resolution
+        occupancy_metadata.width = self.x_cells
+        occupancy_metadata.height = self.y_cells
+        return occupancy_array, occupancy_metadata, self.vertices_extrema
 
     def run(self):
         while not rospy.is_shutdown():
@@ -258,7 +250,27 @@ class Workspace():
             poly_points.header.frame_id = self.frame_id
             self.publisher_vertices.publish(poly_points)
 
-            # Calculate the center point of the polygon
+            ################################################# TESTING CHECKPOINTINSIDEPOLY ALG ######################################
+            # x = [self.get_x_pos(x) for x in range(self.x_cells)]
+            # y = [self.get_y_pos(y) for y in range(self.y_cells)]
+            # # points = list(zip(x, y))
+            # points = [(self.get_x_pos(x), self.get_y_pos(y)) for x in range(self.x_cells) for y in range(self.y_cells)]
+
+            # wrong_points = []
+            # occupied_points = []
+            # for point in points:
+            #     poly_bool = self.checkpointinsidepoly2(point) 
+            #     alice_bool = self.checkpointinsidepoly([point[0], point[1]], self.pinf)
+            #     if poly_bool !=  alice_bool:
+            #         # print(f"WARNING: POI: {point} DIFFERENT RESULT")
+            #         wrong_points.append(point)
+            #     if poly_bool is not True:
+            #         occupied_points.append(point)
+            # # print(wrong_points)
+            # plt.plot([i for i, j in occupied_points], [j for i, j in occupied_points], ".")
+            # # plt.plot([i for i, j in wrong_points], [j for i, j in wrong_points], "r.")c
+            # plt.show()
+            #########################################################################################################################
 
 
             ## CHECK
