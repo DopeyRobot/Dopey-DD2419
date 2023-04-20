@@ -267,6 +267,7 @@ class RRTPlanner:
             if self.ready4path:#self.goal is not None and self.goalReceivedTicker != self.goalProcessedTicker and self.ready4path:
                 
                 self.__init__(num_iterations=self.num_iterations,step_size=self.step_size,runInit=False)
+                #TODO: after successfully arriving atfirst goal, the secodn goal always has teh first noed in the origin of odom and not base_link. Fix this. 
                 # self.ready4path = False
                 # self.goalProcessedTicker += 1
                 self.start = RRTNode() 
