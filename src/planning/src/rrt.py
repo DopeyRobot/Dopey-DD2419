@@ -82,11 +82,11 @@ class RRTPlanner:
 
         # self.RRT: List[RRTNode] = [self.start]
 
-        #self.ready4path = True
+        self.ready4path = False
         # self.goalReceived = 
 
-        self.goalReceivedTicker = 0
-        self.goalProcessedTicker = 0
+        # self.goalReceivedTicker = 0
+        # self.goalProcessedTicker = 0
         if runInit:
             self.run()
 
@@ -99,12 +99,12 @@ class RRTPlanner:
         msgGoal = [msg.pose.position.x, msg.pose.position.y]
         # self.goal = [msg.pose.position.x, msg.pose.position.y]
 
-        if self.goal != msgGoal:
+        if not np.allclose(np.array(self.goal,dtype=float),np.array(msgGoal,dtype=float)) or self.goal is None:#self.goal != msgGoal:
             # try:
             print("new goal")
             self.goal = msgGoal
             self.ready4path = True
-            self.goalReceivedTicker += 1
+            # self.goalReceivedTicker += 1
             # except:
             #     print("error")
             
@@ -264,11 +264,11 @@ class RRTPlanner:
             #print(self.goal)
             # print("R: ",self.goalReceivedTicker)
             # print("P: ", self.goalProcessedTicker)
-            if self.goal is not None and self.goalReceivedTicker != self.goalProcessedTicker and self.ready4path:
+            if self.ready4path:#self.goal is not None and self.goalReceivedTicker != self.goalProcessedTicker and self.ready4path:
                 
                 self.__init__(num_iterations=self.num_iterations,step_size=self.step_size,runInit=False)
-                self.ready4path = False
-                self.goalProcessedTicker += 1
+                # self.ready4path = False
+                # self.goalProcessedTicker += 1
                 self.start = RRTNode() 
                 self.start.x = self.start.get_start().pose.position.x
                 self.start.y = self.start.get_start().pose.position.y

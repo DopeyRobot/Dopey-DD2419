@@ -4,13 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
-        - /TF1
-        - /TF1/Frames1
-        - /Image1
         - /Image2
-        - /Pose1
-        - /Path1
       Splitter Ratio: 0.7439024448394775
     Tree Height: 164
   - Class: rviz/Selection
@@ -91,6 +85,10 @@ Visualization Manager:
         All Enabled: false
         arm_base_link:
           Value: false
+        aruco/detected 500:
+          Value: true
+        aruco/detected 509:
+          Value: true
         base_link:
           Value: true
         camera_aligned_depth_to_color_frame:
@@ -111,6 +109,8 @@ Visualization Manager:
           Value: false
         imu_link:
           Value: false
+        map:
+          Value: true
         odom:
           Value: true
       Marker Alpha: 1
@@ -120,7 +120,28 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          aruco/detected 500:
+            {}
+          aruco/detected 509:
+            {}
+          odom:
+            base_link:
+              arm_base_link:
+                end_effector_frame:
+                  {}
+              camera_bottom_screw_frame:
+                camera_link:
+                  camera_aligned_depth_to_color_frame:
+                    camera_color_optical_frame:
+                      {}
+                  camera_color_frame:
+                    {}
+                  camera_depth_frame:
+                    camera_depth_optical_frame:
+                      {}
+            imu_link:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -165,18 +186,6 @@ Visualization Manager:
       Unreliable: false
       Value: false
     - Class: rviz/Image
-      Enabled: true
-      Image Topic: /aruco/result
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Image
-      Normalize Range: true
-      Queue Size: 2
-      Transport Hint: raw
-      Unreliable: false
-      Value: true
-    - Class: rviz/Image
       Enabled: false
       Image Topic: /aruco/result
       Max Value: 1
@@ -188,6 +197,18 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: false
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /aruco/result
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
     - Alpha: 1
       Class: rviz/Polygon
       Color: 25; 255; 0
@@ -254,7 +275,7 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
-      Color: 11; 35; 237
+      Color: 236; 16; 201
       Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
@@ -303,7 +324,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 5.114749431610107
+      Distance: 5.3277740478515625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -319,9 +340,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4097978174686432
+      Pitch: 1.1347976922988892
       Target Frame: <Fixed Frame>
-      Yaw: 3.880420684814453
+      Yaw: 3.715418815612793
     Saved: ~
 Window Geometry:
   ArUco:
