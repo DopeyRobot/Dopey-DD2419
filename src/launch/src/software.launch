@@ -75,7 +75,7 @@
   </node>
 
   <!-- Launch behaviour tree  -->
-  <node pkg="behaviour_tree" type="tree.py" name="behaviour_tree_node" output="screen" />
+  <!-- <node pkg="behaviour_tree" type="tree.py" name="behaviour_tree_node" output="screen" /> -->
 	
 </launch>
 

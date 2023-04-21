@@ -84,10 +84,11 @@ class RRTPlanner:
         start_pose = self.start.get_start()
         self.start.x = start_pose.pose.position.x
         self.start.y = start_pose.pose.position.y
+        
         self.RRT: List[RRTNode] = [self.start]
 
         self.ready4path = False
-        # self.goalReceived = 
+
 
         # self.goalReceivedTicker = 0
         # self.goalProcessedTicker = 0

@@ -4,12 +4,17 @@ from reactive_sequence import RSequence
 from behaviours import *
 import behaviours
 
+from tf2_ros import Buffer, TransformListener, TransformStamped
+import tf2_geometry_msgs
 
 class BehaviourTree(ptr.trees.BehaviourTree):
 
     def __init__(self):
 
         rospy.loginfo("Initialising behaviour tree")
+
+        self.buffer = Buffer(rospy.Duration(100.0))
+        self.listener = TransformListener(self.buffer)
 
         # behaviour1 = behaviours.B1
         # behaviour2 = behaviours.B2
@@ -51,6 +56,16 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         tree = give_path_behaviour
         # tree = root 
         super(BehaviourTree, self).__init__(tree)
+	
+
+        # TEST FOR CHECKING TRANSFORMS OF BASELINK TO MAP
+        base_link_origin = PoseStamped()
+        base_link_origin.header.stamp = rospy.Time.now()
+        transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp , rospy.Duration(1))  
+        transform_to_map_from_odom = self.buffer.lookup_transform("map", "odom", base_link_origin.header.stamp , rospy.Duration(1))  
+        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
+        print(rospy.Time.now())
+        print(transform_to_map,transform_to_map_from_odom)
 
         rospy.sleep(5)
         self.setup(timeout=10000)
