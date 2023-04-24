@@ -18,7 +18,9 @@ class RRTNode:
         self.parent = parent
 
         self.buffer = Buffer(rospy.Duration(100.0))
+        rospy.sleep(0.5)
         self.listener = TransformListener(self.buffer)
+        rospy.sleep(0.5)
 
     def set_parent(self, parent: "RRTNode"):
         self.parent = parent
@@ -172,7 +174,7 @@ class RRTPlanner:
                 new_node.x = new_x
                 new_node.y = new_y
             else:
-                # print("Ran into obstacle")
+                print("Ran into obstacle")
                 return None
 
         return new_node
