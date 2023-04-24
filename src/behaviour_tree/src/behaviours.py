@@ -5,6 +5,8 @@ import py_trees as pt
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Bool
 from nav_msgs.msg import Path
+from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
+
 
 class give_path(pt.behaviour.Behaviour):
 
@@ -92,4 +94,18 @@ class give_path(pt.behaviour.Behaviour):
             #print("Waiting for path, none given yet! Sending RUNNING in tree")
             return pt.common.Status.RUNNING
 
-        
+class playTune(pt.behaviour.Behaviour):
+    def __init__(self):
+        rospy.loginfo("Initialising playing sound behaviour")
+
+        #server
+    
+        self.playTune_client = rospy.ServiceProxy("playTune", playTune)
+        rospy.wait_for_service("playTune", timeout= 2)
+    
+    def update(self):
+        self.playTune_client("Lebron James")
+        return pt.common.Status.SUCCESS
+    
+
+
