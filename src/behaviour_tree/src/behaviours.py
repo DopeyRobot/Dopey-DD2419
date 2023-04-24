@@ -18,7 +18,7 @@ class give_path(pt.behaviour.Behaviour):
 
         self.path = None#Path()
         self.ready_for_pose = Bool()
-        self.ready_for_path = Bool()
+        self.ready_for_path = True
         self.pose_to_send = 0
         # become a behaviour
         super(give_path, self).__init__("Give path!")
@@ -90,6 +90,7 @@ class give_path(pt.behaviour.Behaviour):
                 return pt.common.Status.RUNNING
         elif self.path is None:
             #print("Waiting for path, none given yet! Sending RUNNING in tree")
+            self.ready_for_new_path.publish(self.ready_for_path)
             return pt.common.Status.RUNNING
 
         

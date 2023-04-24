@@ -30,29 +30,12 @@ class RRTNode:
     
     def get_start(self):    
 
-        # robot_pose = PoseStamped()
-        # robot_pose.header.stamp = 
         base_link_origin = PoseStamped()
         base_link_origin.header.stamp = rospy.Time.now()
 
         transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp , rospy.Duration(1))  
-        transform_to_map_from_odom = self.buffer.lookup_transform("map", "odom", base_link_origin.header.stamp , rospy.Duration(1))  
         baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
-        # robot_pose.pose.position.z = baseInMapPose.pose.position.z
-        # robot_pose.pose.position.x = baseInMapPose.pose.position.x
-        # robot_pose.pose.position.y = baseInMapPose.pose.position.y
-        # robot_pose.pose.orientation.w = baseInMapPose.pose.orientation.w
-        # robot_pose.pose.orientation.x = baseInMapPose.pose.orientation.x
-        # robot_pose.pose.orientation.y = baseInMapPose.pose.orientation.y
-        # robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
-
-        # robot_pose.header.frame_id = "map"
-        
-        # return robot_pose
-        #TODO: base_link doesn't seem to move according to this trasnform. Even though we can see in Rviz that base_link is not in the same palce as odom- The time stamp is correct thoguh, we're not collecting an old time stamp.
-        print(rospy.Time.now())
-        print(transform_to_map,transform_to_map_from_odom)
         return baseInMapPose
 
 class RRTPlanner:

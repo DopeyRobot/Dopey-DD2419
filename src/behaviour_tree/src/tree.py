@@ -50,25 +50,25 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # #... add more nodes
         # #...
 
-        root = pt.composites.Parallel(
+        root = pt.composites.Sequence(
         name="root",
             )
         
         give_path_behaviour = behaviours.give_path()
-	
-        test = behaviours.give_path()
-        test1 = behaviours.give_path()
-        test2 = behaviours.give_path()
+        
+        # test = behaviours.give_path()
+        # test1 = behaviours.give_path()
+        # test2 = behaviours.give_path()
 
-        AND = RSequence(name="->", children=[test1,test2])
+        # AND = RSequence(name="->", children=[test1,test2])
 
-        OR = pt.composites.Selector(
-            name="?", 
-            children=[give_path_behaviour,test,AND]
+        # OR = pt.composites.Selector(
+        #     name="?", 
+        #     children=[give_path_behaviour,test,AND]
 	    
-	    )
+	    # )
 
-        root.add_child(OR)
+        root.add_child(give_path_behaviour)
 	
 
         # for job in ["Action 1", "Action 2", "Action 3"]:
