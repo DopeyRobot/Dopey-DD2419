@@ -86,14 +86,17 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         # behaviour_tree = root
         # behaviour_tree = pt.trees.BehaviourTree(root)
-        snapshot_visitor = pt.visitors.SnapshotVisitor()
+        
         
         super(BehaviourTree, self).__init__(root)
+
+        # ##ATTEMPT TO PRINT CURRENT TREEE
+        # snapshot_visitor = pt.visitors.SnapshotVisitor()
         
-        self.add_post_tick_handler(
-            functools.partial(self.post_tick_handler,
-                            snapshot_visitor))
-        self.visitors.append(snapshot_visitor)
+        # self.add_post_tick_handler(
+        #     functools.partial(self.post_tick_handler,
+        #                     snapshot_visitor))
+        # self.visitors.append(snapshot_visitor)
         
 
         # TEST FOR CHECKING TRANSFORMS OF BASELINK TO MAP
@@ -109,15 +112,15 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         self.setup(timeout=10000)
         while not rospy.is_shutdown(): self.tick_tock(1)
 	
-    def post_tick_handler(self,snapshot_visitor, behaviour_tree):
-        pdb.set_trace()
-        print(
-            pt.display.ascii_tree(
-                behaviour_tree.root,
-                visited=snapshot_visitor.visited,
-                previously_visited=snapshot_visitor.visited
-            )
-        )
+    # def post_tick_handler(self,snapshot_visitor, behaviour_tree):
+    #     pdb.set_trace()
+    #     print(
+    #         pt.display.ascii_tree(
+    #             behaviour_tree.root,
+    #             visited=snapshot_visitor.visited,
+    #             previously_visited=snapshot_visitor.visited
+    #         )
+    #     )
     # def print_snapshot_continously(self,behaviour_tree):
     #     snapshot_visitor = pt.visitors.SnapshotVisitor()
     #     behaviour_tree.add_post_tick_handler(
