@@ -111,6 +111,13 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         
         self.setup(timeout=10000)
         while not rospy.is_shutdown(): self.tick_tock(1)
+
+        # #MAJA
+        # print("\n" + "-"*80)
+        # print("Behavior Tree")
+        # print("-"*80)
+        # print(pt.display.ascii_tree(root))
+        # rospy.sleep(0.5)
 	
     # def post_tick_handler(self,snapshot_visitor, behaviour_tree):
     #     pdb.set_trace()
