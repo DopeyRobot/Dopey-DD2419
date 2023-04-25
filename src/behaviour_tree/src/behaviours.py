@@ -3,7 +3,7 @@ import rospy
 import tf2_geometry_msgs
 import py_trees as pt
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from nav_msgs.msg import Path
 from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
 
@@ -103,7 +103,7 @@ class give_path(pt.behaviour.Behaviour):
             return pt.common.Status.RUNNING
 
 
-class playTune(pt.behaviour.Behaviour):
+class playTuneBehaviour(pt.behaviour.Behaviour):
     def __init__(self, tune_name: str):
         super().__init__("Play tune : " + tune_name)
         rospy.loginfo("Initialising playing sound behaviour for " + tune_name)
@@ -112,5 +112,5 @@ class playTune(pt.behaviour.Behaviour):
         rospy.wait_for_service("playTune", timeout=2)
 
     def update(self):
-        self.playTune_client(self.tune_name)
+        self.playTune_client(String(self.tune_name))
         return pt.common.Status.SUCCESS
