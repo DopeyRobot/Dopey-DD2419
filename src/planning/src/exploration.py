@@ -112,8 +112,8 @@ class FrontierExploration:
             froniter_to_publish = PoseStamped()
             closest_frontier = self.distance2frontier()
             if closest_frontier is not None:
-                froniter_to_publish.pose.position.x = closest_frontier[0]
-                froniter_to_publish.pose.position.y = closest_frontier[1]
+                froniter_to_publish.pose.position.x = closest_frontier[0]*2
+                froniter_to_publish.pose.position.y = closest_frontier[1]*2
 
                 if self.ready_for_path:
                     self.publish_goal.publish(froniter_to_publish)

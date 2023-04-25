@@ -29,14 +29,16 @@ class RRTNode:
         return self.parent
     
     def get_start(self):    
-
+        
         base_link_origin = PoseStamped()
         base_link_origin.header.stamp = rospy.Time.now()
+        if self.buffer.can_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1)):
+            transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1))  
+            baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
-        transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp , rospy.Duration(1))  
-        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
-
-        return baseInMapPose
+            return baseInMapPose
+        else:
+            return None
 
 class RRTPlanner:
     def __init__(self, start=None, goal=None, num_iterations=100, step_size=2, n_steps=1,runInit=True):
@@ -67,6 +69,8 @@ class RRTPlanner:
         
         self.start = RRTNode() 
         start_pose = self.start.get_start()
+        while start_pose is None:
+            start_pose = self.start.get_start()
         self.start.x = start_pose.pose.position.x
         self.start.y = start_pose.pose.position.y
         
@@ -164,6 +168,7 @@ class RRTPlanner:
 
     def generate_RRT(self):
         for i in range(self.num_iterations):
+            print(self.goal)
             x_rand, y_rand = self.sample_random()
             nearest_node = self.find_nearest(x_rand, y_rand)
             new_node = self.RRT_step(nearest_node, x_rand, y_rand)
@@ -265,7 +270,7 @@ class RRTPlanner:
                 # self.start.y = self.start.get_start().pose.position.y
                 # self.RRT: List[RRTNode] = [self.start]
                 #print("goal received")
-
+        
                 self.generate_RRT()
                 self.generate_path()
                 #planner.plot_RRT_tree()

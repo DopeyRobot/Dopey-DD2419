@@ -5,7 +5,10 @@ import py_trees as pt
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Bool
 from nav_msgs.msg import Path
-
+import tf2_ros
+from nav_msgs.msg import OccupancyGrid
+import math
+import numpy as np
 class give_path(pt.behaviour.Behaviour):
 
     def __init__(self):
@@ -22,7 +25,7 @@ class give_path(pt.behaviour.Behaviour):
         self.pose_to_send = 0
         # become a behaviour
         super(give_path, self).__init__("Give path!")
-        self.update()
+        # self.update()
 
     def path_callback(self, msg):
         self.path = msg
@@ -53,6 +56,8 @@ class give_path(pt.behaviour.Behaviour):
         return robot_pose
 
     def update(self):
+        print(self.ready_for_pose)
+        print("ready for path in give_path:", self.ready_for_path)
         if self.path is not None:
             if self.ready_for_pose:#and self.path.poses != []:
                 #print('Ready for new pose! Sending RUNNING in tree')
@@ -62,7 +67,9 @@ class give_path(pt.behaviour.Behaviour):
                 self.pose_to_send = self.pose_to_send + 1
 
                 #Send RUNNING to behaviour tree
+                print("sending running")
                 return pt.common.Status.RUNNING
+                
             
             if self.pose_to_send == len(self.path.poses):
                 
@@ -86,11 +93,117 @@ class give_path(pt.behaviour.Behaviour):
             else:
                 self.ready_for_path = False
                 self.ready_for_new_path.publish(self.ready_for_path)
-                #print('Moving to next pose in path array! Sending RUNNING in tree')
+                print('Moving to next pose in path array! Sending RUNNING in tree')
                 return pt.common.Status.RUNNING
-        elif self.path is None:
-            #print("Waiting for path, none given yet! Sending RUNNING in tree")
+                
+        else:
+            print("Waiting for path, none given yet! Sending RUNNING in tree")
             self.ready_for_new_path.publish(self.ready_for_path)
             return pt.common.Status.RUNNING
+        # else: 
+        #     print("sending final RUNNING")
+        #     return pt.common.Status.RUNNING
 
         
+class FrontierExploration(pt.behaviour.Behaviour):
+    def __init__(self):
+        self.name = "exploration"
+        rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
+        self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1)
+        self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+
+        self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
+        rospy.sleep(0.5)
+        self.listener = tf2_ros.TransformListener(self.buffer)
+        rospy.sleep(0.5)
+
+        self.occupancy_grid = None
+        self.ready_for_path = True
+
+        # become a behaviour
+        super(FrontierExploration, self).__init__("Frontier Exploration!")
+        # self.update()
+
+    def ready_for_path_callback(self, msg):
+        self.ready_for_path = msg.data
+        
+
+    def map_callback(self, msg):
+        self.map_data = msg
+        self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
+        # print("Inside map callback")
+        # print(self.occupancy_grid)
+
+
+    def identify_froniters(self):
+
+        frontier_cells = []
+        if self.occupancy_grid is not None:
+            for i in range(1, self.occupancy_grid.shape[0]-1):
+                for j in range(1, self.occupancy_grid.shape[1]-1):
+                    if self.occupancy_grid[i][j] == 0 and np.sum(self.occupancy_grid[i-1:i+2, j-1:j+2]) > 0:
+                        x = (j - 0.5) * self.map_data.info.resolution + self.map_data.info.origin.position.x
+                        y = (i - 0.5) * self.map_data.info.resolution + self.map_data.info.origin.position.y
+                        frontier_cells.append((x, y))
+
+        return frontier_cells
+
+
+    def euclidean_distance(self, x1, y1, x2, y2):
+
+        return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    def get_current_position(self):
+        base_link_origin = PoseStamped()
+        base_link_origin.header.stamp = rospy.Time.now()
+
+        transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp , rospy.Duration(1))  
+        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
+
+        return baseInMapPose
+        
+
+    def distance2frontier(self):
+        current_position = self.get_current_position()
+        current_x = current_position.pose.position.x
+        current_y = current_position.pose.position.y
+        frontier_cells = self.identify_froniters()
+        # print(frontier_cells)
+
+        distances = []
+        for cell in frontier_cells:
+            dist = self.euclidean_distance(current_x, current_y, cell[0], cell[1])
+            distances.append(dist)
+
+        # closest frontier cell
+        if len(distances) != 0:
+            min_distance_idx = np.argmin(distances)
+            closest_frontier = frontier_cells[min_distance_idx]
+
+            return closest_frontier
+        else:
+            return None
+
+    def update(self):
+        # while not rospy.is_shutdown():
+        frontier_to_publish = PoseStamped()
+        closest_frontier = self.distance2frontier()
+        if closest_frontier is not None:
+            frontier_to_publish.pose.position.x = closest_frontier[0]*2
+            frontier_to_publish.pose.position.y = closest_frontier[1]*2
+
+            if self.ready_for_path:
+                self.publish_goal.publish(frontier_to_publish)
+                print("Sending current frontier goal, sending SUCCESS in tree")
+                print("ready for path in explore:", self.ready_for_path)
+                return pt.common.Status.SUCCESS
+            else:
+                #Currently moving to a frontier, not ready to publish a new one
+                print("running expl 1")
+                return pt.common.Status.RUNNING    
+        else:
+            #Not yet found a frontier
+            print("running expl 2")
+
+            return pt.common.Status.RUNNING
+

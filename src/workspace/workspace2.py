@@ -26,7 +26,8 @@ class Workspace():
         self.frame_id = "map"
 
         # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
-        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        # self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/workspace.tsv", sep="\t")
 
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)

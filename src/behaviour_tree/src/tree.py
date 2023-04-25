@@ -53,9 +53,11 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         root = pt.composites.Sequence(
         name="root",
             )
-        
+        frontier_exploration_behaviour = behaviours.FrontierExploration()
         give_path_behaviour = behaviours.give_path()
+        explore_subtree = RSequence(name="RSequence", children=[frontier_exploration_behaviour,give_path_behaviour]) #need to add a third child to check amount explored
         
+        # explore_subtree = give_path_behaviour
         # test = behaviours.give_path()
         # test1 = behaviours.give_path()
         # test2 = behaviours.give_path()
@@ -67,8 +69,9 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         #     children=[give_path_behaviour,test,AND]
 	    
 	    # )
-
+        root.add_child(frontier_exploration_behaviour)
         root.add_child(give_path_behaviour)
+        
 	
 
         # for job in ["Action 1", "Action 2", "Action 3"]:
@@ -78,6 +81,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         #         eventually = pt.common.Status.SUCCESS
         #     )
         #     give_path_behaviour.add_child(success_after_two)
+        # root = explore_subtree
         pt.display.render_dot_tree(root)
         # tree = give_path_behaviour
         # tree = root 
@@ -108,9 +112,11 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # print(rospy.Time.now())
         # print(transform_to_map,transform_to_map_from_odom)
 
-        
+        rospy.sleep(5)
         self.setup(timeout=10000)
-        while not rospy.is_shutdown(): self.tick_tock(1)
+        while not rospy.is_shutdown(): 
+              self.tick_tock(1)
+              print("TICK IN TREE")
 
         # #MAJA
         # print("\n" + "-"*80)
