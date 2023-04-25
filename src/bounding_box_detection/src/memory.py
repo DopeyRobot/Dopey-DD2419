@@ -362,7 +362,11 @@ class MemoryNode:
         t.transform.rotation.w = transformed_pose.pose.orientation.w
 
         t.child_frame_id = frame_name
-        self.tranform_broadcaster.sendTransform(t)
+        try:
+            self.tranform_broadcaster.sendTransform(t)
+        except (tf2_ros.Exception) as e:
+            print(e)
+            print("sending transform to tf failed")
 
     def publish_long_term_memory(self):
         for instance in self.lt:

@@ -3,6 +3,7 @@ import rospy
 import numpy as np
 from typing import List
 from tf2_geometry_msgs import PoseStamped
+from inspect import currentframe, getframeinfo
 from tf2_ros import (
     TransformBroadcaster,
     Buffer,
@@ -33,6 +34,8 @@ class BoxNode:
             0.35  # distance between box and obstacle to still be considered a bo
         )
         self.delta = 0.1  # distance between two points in the laser scan to still be considered part of the box
+        # for debugging
+        self.frameinfo = getframeinfo(currentframe())
         self.run()
         
 
@@ -42,7 +45,9 @@ class BoxNode:
     def get_boxes_from_memory(self) -> List[str]:
         """Get all boxes in the memory list as a list of python strings"""
         ros_list = self.memory_list_srv().instances
-        return [name.data for name in ros_list if "box" in name.data.lower()]
+        boxes = [name.data for name in ros_list if "box" in name.data.lower()]
+        rospy.loginfo("boxes in memory:" + str(boxes))
+        return boxes
 
     def get_box_pose(self, frame_id: str) -> TransformStamped:
         pose = PoseStamped()
@@ -59,57 +64,65 @@ class BoxNode:
             pose.pose.orientation.z = transform.transform.rotation.z
             pose.pose.orientation.w = transform.transform.rotation.w
             pose.header.stamp = transform.header.stamp
+            # rospy.loginfo("pose of"+ frame_id + str(pose))
             return pose
         except Exception as e:
+            rospy.loginfo(self.frameinfo.lineno + "could not find transform for box for " + frame_id)
             rospy.logerr(e)
             return None
 
     def get_obstacles_from_laserscan(self):
         obstacle_map_poses = []
-        # try:
+        # try: # NOTE: Do I need this?
         #     transform_camera2map = self.buffer.lookup_transform(
         #         self.reference_frame, "camera_depth_frame", rospy.Time(0)
         #     )  # Is the order of source and target frame correct?
 
         # except:
-        #     print("could not find transform for box")
+        #     rospy.loginfo("could not find transform for box")
         #     return
 
         # look through the laser scan and find the points that are in the box
-        N = int(
-            (self.scan.angle_max - self.scan.angle_min)
-            / self.scan.angle_increment
-        )
+        N = int((self.scan.angle_max - self.scan.angle_min) / self.scan.angle_increment)
         angles = np.linspace(self.scan.angle_min, self.scan.angle_max, N)
-        for dist, angle in list(zip(self.scan.ranges, angles))[::10]:
+        for dist, angle in list(zip(self.scan.ranges, angles))[::10]: #NOTE: is this the right way to get the points in the box?
             if np.isnan(dist):
                 continue
-            distancePoseStamped = PoseStamped()
-            distancePoseStamped.pose.position.x = dist * np.cos(
-                angle
-            )  # these need to be rotated into the map frame
-            distancePoseStamped.pose.position.y = dist * np.sin(angle)
+            distancePoseStamped = PoseStamped() # NOTE: Why do we need to rotate the points into the map frame? Can't we just use the camera frame?
+            distancePoseStamped.pose.position.x = dist# * np.cos(angle)  # these need to be rotated into the map frame
+            distancePoseStamped.pose.position.y = dist# * np.sin(angle)
             distancePoseStamped.header.frame_id = "camera_depth_frame"
             # TODO: check if the transform is correct and if we can use All the time the camera reference frame or if we need the map frame for anything
-            obstacle_map_poses.append(
-                distancePoseStamped
-            )  # tf2_geometry_msgs.do_transform_pose(distancePoseStamped, transform_camera2map) #continuous coordinates
+            obstacle_map_poses.append(distancePoseStamped)
+            # tf2_geometry_msgs.do_transform_pose(distancePoseStamped, transform_camera2map) #continuous coordinates
+        
+        rospy.loginfo("obstacles' poses from scanner found:" + str(obstacle_map_poses))
         return obstacle_map_poses
 
     def run(self) -> None:
         """Main loop of the node"""
         rate = rospy.Rate(1)
+        if rospy.is_shutdown():
+            rospy.loginfo(" Rospy is shutdown")
+            return
+        rospy.loginfo("Running box dection node")
         while not rospy.is_shutdown():
             # Get all boxes in the memory list
             boxes = self.get_boxes_from_memory()
             # Get the list of the poses of the boxes
-            box_poses = [self.get_box_pose(box) for box in boxes]
+            box_poses = [self.get_box_pose(box) for box in boxes] # get the poses of the boxes through their names as ID's tf buffer
+            if box_poses is None:
+                rospy.loginfo("No boxes found")
+                continue
+            rospy.loginfo(self.frameinfo.lineno + "transforms for boxes:" + str(box_poses))
             # get obstacles in laser scan
             obstacle_poses = self.get_obstacles_from_laserscan()
             # check if any of the box_poses coincides with any of the obstacle_poses if so save the index
             for box_pose in box_poses:
                 matching_pose_idx = self.find_closest_obstacle(box_pose, obstacle_poses)
-                self.measure_box(obstacle_poses, matching_pose_idx)
+                if matching_pose_idx is not None:
+                    self.measure_box(obstacle_poses, matching_pose_idx)
+        
 
     def find_closest_obstacle(self, box, obstacles: List[PoseStamped]) -> List[str]:
         """Checks if there is an instance in the long term memory that is close enough
@@ -120,7 +133,6 @@ class BoxNode:
         rospy.loginfo(len(obstacles))
         for i in range(len(obstacles)):
             dist = self.get_distance(box, obstacles[i])
-            rospy.loginfo(dist)
 
             if dist < self.distance_threshold:
                 if dist < prev_dist:
@@ -128,8 +140,10 @@ class BoxNode:
                     idx_closest_pt = i
                     rospy.loginfo(idx_closest_pt)
         if idx_closest_pt != 0:
+            rospy.loginfo("closest obstacle to " + box.header.frame_id + "found at: " + dist)
             return idx_closest_pt
         else:
+            rospy.loginfo("no obstacle found")
             return None
 
     def get_distance(self, pose1, pose2) -> float:
@@ -137,8 +151,7 @@ class BoxNode:
         return np.sqrt(
             (pose1.pose.position.x - pose2.pose.position.x) ** 2
             + (pose1.pose.position.y - pose2.pose.position.y) ** 2
-            + (pose1.pose.position.z - pose2.pose.position.z) ** 2
-        )
+            + (pose1.pose.position.z - pose2.pose.position.z) ** 2)
 
     def measure_box(self, obstacle_poses, idx):
         right_end = PoseStamped()
@@ -147,8 +160,9 @@ class BoxNode:
         for obstacle in obstacle_poses[idx:]:
             # TODO: CHECK which direction the front for the laserscan !!!!!!!!!!!!!!!!!!!!
             # This code asumes that "front" is the direction of the positive y axis in the camera frame.
-            if abs(current_pt.pose.position.x - obstacle.pose.position.x) > self.delta:
+            if abs(current_pt.pose.position.x - obstacle.pose.position.x) > self.delta: # NOTE: When comparing positions like this, which frame are they in??
                 right_end = obstacle
+                rospy.login("right end of box found")
                 break
         # Measure the left side of the box
         left_end = PoseStamped()
@@ -156,10 +170,9 @@ class BoxNode:
             # TODO: CHECK which direction the front for the laserscan !!!!!!!!!!!!!!!!!!!!
             if abs(obstacle.pose.position.x - current_pt.pose.position.x) > self.delta:
                 left_end = obstacle
+                rospy.login("left end of box found")
                 break
         # TODO: Implement safety check to make sure a left and right end were found
-
-        # TODO: maybe there is a smarter implementation to find the size of the box and compare with the real world size
 
         # find corner(closest point to the camera) in case box is in corner view
         # (i.e. if the camera can see two sides of the box at the same time)
@@ -169,27 +182,15 @@ class BoxNode:
             # find the point that is closest to to the camera frame origin
             if abs(obstacle.pose.position.y) < abs(previous_closest_point):
                 box_corner = obstacle
+        rospy.loginfo("closest point found at distance:" + previous_closest_point)
 
         # position of the center of the box (where the marker center will be placed)
         box_center = PoseStamped()
-        box_center.pose.position.x = (
-            left_end.pose.position.x + right_end.pose.position.x
-        ) / 2  # this is in map frame and should be in camera depth frame
-        box_center.pose.position.y = (
-            left_end.pose.position.y + right_end.pose.position.y
-        ) / 2
-        box_center.pose.position.z = 0.0
-
-        oposite_side = abs(box_corner.pose.position.y - right_end.pose.position.y)
-        adjacent_side = abs(box_corner.pose.position.x - right_end.pose.position.x)
-        orientation = np.arctan2(oposite_side, adjacent_side)
-        q = quaternion_from_euler(0, 0, orientation)
-
+        box_center.header.frame_id = "camera_depth_frame"
         # if box in side/flat view (i.e. the camera can only see one side of the box)
-        if (
-            abs(box_corner.pose.position.y - left_end.pose.position.y) < 0.2
-            and abs(box_corner.pose.position.y - right_end.pose.position.y) < 0.2
-        ):
+        if (abs(box_corner.pose.position.y - left_end.pose.position.y) < 0.2
+            and abs(box_corner.pose.position.y - right_end.pose.position.y) < 0.2 ):
+            rospy.loginfo("box in side/flat view")
             side_ln = abs(right_end.pose.position.y - left_end.pose.position.y)
             # check if we are seeing the long side or the short side of the box
             diff_to_16cm = abs(side_ln - 16)
@@ -200,6 +201,15 @@ class BoxNode:
             else:
                 box_center.pose.position.y = box_corner.pose.position.y + 12
                 q = quaternion_from_euler(0, 0, np.pi / 2)
+        else:
+            rospy.loginfo("box in corner view")
+            box_center.pose.position.x = (left_end.pose.position.x + right_end.pose.position.x) / 2  # NOTE: this is in map frame and should be in camera depth frame
+            box_center.pose.position.y = (left_end.pose.position.y + right_end.pose.position.y) / 2
+            box_center.pose.position.z = 0.0
+            oposite_side = abs(box_corner.pose.position.y - right_end.pose.position.y) # I hope this is in camera frame
+            adjacent_side = abs(box_corner.pose.position.x - right_end.pose.position.x)
+            orientation = np.arctan2(oposite_side, adjacent_side)
+            q = quaternion_from_euler(0, 0, orientation)
 
         box_center.pose.orientation.x = q[0]
         box_center.pose.orientation.y = q[1]
@@ -208,10 +218,9 @@ class BoxNode:
 
         self.marker_pub.publish(self.create_marker(box_center))
 
-    def create_marker(
-        self,
-        pose: PoseStamped,
-    ) -> Marker:
+    def create_marker(self, pose: PoseStamped,) -> Marker:
+        """Creates a marker for the given pose"""
+        rospy.loginfo("creating a marker")
         marker = Marker()
         marker.header.frame_id = "camera_depth_frame"
         marker.header.stamp = rospy.Time.now()
