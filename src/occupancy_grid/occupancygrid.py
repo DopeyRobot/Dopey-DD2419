@@ -207,13 +207,15 @@ class Occupancygrid:
         x_r = self.get_i_index(self.transform_camera2map.transform.translation.x)
         y_r = self.get_j_index(self.transform_camera2map.transform.translation.y)
         N = int((self.laserscan.angle_max-self.laserscan.angle_min)/self.laserscan.angle_increment)
-        angles = np.linspace(self.laserscan.angle_min, self.laserscan.angle_max, N)
-        for dist, angle in list(zip(self.laserscan.ranges, angles))[::10]:
-            if np.isnan(dist):
-                if dist >=0:
-                    dist = self.laserscan.range_max
-                else:
-                    dist = self.laserscan.range_min
+        angle = self.laserscan.angle_min
+        for i, dist in enumerate(self.laserscan.ranges):
+            if np.isnan(dist) or i%10!=0:
+                # if dist >=0:
+                #     dist = self.laserscan.range_max
+                # else:
+                #     dist = self.laserscan.range_min
+                angle += self.laserscan.angle_increment
+                continue
             distancePoseStamped = PoseStamped()
             distancePoseStamped.pose.position.x = dist * np.cos(angle) #these need to be rotated into the map frame 
             distancePoseStamped.pose.position.y = dist * np.sin(angle)
@@ -229,6 +231,7 @@ class Occupancygrid:
                     self.grid[xt, yt] = self.freespace_value # FREE SPACE
             
             self.grid[x_o, y_o] = self.occupied_value 
+            self.laserscan.angle_increment
 
 
     def inflate_map(self, grid_map):
@@ -286,7 +289,7 @@ class Occupancygrid:
         header =  Header()
         header.frame_id = "map"
         header.stamp = rospy.Time.now()
-        self.grid = self.inflate_map(self.grid)
+        # self.grid = self.inflate_map(self.grid)
         occupancygrid_data.header = header
         occupancygrid_data.data = list(self.grid.T.reshape(-1).astype(np.int8))
         self.publisher_occupancygrid.publish(occupancygrid_data)
