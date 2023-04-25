@@ -53,6 +53,7 @@ add_service_files(
   FILES
   add2ShortTerm.srv
   instanceNames.srv
+  stringInput.srv
 )
 
 ## Generate actions in the 'action' folder

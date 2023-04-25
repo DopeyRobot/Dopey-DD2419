@@ -18,9 +18,7 @@ from tf.transformations import quaternion_from_euler
 
 class BoxNode:
     def __init__(self) -> None:
-        self.laser_scan_sub = rospy.Subscriber(
-            "/scan", LaserScan, self.laser_scan_callback
-        )
+        self.laser_scan_sub = rospy.Subscriber("/scan", LaserScan, self.laser_scan_callback)
 
         self.marker_pub = rospy.Publisher("/visualization_marker", Marker, queue_size=2)
         self.scan: LaserScan = rospy.wait_for_message("/scan", LaserScan, timeout=5.0)
@@ -30,9 +28,8 @@ class BoxNode:
         self.listener = TransformListener(self.buffer)
         self.broadcaster = TransformBroadcaster()
         self.memory_list_srv = rospy.ServiceProxy("/instances_in_LTM", instanceNames)
-        self.distance_threshold = (
-            0.35  # distance between box and obstacle to still be considered a bo
-        )
+        self.distance_threshold = 0.35  # distance between box and obstacle to still be considered a bo
+        
         self.delta = 0.1  # distance between two points in the laser scan to still be considered part of the box
         # for debugging
         self.frameinfo = getframeinfo(currentframe())

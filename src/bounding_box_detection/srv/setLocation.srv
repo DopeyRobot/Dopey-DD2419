@@ -1,0 +1,4 @@
+std_msgs/String frame_id
+std_msgs/String location
+---
+std_msgs/Empty res

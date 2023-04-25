@@ -14,6 +14,12 @@ from bounding_box_detection.srv import (
     instanceNames,
     instanceNamesRequest,
     instanceNamesResponse,
+    setLocation,
+    setLocationRequest,
+    setLocationResponse,
+    getPoseOfObject,
+    getPoseOfObjectRequest,
+    getPoseOfObjectResponse,
 )
 from bounding_box_detection.msg import StringArray
 from tf2_geometry_msgs import PoseStamped
@@ -153,9 +159,7 @@ class LongTermMemory:
     """Stores the objects that have been detected more than N times in the DetectionBuffer"""
 
     def __init__(self, frames_needed_for_reconition=5, distance_threshold=0.2) -> None:
-        self.class_counter = (
-            Counter()
-        )  # keeps track of how many times a new element of every class has been detected
+        self.class_counter = (Counter())  # keeps track of how many times a new element of every class has been detected
         self.instances_in_memory = []
         self.locations = {}  # is the instance in the Map, Tray, Grip, Box?
         self.last_time_seen = {}
@@ -198,7 +202,7 @@ class LongTermMemory:
             if closest_instance_in_lt_memory is not None:
                 self.locations[
                     closest_instance_in_lt_memory
-                ] = "M"  # !!!FOR NOW ONLY OBJECTS IN MAP ARE STORED IN THE LONG TERM MEMORY!!!
+                ] = "map"  # !!!FOR NOW ONLY OBJECTS IN MAP ARE STORED IN THE LONG TERM MEMORY!!!
                 self.positions[closest_instance_in_lt_memory] = position
                 self.last_time_seen[closest_instance_in_lt_memory] = timestamp
                 return None
@@ -254,6 +258,7 @@ class LongTermMemory:
             name,
             self.positions[name],
             self.last_time_seen[name],
+            self.locations[name],
         )
 
 
@@ -278,6 +283,12 @@ class MemoryNode:
         )
         self.instances_in_LTM_srv = rospy.Service(
             "/instances_in_LTM", instanceNames, self.instances_in_LTM_srv_cb
+        )
+        self.set_location_srv = rospy.Service(
+            "/change_location", setLocation, self.change_location_srv_cb
+        )
+        self.get_object_pose = rospy.Service(
+            "/get_object_pose", getObjectPose, self.get_object_pose_srv_cb
         )
         self.camera_frame = "camera_color_optical_frame"
 
@@ -317,6 +328,17 @@ class MemoryNode:
 
         self.add_to_short_term(class_name, position, timestamp)
         return add2ShortTermResponse(True)
+    
+    def change_location_srv_cb(self, req: setLocationRequest):
+        instance_name = req.frame_id.data
+        loc = req.location.data # "map", "box", "gripper", "tray"
+
+        if(isinstance(loc, Locations)):
+            self.lt.locations[instance_name] = loc
+            rospy.loginfo("Location of " + instance_name + " changed to " + loc.name)
+        else:
+            rospy.loginfo("Location name not recognized, try with map, box, tray, or gripper")
+        return setLocationResponse(EmptyResponse())
 
     def add_to_short_term(
         self, class_name: str, position: np.array, timestamp: rospy.Time
@@ -374,7 +396,30 @@ class MemoryNode:
                 instance.instance_name,
                 instance.position,
             )
+    # returns the pose of an object in the desired frame
+    def get_object_pose_cb(self,req: getPoseOfObjectRequest) -> TransformStamped:
+                            
+        object_frame_id= req.object_frame_id.data
+        ref_frame_id = req.ref_frame_id.data
 
+        pose = PoseStamped()
+        try:
+            transform = self.buffer.lookup_transform(ref_frame_id, object_frame_id, rospy.Time(0) )
+            pose.header.frame_id = transform.header.frame_id
+            pose.pose.position.x = transform.transform.translation.x
+            pose.pose.position.y = transform.transform.translation.y
+            pose.pose.position.z = transform.transform.translation.z
+            pose.pose.orientation.x = transform.transform.rotation.x
+            pose.pose.orientation.y = transform.transform.rotation.y
+            pose.pose.orientation.z = transform.transform.rotation.z
+            pose.pose.orientation.w = transform.transform.rotation.w
+            pose.header.stamp = transform.header.stamp
+            # rospy.loginfo("pose of"+ frame_id + str(pose))
+            return getPoseOfObjectResponse(pose)
+        except Exception as e:
+            rospy.loginfo(self.frameinfo.lineno + "could not find transform for" + object_frame_id)
+            rospy.logerr(e)
+            return None
 
 if __name__ == "__main__":
     # import time
