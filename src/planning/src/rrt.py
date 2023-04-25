@@ -3,23 +3,24 @@ import rospy
 import random
 import numpy as np
 import tf_conversions
-import tf2_ros
+from tf2_ros import Buffer, TransformListener, TransformStamped
 import tf2_geometry_msgs
 import matplotlib.pyplot as plt
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Path
-from buildmap import map_data
 from typing import List, Tuple
 
 class RRTNode:
-    def __init__(self, x, y, parent=None) -> None:
+    def __init__(self, x=None, y=None, parent=None) -> None:
         self.x = x
         self.y = y
         self.parent = parent
 
-        self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
-        self.listener = tf2_ros.TransformListener(self.buffer)
+        self.buffer = Buffer(rospy.Duration(100.0))
+        rospy.sleep(0.5)
+        self.listener = TransformListener(self.buffer)
+        rospy.sleep(0.5)
 
     def set_parent(self, parent: "RRTNode"):
         self.parent = parent
@@ -27,38 +28,40 @@ class RRTNode:
     def get_parent(self):
         return self.parent
     
-    def get_start(self):                
-        
-        robot_pose = PoseStamped()
-        robot_pose.pose.position.x = 0
-        robot_pose.pose.position.y = 0
-        robot_pose.pose.position.z = 0
-        robot_pose.header.frame_id = 'base_link'
-        robot_pose.header.stamp = rospy.Time.now()
+    def get_start(self):    
 
-        try:
-            transform_to_map = self.buffer.lookup_transform("map", robot_pose.header.frame_id, robot_pose.header.stamp , rospy.Duration(1))           
-            start_pose = tf2_geometry_msgs.do_transform_pose(robot_pose, transform_to_map)
+        # robot_pose = PoseStamped()
+        # robot_pose.header.stamp = 
+        base_link_origin = PoseStamped()
+        base_link_origin.header.stamp = rospy.Time.now()
 
-        except:
-            start_pose = [0, 0]
+        transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp , rospy.Duration(1))  
+        transform_to_map_from_odom = self.buffer.lookup_transform("map", "odom", base_link_origin.header.stamp , rospy.Duration(1))  
+        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
+
+        # robot_pose.pose.position.z = baseInMapPose.pose.position.z
+        # robot_pose.pose.position.x = baseInMapPose.pose.position.x
+        # robot_pose.pose.position.y = baseInMapPose.pose.position.y
+        # robot_pose.pose.orientation.w = baseInMapPose.pose.orientation.w
+        # robot_pose.pose.orientation.x = baseInMapPose.pose.orientation.x
+        # robot_pose.pose.orientation.y = baseInMapPose.pose.orientation.y
+        # robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
+
+        # robot_pose.header.frame_id = "map"
         
-        return start_pose
-        
+        # return robot_pose
+        #TODO: base_link doesn't seem to move according to this trasnform. Even though we can see in Rviz that base_link is not in the same palce as odom- The time stamp is correct thoguh, we're not collecting an old time stamp.
+        print(rospy.Time.now())
+        print(transform_to_map,transform_to_map_from_odom)
+        return baseInMapPose
 
 class RRTPlanner:
-    def __init__(self, start, goal, num_iterations=100, step_size=2, n_steps=1):
+    def __init__(self, start=None, goal=None, num_iterations=100, step_size=2, n_steps=1,runInit=True):
         
-        self.start = RRTNode(start[0], start[1])
-
-        try:
-            self.start.x = self.start.get_start().pose.position.x
-            self.start.y = self.start.get_start().pose.position.y
-        except:
-            self.start.x = self.start.get_start()[0]
-            self.start.y = self.start.get_start()[1]
-
-        self.goal = goal
+        
+        # print("clearing variables")
+        self.start = None
+        self.goal = None #goal
 
         self.map_data = None
         self.occupancy_grid = None
@@ -68,7 +71,7 @@ class RRTPlanner:
         self.n_steps = n_steps
         self.goal_sample_prob = 0.1
 
-        self.pub_path = rospy.Publisher("/path_topic", Path, queue_size=10)
+        self.pub_path = rospy.Publisher("/path_topic", Path, queue_size=10,latch=True)
         self.sub_goal = rospy.Subscriber("/send_goal", PoseStamped, self.send_goal_callback)
         self.sub_map = rospy.Subscriber('/occupancygrid', OccupancyGrid, self.get_map_callback)
         self.rate = rospy.Rate(1)
@@ -78,21 +81,46 @@ class RRTPlanner:
         self.path_msg.header.frame_id = "map"
 
         self.fig, self.ax = plt.subplots()
-
+        
+        self.start = RRTNode() 
+        start_pose = self.start.get_start()
+        self.start.x = start_pose.pose.position.x
+        self.start.y = start_pose.pose.position.y
+        
         self.RRT: List[RRTNode] = [self.start]
 
+        self.ready4path = False
+
+
+        # self.goalReceivedTicker = 0
+        # self.goalProcessedTicker = 0
+        if runInit:
+            self.run()
+
     def get_map_callback(self, msg):
+
         self.map_data = msg
         self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
 
     def send_goal_callback(self, msg):
-        self.goal = [msg.pose.position.x, msg.pose.position.y]
+        msgGoal = [msg.pose.position.x, msg.pose.position.y]
+        # self.goal = [msg.pose.position.x, msg.pose.position.y]
+
+        if not np.allclose(np.array(self.goal,dtype=float),np.array(msgGoal,dtype=float)) or self.goal is None:#self.goal != msgGoal:
+            # try:
+            print("new goal")
+            self.goal = msgGoal
+            self.ready4path = True
+            # self.goalReceivedTicker += 1
+            # except:
+            #     print("error")
+            
 
     def sample_random(self) -> Tuple[int]:
         if random.random() > self.goal_sample_prob:
             return (
-                np.random.uniform(0, map_data.shape[0]),
-                np.random.uniform(0, map_data.shape[1]),
+                np.random.uniform(0, self.occupancy_grid.shape[0]),
+                np.random.uniform(0, self.occupancy_grid.shape[1]),
             )
         else:
             return self.goal
@@ -183,6 +211,18 @@ class RRTPlanner:
             pose_stamped.pose.orientation.w = 1.0
             self.path_msg.poses.append(pose_stamped)
             current_node = current_node.get_parent()
+        #add start back :)
+        pose_stamped = PoseStamped()
+        pose_stamped.header = self.path_msg.header
+        pose_stamped.pose.position.x = current_node.x
+        pose_stamped.pose.position.y = current_node.y
+        pose_stamped.pose.position.z = 0.0
+        pose_stamped.pose.orientation.x = 0.0
+        pose_stamped.pose.orientation.y = 0.0
+        pose_stamped.pose.orientation.z = 0.0
+        pose_stamped.pose.orientation.w = 1.0
+        self.path_msg.poses.append(pose_stamped)
+
         self.path_msg.poses = self.path_msg.poses[::-1]
         
         for i, pose in enumerate(self.path_msg.poses):
@@ -196,7 +236,6 @@ class RRTPlanner:
                 dx = next_pose.pose.position.x - pose.pose.position.x
 
                 orientation = np.arctan2(dy, dx)
-                #print(orientation)
                 quaternian = tf_conversions.transformations.quaternion_from_euler(0,0,orientation)
 
                 pose.pose.orientation.w = quaternian[3]
@@ -225,13 +264,47 @@ class RRTPlanner:
 
         plt.show()
 
+    def run(self):
+        while not rospy.is_shutdown():
+            #planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.3)
+            #print("goal not received")
+            #print(self.goal)
+            # print("R: ",self.goalReceivedTicker)
+            # print("P: ", self.goalProcessedTicker)
+            if self.ready4path:#self.goal is not None and self.goalReceivedTicker != self.goalProcessedTicker and self.ready4path:
+                
+                self.__init__(num_iterations=self.num_iterations,step_size=self.step_size,runInit=False)
+                #TODO: after successfully arriving atfirst goal, the secodn goal always has teh first noed in the origin of odom and not base_link. Fix this. 
+                # self.ready4path = False
+                # self.goalProcessedTicker += 1
+                # self.start = RRTNode() 
+                # self.start.x = self.start.get_start().pose.position.x
+                # self.start.y = self.start.get_start().pose.position.y
+                # self.RRT: List[RRTNode] = [self.start]
+                #print("goal received")
+
+                self.generate_RRT()
+                self.generate_path()
+                #planner.plot_RRT_tree()
+                self.publish_path()
+                #self.goal = None
+
 if __name__ == "__main__":
     rospy.init_node("rrt")
-    start = [0, 0]
-    goal = [0, 0]
-    planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.09)
-    planner.generate_RRT()
-    planner.generate_path()
-    planner.plot_RRT_tree()
-    planner.publish_path()
+    # buffer = Buffer(rospy.Duration(100.0))
+    # if buffer.can_transform("map", "base_link", rospy.Time.now(), rospy.Duration(2)):
+
+    RRTPlanner(start=None, goal=None, num_iterations=1000, step_size=0.3)
+    # try:
+    #     start = [0, 0]
+    #     goal = [0, 0]
+    #     while not rospy.is_shutdown():
+    #         planner = RRTPlanner(start, goal, num_iterations=1000, step_size=0.3)
+    #         planner.generate_RRT()
+    #         planner.generate_path()
+    #         #planner.plot_RRT_tree()
+    #         planner.publish_path()
+    # except Exception as e:
+    #     print("Passing in RRT due to:")
+    #     print(e)
     rospy.spin()

@@ -111,7 +111,7 @@ class AnchorTracking:
                         self.brStatic.sendTransform(t)
                         self.latest_stamp = t.header.stamp
                         self.latest_t = t
-                        self.Anchor_placed = False
+                        self.Anchor_placed = True
 
 
     def _inverse_transform(self, transform):

@@ -4,11 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
-        - /TF1/Frames1
-        - /LaserScan1
+        - /Image2
       Splitter Ratio: 0.7439024448394775
-    Tree Height: 140
+    Tree Height: 164
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -86,6 +84,10 @@ Visualization Manager:
       Frames:
         All Enabled: false
         arm_base_link:
+          Value: false
+        aruco/detected 500:
+          Value: true
+        aruco/detected 509:
           Value: true
         base_link:
           Value: true
@@ -104,9 +106,11 @@ Visualization Manager:
         camera_link:
           Value: false
         end_effector_frame:
-          Value: true
+          Value: false
         imu_link:
           Value: false
+        map:
+          Value: true
         odom:
           Value: true
       Marker Alpha: 1
@@ -116,7 +120,28 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          aruco/detected 500:
+            {}
+          aruco/detected 509:
+            {}
+          odom:
+            base_link:
+              arm_base_link:
+                end_effector_frame:
+                  {}
+              camera_bottom_screw_frame:
+                camera_link:
+                  camera_aligned_depth_to_color_frame:
+                    camera_color_optical_frame:
+                      {}
+                  camera_color_frame:
+                    {}
+                  camera_depth_frame:
+                    camera_depth_optical_frame:
+                      {}
+            imu_link:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -161,8 +186,8 @@ Visualization Manager:
       Unreliable: false
       Value: false
     - Class: rviz/Image
-      Enabled: true
-      Image Topic: /usb_cam/image_raw
+      Enabled: false
+      Image Topic: /aruco/result
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -171,10 +196,10 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /camera/color/image_bbs
+      Image Topic: /aruco/result
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -199,19 +224,19 @@ Visualization Manager:
       Class: rviz/Pose
       Color: 255; 25; 0
       Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
+      Head Length: 0.05000000074505806
+      Head Radius: 0.009999999776482582
       Name: Pose
       Queue Size: 10
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
+      Shaft Length: 0.10000000149011612
+      Shaft Radius: 0.004999999888241291
       Shape: Arrow
-      Topic: /move_base_simple/goal
+      Topic: /goal
       Unreliable: false
       Value: true
     - Alpha: 0.699999988079071
       Class: rviz/Map
-      Color Scheme: map
+      Color Scheme: costmap
       Draw Behind: false
       Enabled: true
       Name: Map
@@ -247,6 +272,30 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 236; 16; 201
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /path_topic
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
@@ -275,7 +324,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 5.114749431610107
+      Distance: 5.3277740478515625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -283,17 +332,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.1359333097934723
-        Y: 0.032816916704177856
-        Z: 3.0994415283203125e-06
+        X: 0.5282993316650391
+        Y: -0.10572406649589539
+        Z: 3.2186508178710938e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4097978174686432
+      Pitch: 1.1347976922988892
       Target Frame: <Fixed Frame>
-      Yaw: 3.315415859222412
+      Yaw: 3.715418815612793
     Saved: ~
 Window Geometry:
   ArUco:
@@ -305,7 +354,7 @@ Window Geometry:
   Hide Right Dock: false
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000035f0000034efc020000000afb0000001200530065006c0065006300740069006f006e00000000580000009b0000005c00fffffffb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d000000c9000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fc0000010c000001130000001600fffffffa000000010100000002fb0000000a0041007200550063006f0000000000ffffffff0000005e00fffffffb0000000a0049006d0061006700650100000000000002e50000005e00fffffffb0000000a0049006d0061006700650100000225000001660000001600fffffffb0000000a0049006d0061006700650100000337000000cc000000000000000000000001000001260000034efc0200000004fb0000000a00560069006500770073010000003d000001a4000000a400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007301000001e7000001a40000005c00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000219000001a30000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007380000004afc0100000002fb0000000800540069006d0065010000000000000738000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000002a70000034e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001560000034efc020000000afb0000001200530065006c0065006300740069006f006e00000000580000009b0000005c00fffffffb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d000000e1000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fc000001290000013a0000000000fffffffaffffffff0100000002fb0000000a0041007200550063006f0000000000ffffffff0000005e00fffffffb0000000a0049006d0061006700650000000000000002e50000005e00fffffffb0000000a0049006d0061006700650100000124000002670000001600fffffffb0000000a0049006d0061006700650100000337000000cc000000000000000000000001000001260000034efc0200000004fb0000000a00560069006500770073010000003d000001a4000000a400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007301000001e7000001a40000005c00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000219000001a30000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007380000004afc0100000002fb0000000800540069006d0065010000000000000738000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000004b00000034e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:

@@ -1,0 +1,5 @@
+std_msgs/Empty resp
+---
+int64[] occupancy_array
+nav_msgs/MapMetaData metadata
+float64[] vertices_list
