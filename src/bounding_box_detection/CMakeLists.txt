@@ -53,7 +53,8 @@ add_service_files(
   FILES
   add2ShortTerm.srv
   instanceNames.srv
-  stringInput.srv
+  setLocation.srv
+  getPoseOfObject.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -67,6 +68,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
+  tf2_geometry_msgs
 )
 
 ################################################
