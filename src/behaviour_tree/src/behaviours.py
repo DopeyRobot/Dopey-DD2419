@@ -150,7 +150,50 @@ class MoveArmToHome(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+class MoveArmToUnfold(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Moving arm to home")
+        self.move_srv = rospy.ServiceProxy("/unfold", Trigger)
+        rospy.wait_for_service("/unfold", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
 
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+class MoveArmToDrop(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Moving arm to drop pos")
+        self.move_srv = rospy.ServiceProxy("/drop", Trigger)
+        rospy.wait_for_service("/drop", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+        
 class MoveArmToTray(pt.behaviour.Behaviour):
     def __init__(self):
         super().__init__("Moving arm to tray")
@@ -246,3 +289,16 @@ class PickupToTarget(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+class Wait(pt.behaviour.Behaviour):
+    def __init__(self, duration:int):
+        super().__init__("wait")
+        self.duration = duration
+        self.done = False
+    
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        rospy.sleep(self.duration)
+        self.done = True
+        return pt.common.Status.SUCCESS

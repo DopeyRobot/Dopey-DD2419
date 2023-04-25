@@ -54,21 +54,28 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         name="root",
             )
         
-        give_path_behaviour = behaviours.give_path()
-	
-        test = behaviours.give_path()
-        test1 = behaviours.give_path()
-        test2 = behaviours.give_path()
-
-        AND = RSequence(name="->", children=[test1,test2])
-
-        OR = pt.composites.Selector(
-            name="?", 
-            children=[give_path_behaviour,test,AND]
+        rospy.wait_for_message("pickup_goal", PoseStamped)
+        behavs = [
+            MoveArmToPickupFront(),
+            Wait(4),
+	        MoveArmToHome(),
+		    Wait(4),
+            OpenGripper(),
+            Wait(4),
+            MoveArmToUnfold(),
+	        Wait(4),
+            PickupToTarget(),
+            Wait(4),
+	        MoveArmToUnfold(),
+	        Wait(4),
+		    MoveArmToDrop()
 	    
-	    )
+        ]
 
-        root.add_child(OR)
+        AND = RSequence(name="->", children=behavs)
+
+
+        root.add_child(AND)
 	
 
         # for job in ["Action 1", "Action 2", "Action 3"]:

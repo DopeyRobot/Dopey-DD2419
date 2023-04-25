@@ -35,7 +35,7 @@ class IKService:
         self.arm_frame = "arm_base_link"
         rospy.wait_for_service("pose_service", 5.0)
         self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
-        self.gripper_open_service = rospy.ServiceProxy("gripper/open", Empty)
+        self.gripper_open_service = rospy.ServiceProxy("gripper/open", Trigger)
         self.gripper_close_service = rospy.ServiceProxy("gripper/close", GripStrength)
         self.pickup_goal = PoseStamped()
         self.inverse_k_service = rospy.Service("IK_service", IKData, self.IK_callback)
@@ -133,7 +133,7 @@ class IKService:
         rospy.loginfo("moving to front pickup zone")
         self.pose_service(RefPoses.PREPICK_F.value.to_joint_angles_req())
         rospy.sleep(2)
-        self.gripper_open_service(EmptyRequest())
+        self.gripper_open_service(TriggerRequest())
         rospy.sleep(2)
         rospy.loginfo("moving to pick")
         self.pickup_callback(EmptyRequest())

@@ -23,6 +23,9 @@ class PoseService:
 
     def __init__(self) -> None:
         self.home_service = rospy.Service("home", Trigger, self.home_callback)
+
+        self.unfold_service = rospy.Service("unfold", Trigger, self.unfold_callback)
+        self.drop_service = rospy.Service("drop", Trigger, self.drop_callback)
         self.pickup_service_right = rospy.Service(
             "pickup/right", Trigger, self.pickup_r_callback
         )
@@ -82,6 +85,16 @@ class PoseService:
         rospy.loginfo("Moving to home position")
         self.publish_data(RefPoses.HOME.value, include_gripper=True)
         return TriggerResponse(True, "moved to home position")
+    
+    def unfold_callback(self, req: TriggerRequest) -> TriggerResponse:
+        rospy.loginfo("Moving to unfolded position")
+        self.publish_data(RefPoses.UNFOLD.value, include_gripper=True)
+        return TriggerResponse(True, "moved to unfolded position")
+    
+    def drop_callback(self, req: TriggerRequest) -> TriggerResponse:
+        rospy.loginfo("Moving to drop position")
+        self.publish_data(RefPoses.DROP_POS.value, include_gripper=False)
+        return TriggerResponse(True, "moved to drop position")
 
     def pickup_r_callback(self, req: TriggerRequest) -> TriggerResponse:
         rospy.loginfo("Moving to right pickup position")
@@ -156,7 +169,7 @@ class PoseService:
 
         return TriggerResponse(True, "Gripper opened")
 
-    def close_gripper_callback(self, req: GripStrengthRequest) -> EmptyResponse:
+    def close_gripper_callback(self, req: GripStrengthRequest) -> TriggerResponse:
         rospy.loginfo("Closing gripper")
 
         if req.strength == "cube":
