@@ -186,6 +186,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
 
     def update(self):
         # while not rospy.is_shutdown():
+        # FIX THE self.goal = None
         frontier_to_publish = PoseStamped()
         closest_frontier = self.distance2frontier()
         if closest_frontier is not None:
