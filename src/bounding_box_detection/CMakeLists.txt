@@ -60,8 +60,8 @@ add_service_files(
   add2ShortTerm.srv
   instanceNames.srv
   setLocation.srv
-  getPoseOfObject.srv
-  stringInPoseOut.srv
+  twoStrInPoseOut.srv
+  #stringInPoseOut.srv
 )
 
 ## Generate actions in the 'action' folder
