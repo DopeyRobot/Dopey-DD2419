@@ -17,6 +17,7 @@ import math
 from workspace.srv import PolyCheck, PolyCheckRequest, OccupancyCheck, OccupancyCheckRequest
 # from std_srvs.srv import Empty
 from std_msgs.msg import Empty
+import cv2
 
 
 
@@ -44,9 +45,8 @@ class Occupancygrid:
         self.c_space = 2
         self.freespace_value = 0
         self.uknownspace_value = -1
+
         self.radius = 1 
-
-
         self.pinf = [1000.0, 1000.0]
 
 
@@ -88,7 +88,8 @@ class Occupancygrid:
         self.y_cells = self.occupancy_metadata.height
         self.resolution = self.occupancy_metadata.resolution
         self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
-  
+
+        self.grid_occupied = np.ones((self.x_cells, self.y_cells))*self.uknownspace_value 
         self.setup_metadata()
  
         
@@ -231,6 +232,7 @@ class Occupancygrid:
                     self.grid[xt, yt] = self.freespace_value # FREE SPACE
             
             self.grid[x_o, y_o] = self.occupied_value 
+            self.grid_occupied[x_o, y_o] = self.occupied_value
             self.laserscan.angle_increment
 
 
@@ -279,17 +281,23 @@ class Occupancygrid:
                         except:
                             pass
 
+        # inflate the occupied grid first
+        kernel = np.ones((3,3), np.uint8)
+        grid_inflated = cv2.dilate(self.grid_occupied, kernel, iterations = 1)
+        mask_grid = self.grid != -1
+        self.grid[mask_grid] = grid_inflated[mask_grid] - self.grid_occupied[mask_grid] 
+
         # Return the inflated map
         return grid_map
     def scan_callback(self, msg):
         self.laserscan = msg
-        self.update_map()
+        self.update_map() #update occupied spaces
         occupancygrid_data = OccupancyGrid()
         occupancygrid_data.info = self.map_metadata
         header =  Header()
         header.frame_id = "map"
         header.stamp = rospy.Time.now()
-        # self.grid = self.inflate_map(self.grid)
+        self.grid = self.inflate_map(self.grid)
         occupancygrid_data.header = header
         occupancygrid_data.data = list(self.grid.T.reshape(-1).astype(np.int8))
         self.publisher_occupancygrid.publish(occupancygrid_data)
