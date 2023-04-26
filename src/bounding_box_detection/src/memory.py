@@ -288,7 +288,7 @@ class MemoryNode:
             "/change_location", setLocation, self.change_location_srv_cb
         )
         self.get_object_pose = rospy.Service(
-            "/get_object_pose", getObjectPose, self.get_object_pose_srv_cb
+            "/get_object_pose", getPoseOfObject, self.get_object_pose_srv_cb
         )
         self.camera_frame = "camera_color_optical_frame"
 
