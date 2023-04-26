@@ -26,15 +26,18 @@ class Workspace():
         self.frame_id = "map"
 
         # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
-        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/workspace_2.tsv", sep="\t")
+        # self.vertices_df = pd.read_csv("src/workspace/example_workspace.tsv", sep="\t")
+
 
         self.vertices = self.vertices_df.values
         self.vertices_list = np.append(self.vertices, [self.vertices[0]], axis = 0)
+        self.puffer = 1 #add a medeter
 
-        self.x_low = min(self.vertices_list, key=lambda point: point[0])[0]
-        self.x_high = max(self.vertices_list, key=lambda point: point[0])[0]
-        self.y_low = min(self.vertices_list, key=lambda point: point[1])[1]
-        self.y_high = max(self.vertices_list, key=lambda point: point[1])[1]
+        self.x_low = min(self.vertices_list, key=lambda point: point[0])[0] - self.puffer
+        self.x_high = max(self.vertices_list, key=lambda point: point[0])[0] + self.puffer
+        self.y_low = min(self.vertices_list, key=lambda point: point[1])[1] - self.puffer
+        self.y_high = max(self.vertices_list, key=lambda point: point[1])[1] + self.puffer
         self.vertices_extrema = [self.x_low, self.x_high, self.y_low, self.y_high]
         self.resolution = 0.025 # m per cell 
         self.uknownspace_value = -1
