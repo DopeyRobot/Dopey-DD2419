@@ -453,7 +453,7 @@ class MemoryNode:
         poseOfRobot = self.get_object_pose(ref_frame_id, "base_link")
         dist = float("inf")
         prev_dist = float("inf")
-        for instance_name in self.lt.intances_in_memory:
+        for instance_name in self.lt.instances_in_memory:
             if self.check_for_obj_type(instance_name, desired_class_of_obj):
                 poseOfObj = self.get_object_pose(ref_frame_id, instance_name)
                 dist = self.get_distance(poseOfRobot,poseOfObj)
