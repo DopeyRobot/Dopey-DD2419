@@ -17,9 +17,9 @@ from bounding_box_detection.srv import (
     setLocation,
     setLocationRequest,
     setLocationResponse,
-    getPoseOfObject,
-    getPoseOfObjectRequest,
-    getPoseOfObjectResponse,
+    twoStrInPoseOut,
+    twoStrInPoseOutRequest,
+    twoStrInPoseOutResponse,
 )
 from bounding_box_detection.msg import StringArray
 from geometry_msgs.msg import PoseStamped
@@ -31,6 +31,14 @@ class Locations(Enum):
     BOX = "box"
     GRIPPER = "gripper"
     TRAY = "tray"
+
+class Plushies(Enum):
+    K = "kiki"
+    M = "muddles"
+    B = "binky"
+    S = "slush"
+    H = "hugo"
+    O = "oakie"
 
 
 @dataclass
@@ -291,8 +299,11 @@ class MemoryNode:
         self.set_location_srv = rospy.Service(
             "/change_location", setLocation, self.change_location_srv_cb
         )
-        self.get_object_pose = rospy.Service(
-            "/get_object_pose", getPoseOfObject, self.get_object_pose_cb
+        self.get_object_pose_srv = rospy.Service(
+            "/get_object_pose", twoStrInPoseOut, self.get_object_pose_cb
+        )
+        self.get_closest_obj_srv = rospy.Service(
+            "/get_closest_obj", twoStrInPoseOut, self.get_closest_obj_cb
         )
         self.camera_frame = "camera_color_optical_frame"
 
@@ -319,7 +330,7 @@ class MemoryNode:
 
     def instances_in_LTM_srv_cb(self, req: instanceNamesRequest):
         resp_list = []
-        for name in self.lt.instances_in_memory:
+        for name in self.instances_in_memory:
             resp_list.append(String(name))
         resp = instanceNamesResponse(resp_list)
         #print(resp)
@@ -336,8 +347,7 @@ class MemoryNode:
     def change_location_srv_cb(self, req: setLocationRequest):
         instance_name = req.frame_id.data
         loc = req.location.data # "map", "box", "gripper", "tray"
-
-        if(isinstance(loc, Locations)):
+        if(loc in [e.value for e in Locations]):
             self.lt.locations[instance_name] = loc
             rospy.loginfo("Location of " + instance_name + " changed to " + loc.name)
         else:
@@ -352,7 +362,6 @@ class MemoryNode:
     def update_long_term(self, timestamp):
         new_names = self.lt.checkForObjectsToRemember(timestamp, self.db)
         return new_names
-    
 
     def publish_to_tf(self, frame_name: str, position: np.ndarray):
         """
@@ -395,16 +404,18 @@ class MemoryNode:
             print("sending transform to tf failed")
 
     def publish_long_term_memory(self):
-        for instance in self.lt:
+        for instance in self.lt.instances_in_memory:
             self.publish_to_tf(
                 instance.instance_name,
                 instance.position,
-            )
+                )
     # returns the pose of an object in the desired frame
-    def get_object_pose_cb(self,req: getPoseOfObjectRequest) -> TransformStamped:
-                            
+    def get_object_pose_cb(self,req: twoStrInPoseOutRequest) -> PoseStamped:
         object_frame_id= req.object_frame_id.data
         ref_frame_id = req.reference_frame_id.data
+        return twoStrInPoseOutResponse(self.get_object_pose(object_frame_id, ref_frame_id))
+    
+    def get_object_pose(self, ref_frame_id:str, object_frame_id:str) -> PoseStamped:
         pose = PoseStamped()
         try:
             transform = self.buffer.lookup_transform(ref_frame_id, object_frame_id, rospy.Time(0) )
@@ -418,11 +429,49 @@ class MemoryNode:
             pose.pose.orientation.w = transform.transform.rotation.w
             pose.header.stamp = transform.header.stamp
             # rospy.loginfo("pose of"+ frame_id + str(pose))
-            return getPoseOfObjectResponse(pose)
+            return pose
         except Exception as e:
             rospy.loginfo("could not find transform for" + object_frame_id)
             rospy.logerr(e)
             return None
+        
+    def check_for_obj_type(self, instance_name: str, desired_class_of_obj:str) -> bool:
+        if (desired_class_of_obj.lower == self.lt.get_class_name(instance_name).lower 
+            or desired_class_of_obj.lower == "all"
+            or (desired_class_of_obj.lower == "plushie" 
+                and self.lt.get_class_name(instance_name).lower in [e.value for e in Plushies])):
+            return True
+        else:
+            return False
+
+    def get_closest_obj_cb(self, req: twoStrInPoseOutRequest) -> PoseStamped:
+        """ Finds the closest instance in the long term memory that isn't a box"""
+        ref_frame_id = req.str1.data # first arg is the reference frame id
+        desired_class_of_obj = req.str2.data # second arg is the class of the object ball/plushie/box
+            
+        closest_instance_pose = None
+        poseOfRobot = self.get_object_pose(ref_frame_id, "base_link")
+        dist = float("inf")
+        prev_dist = float("inf")
+        for instance_name in self.lt.intances_in_memory:
+            if self.check_for_obj_type(instance_name, desired_class_of_obj):
+                poseOfObj = self.get_object_pose(ref_frame_id, instance_name)
+                dist = self.get_distance(poseOfRobot,poseOfObj)
+                if dist < prev_dist:
+                    prev_dist = dist
+                    closest_instance_pose = poseOfObj
+        if closest_instance_pose is not None:
+            rospy.loginfo("closest obstacle to  base_link found at: " + dist)
+            return twoStrInPoseOutResponse(closest_instance_pose)
+        else:
+            rospy.loginfo("no obstacle found")
+            return None
+        
+    def get_distance(self, pose1, pose2) -> float:
+        """Returns the square of the distance between two poses"""
+        return((pose1.pose.position.x - pose2.pose.position.x) ** 2
+            + (pose1.pose.position.y - pose2.pose.position.y) ** 2
+            + (pose1.pose.position.z - pose2.pose.position.z) ** 2)
 
 if __name__ == "__main__":
     # import time

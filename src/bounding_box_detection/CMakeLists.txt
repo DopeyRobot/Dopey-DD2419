@@ -61,6 +61,7 @@ add_service_files(
   instanceNames.srv
   setLocation.srv
   getPoseOfObject.srv
+  stringInPoseOut.srv
 )
 
 ## Generate actions in the 'action' folder
