@@ -32,7 +32,7 @@ class BoxNode:
         
         self.delta = 0.1  # distance between two points in the laser scan to still be considered part of the box
         # for debugging
-        self.frameinfo = getframeinfo(currentframe())
+        
         self.run()
         
 
@@ -64,21 +64,12 @@ class BoxNode:
             # rospy.loginfo("pose of"+ frame_id + str(pose))
             return pose
         except Exception as e:
-            rospy.loginfo(self.frameinfo.lineno + "could not find transform for box for " + frame_id)
+            rospy.loginfo("could not find transform for box for " + frame_id)
             rospy.logerr(e)
             return None
 
     def get_obstacles_from_laserscan(self):
         obstacle_map_poses = []
-        # try: # NOTE: Do I need this?
-        #     transform_camera2map = self.buffer.lookup_transform(
-        #         self.reference_frame, "camera_depth_frame", rospy.Time(0)
-        #     )  # Is the order of source and target frame correct?
-
-        # except:
-        #     rospy.loginfo("could not find transform for box")
-        #     return
-
         # look through the laser scan and find the points that are in the box
         N = int((self.scan.angle_max - self.scan.angle_min) / self.scan.angle_increment)
         angles = np.linspace(self.scan.angle_min, self.scan.angle_max, N)
@@ -86,14 +77,12 @@ class BoxNode:
             if np.isnan(dist):
                 continue
             distancePoseStamped = PoseStamped() # NOTE: Why do we need to rotate the points into the map frame? Can't we just use the camera frame?
-            distancePoseStamped.pose.position.x = dist# * np.cos(angle)  # these need to be rotated into the map frame
-            distancePoseStamped.pose.position.y = dist# * np.sin(angle)
+            distancePoseStamped.pose.position.x = dist * np.cos(angle)  # x,y values need to be calculated from dist and angle return values from laser scan
+            distancePoseStamped.pose.position.y = dist * np.sin(angle)
             distancePoseStamped.header.frame_id = "camera_depth_frame"
-            # TODO: check if the transform is correct and if we can use All the time the camera reference frame or if we need the map frame for anything
             obstacle_map_poses.append(distancePoseStamped)
-            # tf2_geometry_msgs.do_transform_pose(distancePoseStamped, transform_camera2map) #continuous coordinates
-        
-        rospy.loginfo("obstacles' poses from scanner found:" + str(obstacle_map_poses))
+     
+        #rospy.loginfo("obstacles' poses from scanner found:" + str(obstacle_map_poses))
         return obstacle_map_poses
 
     def run(self) -> None:
@@ -111,7 +100,7 @@ class BoxNode:
             if box_poses is None:
                 rospy.loginfo("No boxes found")
                 continue
-            rospy.loginfo(self.frameinfo.lineno + "transforms for boxes:" + str(box_poses))
+            rospy.loginfo(str(getframeinfo(currentframe()).lineno) + " transforms for boxes:" + str(box_poses))
             # get obstacles in laser scan
             obstacle_poses = self.get_obstacles_from_laserscan()
             # check if any of the box_poses coincides with any of the obstacle_poses if so save the index

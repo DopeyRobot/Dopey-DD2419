@@ -1,4 +1,4 @@
 std_msgs/String object_frame_id
 std_msgs/String reference_frame_id
 ---
-tf2_geometry_msgs/PoseStamped pose
+geometry_msgs/PoseStamped pose

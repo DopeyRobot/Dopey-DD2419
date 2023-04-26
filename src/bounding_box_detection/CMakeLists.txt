@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
 roscpp 
 rospy 
 std_msgs 
-tf2_geometry_msgs
+geometry_msgs
 message_generation
 )
 
@@ -74,7 +74,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
-  tf2_geometry_msgs
+  geometry_msgs
 )
 
 ################################################

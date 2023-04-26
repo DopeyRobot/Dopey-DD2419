@@ -22,7 +22,8 @@ from bounding_box_detection.srv import (
     getPoseOfObjectResponse,
 )
 from bounding_box_detection.msg import StringArray
-from tf2_geometry_msgs import PoseStamped
+from geometry_msgs.msg import PoseStamped
+from tf2_geometry_msgs import PoseStamped as Tf2PoseStamped
 
 
 class Locations(Enum):
@@ -37,6 +38,7 @@ class LongTermInstance:
     instance_name: str
     position: np.ndarray
     last_time_seen: rospy.Time
+    location:Locations
 
     def __str__(self) -> str:
         return f"name: {self.instance_name} \nposition: {self.position}, \nlast_time_seen: {self.last_time_seen} \n\n"
@@ -214,6 +216,7 @@ class LongTermMemory:
         )  # create a new instance name
         self.instances_in_memory.append(instance_name)
         self.positions[instance_name] = position
+        self.locations[instance_name] = "map"
         self.last_time_seen[instance_name] = timestamp
         self.class_counter[
             class_name
@@ -275,6 +278,7 @@ class MemoryNode:
         )
         self.lt = LongTermMemory(frames_needed_for_reconition, distance_threshold)
         self.buffer = Buffer(rospy.Duration(1200.0))
+        rospy.sleep(5)
         self.tranform_listener = TransformListener(self.buffer)
         self.tranform_broadcaster = TransformBroadcaster()
         self.new_names_pub = rospy.Publisher("/new_names", StringArray, queue_size=10)
@@ -288,7 +292,7 @@ class MemoryNode:
             "/change_location", setLocation, self.change_location_srv_cb
         )
         self.get_object_pose = rospy.Service(
-            "/get_object_pose", getPoseOfObject, self.get_object_pose_srv_cb
+            "/get_object_pose", getPoseOfObject, self.get_object_pose_cb
         )
         self.camera_frame = "camera_color_optical_frame"
 
@@ -318,7 +322,7 @@ class MemoryNode:
         for name in self.lt.instances_in_memory:
             resp_list.append(String(name))
         resp = instanceNamesResponse(resp_list)
-        print(resp)
+        #print(resp)
         return resp
 
     def add2short_term_srv_cb(self, req: add2ShortTermRequest):
@@ -365,11 +369,12 @@ class MemoryNode:
         pose.pose.orientation.y = 0.5
         pose.pose.orientation.z = 0.5
         pose.pose.orientation.w = 0.5
-
-        transformed_pose = self.buffer.transform(
-            pose, "map", rospy.Duration(1.0)
-        )
-
+        try:
+            transformed_pose = self.buffer.transform(
+                pose, "map", rospy.Duration(1.0)
+            )
+        except:
+            rospy.loginfo("NO MAP FRAME")
         t = TransformStamped()
         t.header.stamp = transformed_pose.header.stamp
         t.header.frame_id = "map"
@@ -386,8 +391,7 @@ class MemoryNode:
         t.child_frame_id = frame_name
         try:
             self.tranform_broadcaster.sendTransform(t)
-        except (tf2_ros.Exception) as e:
-            print(e)
+        except:
             print("sending transform to tf failed")
 
     def publish_long_term_memory(self):
@@ -400,8 +404,7 @@ class MemoryNode:
     def get_object_pose_cb(self,req: getPoseOfObjectRequest) -> TransformStamped:
                             
         object_frame_id= req.object_frame_id.data
-        ref_frame_id = req.ref_frame_id.data
-
+        ref_frame_id = req.reference_frame_id.data
         pose = PoseStamped()
         try:
             transform = self.buffer.lookup_transform(ref_frame_id, object_frame_id, rospy.Time(0) )
@@ -417,7 +420,7 @@ class MemoryNode:
             # rospy.loginfo("pose of"+ frame_id + str(pose))
             return getPoseOfObjectResponse(pose)
         except Exception as e:
-            rospy.loginfo(self.frameinfo.lineno + "could not find transform for" + object_frame_id)
+            rospy.loginfo("could not find transform for" + object_frame_id)
             rospy.logerr(e)
             return None
 

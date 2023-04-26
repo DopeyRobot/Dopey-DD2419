@@ -100,10 +100,13 @@ class BoundingBoxNode:
         self.K = np.array(self.camera_info.K).reshape(3, 3)
 
         self.short_term_mem_proxy = rospy.ServiceProxy("/add2shortterm", add2ShortTerm)
-        self.new_names_sub = rospy.Subscriber("/new_names", StringArray)
+        rospy.wait_for_service("/add2shortterm", 5)
         self.new_names = StringArray()
+        self.new_names_sub = rospy.Subscriber("/new_names", StringArray)
         self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
         self.play_tune_service = rospy.ServiceProxy("/playTune", playTune)
+        rospy.wait_for_service("/take_pic", 5)
+        rospy.wait_for_service("/playTune", 5)
 
         self.run()
 
