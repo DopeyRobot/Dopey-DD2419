@@ -41,7 +41,7 @@ class Occupancygrid:
 
         self.map_metadata = MapMetaData()
 
-        self.occupied_value = 1
+        self.occupied_value = 100
         self.c_space = 2
         self.freespace_value = 0
         self.uknownspace_value = -1
@@ -87,9 +87,11 @@ class Occupancygrid:
         self.x_cells = self.occupancy_metadata.width
         self.y_cells = self.occupancy_metadata.height
         self.resolution = self.occupancy_metadata.resolution
-        self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
 
-        self.grid_occupied = np.ones((self.x_cells, self.y_cells))*self.uknownspace_value 
+        self.grid_occupied = np.zeros((self.x_cells, self.y_cells))
+        self.grid_c_space = np.zeros((self.x_cells, self.y_cells))
+        self.grid_freespace = np.zeros((self.x_cells, self.y_cells))
+        self.grid_unknown = np.ones((self.x_cells, self.y_cells))
         self.setup_metadata()
  
         
@@ -98,7 +100,7 @@ class Occupancygrid:
         )
 
         self.occupancy_grid = np.array(self.occupancy_array).reshape(self.x_cells, self.y_cells) # call workspace callback first!
-        self.grid[self.occupancy_grid == self.occupied_value] = self.occupied_value
+        self.grid_occupied[self.occupancy_grid == self.occupied_value] = 1
         # for x in range(self.x_cells):
         #     for y in range(self.y_cells):
         #         poly_req = PolyCheckRequest()
@@ -228,15 +230,18 @@ class Occupancygrid:
 
             traversed = self.raytrace((x_r, y_r), (x_o, y_o))
             for xt, yt in traversed:
-                if not self.occupancy_grid[xt, yt] == self.occupied_value:
-                    self.grid[xt, yt] = self.freespace_value # FREE SPACE
+                if not self.occupancy_grid[xt, yt] == 1:
+                    self.grid_freespace[xt, yt] = 1# FREE SPACE
+                    self.grid_unknown[xt, yt]=0
+                    self.grid_occupied[xt,yt]=0
             
-            self.grid[x_o, y_o] = self.occupied_value 
-            self.grid_occupied[x_o, y_o] = self.occupied_value
+            self.grid_occupied[x_o, y_o] = 1
+            self.grid_freespace[x_o, y_o] = 0
+            self.grid_unknown[x_o, y_o] = 0
             self.laserscan.angle_increment
 
 
-    def inflate_map(self, grid_map):
+    def inflate_map(self):
         """For C only!
         Inflate the map with self.c_space assuming the robot
         has a radius of self.radius.
@@ -264,31 +269,36 @@ class Occupancygrid:
         """
         Fill in your solution here
         """
-        r = self.radius
-        perm = [
-            (i, j)
-            for i in range(-r, r + 1)
-            for j in range(-r, r + 1)
-            if np.sqrt(i * i + j * j) <= r
-        ]
-        for x in range(self.x_cells):
-            for y in range(self.y_cells):
-                if grid_map[x, y] == self.occupied_value:
-                    for i, j in perm:
-                        try:
-                            if grid_map[x + i, y + j] != self.occupied_value:
-                                grid_map[x + i, y + j] = self.c_space
-                        except:
-                            pass
+        # r = self.radius
+        # perm = [
+        #     (i, j)
+        #     for i in range(-r, r + 1)
+        #     for j in range(-r, r + 1)
+        #     if np.sqrt(i * i + j * j) <= r
+        # ]
+        # for x in range(self.x_cells):
+        #     for y in range(self.y_cells):
+        #         if grid_map[x, y] == self.occupied_value:
+        #             for i, j in perm:
+        #                 try:
+        #                     if grid_map[x + i, y + j] != self.occupied_value:
+        #                         grid_map[x + i, y + j] = self.c_space
+        #                 except:
+        #                     pass
 
         # inflate the occupied grid first
-        kernel = np.ones((3,3), np.uint8)
-        grid_inflated = cv2.dilate(self.grid_occupied, kernel, iterations = 1)
-        mask_grid = self.grid != -1
-        self.grid[mask_grid] = grid_inflated[mask_grid] - self.grid_occupied[mask_grid] 
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
+        self.grid_occupied[self.occupancy_grid==1]=1
+        self.grid_c_space = np.array(cv2.dilate(self.grid_occupied, kernel, iterations = 1), dtype=np.uint8)
+        
+        self.grid = np.ones((self.x_cells, self.y_cells))*self.uknownspace_value
+        self.grid[self.grid_unknown.astype(np.bool8)] = self.uknownspace_value
+        self.grid[self.grid_freespace.astype(np.bool8)] = self.freespace_value
+        self.grid[self.grid_c_space.astype(np.bool8)] = self.c_space
+        self.grid[self.grid_occupied.astype(np.bool8)] = self.occupied_value
 
         # Return the inflated map
-        return grid_map
+        return self.grid
     def scan_callback(self, msg):
         self.laserscan = msg
         self.update_map() #update occupied spaces
@@ -297,25 +307,11 @@ class Occupancygrid:
         header =  Header()
         header.frame_id = "map"
         header.stamp = rospy.Time.now()
-        # self.grid = self.inflate_map(self.grid)
+        self.inflate_map()
         occupancygrid_data.header = header
         occupancygrid_data.data = list(self.grid.T.reshape(-1).astype(np.int8))
         self.publisher_occupancygrid.publish(occupancygrid_data)
 
-    def workspace_callback(self, msg):
-        self.vertices = msg.polygon.points
-        self.x_low = min(self.vertices, key=lambda point: point.x).x
-        self.x_high = max(self.vertices, key=lambda point: point.x).x
-        self.y_low = min(self.vertices, key=lambda point: point.y).y
-        self.y_high = max(self.vertices, key=lambda point: point.y).y
-
-        # print(self.y_low)
-        # print(self.y_high)
-        # self.x_cells = int((self.x_high - self.x_low) /self.resolution)+1 #cells / m
-        # self.y_cells = int((self.y_high - self.y_low) /self.resolution) #cells / m
-        if not self.gotcb:
-            print("reset map")
-            # self.grid = np.ones((self.x_cells, self.y_cells)) *self.uknownspace_value 
 
     def run(self):
         while not rospy.is_shutdown():
