@@ -56,8 +56,8 @@ class give_path(pt.behaviour.Behaviour):
         return robot_pose
 
     def update(self):
-        print(self.ready_for_pose)
-        print("ready for path in give_path:", self.ready_for_path)
+        #print(self.ready_for_pose)
+        #print("ready for path in give_path:", self.ready_for_path)
         if self.path is not None:
             if self.ready_for_pose:#and self.path.poses != []:
                 #print('Ready for new pose! Sending RUNNING in tree')
@@ -67,11 +67,11 @@ class give_path(pt.behaviour.Behaviour):
                 self.pose_to_send = self.pose_to_send + 1
 
                 #Send RUNNING to behaviour tree
-                print("sending running")
+                #print("sending running")
                 return pt.common.Status.RUNNING
                 
             
-            if self.pose_to_send == len(self.path.poses):
+            if self.pose_to_send >= len(self.path.poses):
                 
                 #Kalla på function som kollar vart man är och om det är rätt skicka success.
 
@@ -83,9 +83,15 @@ class give_path(pt.behaviour.Behaviour):
                 #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
                 #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
                     #Send SUCCESS to behaviour tree
-                print("Reached final pose, sending SUCCESS in tree")
+           
                 self.__init__()#path = None
-                return pt.common.Status.SUCCESS
+                if self.ready_for_pose:
+                    return pt.common.Status.SUCCESS
+                    print("Reached final pose, sending SUCCESS in tree")
+                else:   
+                    return pt.common.Status.RUNNING
+                    print("Reached final pose, sending RUNNING in tree")
+                
             
                 #Else send FAILURE to behaviour tree
                 # return pt.common.Status.FAILURE
@@ -93,11 +99,11 @@ class give_path(pt.behaviour.Behaviour):
             else:
                 self.ready_for_path = False
                 self.ready_for_new_path.publish(self.ready_for_path)
-                print('Moving to next pose in path array! Sending RUNNING in tree')
+                #print('Moving to next pose in path array! Sending RUNNING in tree')
                 return pt.common.Status.RUNNING
                 
         else:
-            print("Waiting for path, none given yet! Sending RUNNING in tree")
+            #print("Waiting for path, none given yet! Sending RUNNING in tree")
             self.ready_for_new_path.publish(self.ready_for_path)
             return pt.common.Status.RUNNING
         # else: 
@@ -109,7 +115,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "exploration"
         rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
-        self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1)
+        self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
         self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
@@ -196,15 +202,15 @@ class FrontierExploration(pt.behaviour.Behaviour):
             if self.ready_for_path:
                 self.publish_goal.publish(frontier_to_publish)
                 print("Sending current frontier goal, sending SUCCESS in tree")
-                print("ready for path in explore:", self.ready_for_path)
+                #print("ready for path in explore:", self.ready_for_path)
                 return pt.common.Status.SUCCESS
             else:
                 #Currently moving to a frontier, not ready to publish a new one
-                print("running expl 1")
+                #print("running expl 1")
                 return pt.common.Status.RUNNING    
         else:
             #Not yet found a frontier
-            print("running expl 2")
+            #print("running expl 2")
 
             return pt.common.Status.RUNNING
 
