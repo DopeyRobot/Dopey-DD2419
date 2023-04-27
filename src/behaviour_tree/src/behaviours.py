@@ -100,11 +100,13 @@ class give_path(pt.behaviour.Behaviour):
            
                 self.__init__()#path = None
                 if self.ready_for_pose:
-                    return pt.common.Status.SUCCESS
                     print("Reached final pose, sending SUCCESS in tree")
+                    return pt.common.Status.SUCCESS
+                    
                 else:   
-                    return pt.common.Status.RUNNING
                     print("Reached final pose, sending RUNNING in tree")
+                    return pt.common.Status.RUNNING
+                   
                 
             
                 #Else send FAILURE to behaviour tree
@@ -141,7 +143,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
         self.ready_for_path = True
 
         # become a behaviour
-        super(FrontierExploration, self).__init__("Frontier Exploration!")
+        super(FrontierExploration, self).__init__("Find frontier!")
         # self.update()
 
     def ready_for_path_callback(self, msg):
@@ -210,8 +212,8 @@ class FrontierExploration(pt.behaviour.Behaviour):
         frontier_to_publish = PoseStamped()
         closest_frontier = self.distance2frontier()
         if closest_frontier is not None:
-            frontier_to_publish.pose.position.x = closest_frontier[0]*2
-            frontier_to_publish.pose.position.y = closest_frontier[1]*2
+            frontier_to_publish.pose.position.x = closest_frontier[0]
+            frontier_to_publish.pose.position.y = closest_frontier[1]
 
             if self.ready_for_path:
                 self.publish_goal.publish(frontier_to_publish)

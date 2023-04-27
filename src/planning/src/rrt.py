@@ -85,7 +85,8 @@ class RRTPlanner:
             self.run()
 
     def get_map_callback(self, msg):
-
+        if msg is None:
+            print(msg)
         self.map_data = msg
         self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
 
@@ -168,7 +169,6 @@ class RRTPlanner:
 
     def generate_RRT(self):
         for i in range(self.num_iterations):
-            print(self.goal)
             x_rand, y_rand = self.sample_random()
             nearest_node = self.find_nearest(x_rand, y_rand)
             new_node = self.RRT_step(nearest_node, x_rand, y_rand)
