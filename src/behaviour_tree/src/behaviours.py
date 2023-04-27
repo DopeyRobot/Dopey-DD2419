@@ -242,3 +242,54 @@ class playTuneBehaviour(pt.behaviour.Behaviour):
     def update(self):
         self.playTune_client(String(self.tune_name))
         return pt.common.Status.SUCCESS
+
+
+# class FrontierExploration(pt.behaviour.Behaviour):
+#     def __init__(self):
+#         self.name = "exploration"
+#         rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
+#         self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
+#         self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+
+#         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
+#         rospy.sleep(0.5)
+#         self.listener = tf2_ros.TransformListener(self.buffer)
+#         rospy.sleep(0.5)
+
+#         self.occupancy_grid = None
+#         self.ready_for_path = True
+
+#         # become a behaviour
+#         super(FrontierExploration, self).__init__("Find frontier!")
+#         # self.update()
+
+#     def map_callback(self, msg):
+#         self.map_data = msg
+#         self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
+#         # print("Inside map callback")
+#         # print(self.occupancy_grid)
+
+
+#     def update(self):
+#         # while not rospy.is_shutdown():
+#         # FIX THE self.goal = None
+#         frontier_to_publish = PoseStamped()
+#         closest_frontier = self.distance2frontier()
+#         if closest_frontier is not None:
+#             frontier_to_publish.pose.position.x = closest_frontier[0]
+#             frontier_to_publish.pose.position.y = closest_frontier[1]
+
+#             if self.ready_for_path:
+#                 self.publish_goal.publish(frontier_to_publish)
+#                 print("Sending current frontier goal, sending SUCCESS in tree")
+#                 #print("ready for path in explore:", self.ready_for_path)
+#                 return pt.common.Status.SUCCESS
+#             else:
+#                 #Currently moving to a frontier, not ready to publish a new one
+#                 #print("running expl 1")
+#                 return pt.common.Status.RUNNING    
+#         else:
+#             #Not yet found a frontier
+#             #print("running expl 2")
+
+#             return pt.common.Status.RUNNING

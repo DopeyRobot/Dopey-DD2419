@@ -41,6 +41,8 @@
 
 
 	<node pkg="workspace" type ="workspace2.py" name="workspace" output="screen"/>
+
+	<node pkg="play_tunes" type="audio_service.py" name="audio_service_node" output="screen" />
 	
 	<!-- launch the localization node -->
 	

@@ -56,7 +56,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         frontier_exploration_behaviour = behaviours.FrontierExploration()
         give_path_behaviour = behaviours.give_path()
         explore_subtree = RSequence(name="RSequence", children=[frontier_exploration_behaviour,give_path_behaviour]) #need to add a third child to check amount explored
-        
+        lebron_behaviour = behaviours.playTuneBehaviour("lebronjames")
         # explore_subtree = give_path_behaviour
         # test = behaviours.give_path()
         # test1 = behaviours.give_path()
@@ -69,6 +69,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         #     children=[give_path_behaviour,test,AND]
 	    
 	    # )
+        root.add_child(lebron_behaviour)
         root.add_child(frontier_exploration_behaviour)
         root.add_child(give_path_behaviour)
         
