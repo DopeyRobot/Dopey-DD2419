@@ -318,7 +318,7 @@ class EkfSLAM:
         br = tf2_ros.StaticTransformBroadcaster()
         #Get current pose of odom in map frame
         try:
-            transform2map = self.buffer.lookup_transform('map', 'odom', self.currHeaderStamp, rospy.Duration(20)) #TODO CHANGE 1
+            transform2map = self.buffer.lookup_transform('odom', 'map', self.currHeaderStamp, rospy.Duration(20)) #TODO CHANGE 1, changed back 
             originPose = PoseStamped() #oigin in odom frame
             originPose.header = self.currHeaderStamp
             odomInMapPose = tf2_geometry_msgs.do_transform_pose(originPose, transform2map)

@@ -5,12 +5,14 @@ import py_trees as pt
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Bool, String
 from nav_msgs.msg import Path
+from robp_msgs.msg import DutyCycles
 import tf2_ros
 from nav_msgs.msg import OccupancyGrid
 import math
 import numpy as np
 # class give_path(pt.behaviour.Behaviour):
 from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
+
 
 
 class give_path(pt.behaviour.Behaviour):
@@ -163,9 +165,10 @@ class FrontierExploration(pt.behaviour.Behaviour):
         if self.occupancy_grid is not None:
             for i in range(1, self.occupancy_grid.shape[0]-1):
                 for j in range(1, self.occupancy_grid.shape[1]-1):
-                    if self.occupancy_grid[i][j] == 0 and np.sum(self.occupancy_grid[i-1:i+2, j-1:j+2]) > 0:
+                    if self.occupancy_grid[i][j] == 0 and np.sum(self.occupancy_grid[i-1:i+2, j-1:j+2]) < 0:
                         x = (j - 0.5) * self.map_data.info.resolution + self.map_data.info.origin.position.x
-                        y = (i - 0.5) * self.map_data.info.resolution + self.map_data.info.origin.position.y
+                        y = (i - 0.5) * self.map_data.info.resolution + self.map_data.info.origin.position.y 
+                        
                         frontier_cells.append((x, y))
 
         return frontier_cells
@@ -244,52 +247,61 @@ class playTuneBehaviour(pt.behaviour.Behaviour):
         return pt.common.Status.SUCCESS
 
 
-# class FrontierExploration(pt.behaviour.Behaviour):
-#     def __init__(self):
-#         self.name = "exploration"
-#         rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
-#         self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
-#         self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+class ReturnKnownMapPercent(pt.behaviour.Behaviour):
+    def __init__(self, p):
+        self.name = "ReturnKnownMapPercent"
+        rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
 
-#         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
-#         rospy.sleep(0.5)
-#         self.listener = tf2_ros.TransformListener(self.buffer)
-#         rospy.sleep(0.5)
+        self.occupancy_grid = None
+        self.p = p
 
-#         self.occupancy_grid = None
-#         self.ready_for_path = True
-
-#         # become a behaviour
-#         super(FrontierExploration, self).__init__("Find frontier!")
-#         # self.update()
-
-#     def map_callback(self, msg):
-#         self.map_data = msg
-#         self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
-#         # print("Inside map callback")
-#         # print(self.occupancy_grid)
+        super(ReturnKnownMapPercent, self).__init__("Explored space > "+str(self.p*100)+"%")
 
 
-#     def update(self):
-#         # while not rospy.is_shutdown():
-#         # FIX THE self.goal = None
-#         frontier_to_publish = PoseStamped()
-#         closest_frontier = self.distance2frontier()
-#         if closest_frontier is not None:
-#             frontier_to_publish.pose.position.x = closest_frontier[0]
-#             frontier_to_publish.pose.position.y = closest_frontier[1]
+    def map_callback(self, msg):
+        self.map_data = msg
+        self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
 
-#             if self.ready_for_path:
-#                 self.publish_goal.publish(frontier_to_publish)
-#                 print("Sending current frontier goal, sending SUCCESS in tree")
-#                 #print("ready for path in explore:", self.ready_for_path)
-#                 return pt.common.Status.SUCCESS
-#             else:
-#                 #Currently moving to a frontier, not ready to publish a new one
-#                 #print("running expl 1")
-#                 return pt.common.Status.RUNNING    
-#         else:
-#             #Not yet found a frontier
-#             #print("running expl 2")
 
-#             return pt.common.Status.RUNNING
+    def update(self):
+        condition = self.occupancy_grid == -1
+        number_of_unexplored_elements = np.count_nonzero(condition)
+
+        number_of_elements = self.occupancy_grid.shape[0]*self.occupancy_grid.shape[1]
+        percentage_of_unexplored = number_of_unexplored_elements/number_of_elements
+
+        print(percentage_of_unexplored)
+        print(self.p)
+        if percentage_of_unexplored >= self.p:
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+        
+
+class StopRobot(pt.behaviour.Behaviour):
+    def __init__(self,duration):
+        self.name = "StopRobot"
+        self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
+        self.duration = duration
+
+        super(StopRobot, self).__init__("Stop Robot for"+str(int(duration))+"sec")
+        
+        self.start = rospy.Time.now()
+
+    def update(self):
+        if rospy.Time.now()-self.start > rospy.Duration(self.duration):
+            return pt.common.Status.SUCCESS
+        else:
+            msg = DutyCycles()
+            msg.duty_cycle_left = 0
+            msg.duty_cycle_right = 0
+            self.duty_pub.publish(msg)
+            return pt.common.Status.RUNNING
+        
+    def initialise(self):
+        print("Resetting start time")
+        self.start = rospy.Time.now()
+
+
+
+        
