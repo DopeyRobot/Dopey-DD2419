@@ -3,23 +3,32 @@ import rospy
 import tf2_geometry_msgs
 import py_trees as pt
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from nav_msgs.msg import Path
 import tf2_ros
 from nav_msgs.msg import OccupancyGrid
 import math
 import numpy as np
 class give_path(pt.behaviour.Behaviour):
+from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
 
+
+class give_path(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "give_path"
-        self.goal_pub = rospy.Publisher('/goal', PoseStamped, queue_size=10)
-        self.path_sub = rospy.Subscriber('/path_topic', Path, self.path_callback) 
-        self.ready_for_pose_sub = rospy.Subscriber('/ready_for_pose', Bool, self.ready_for_path_callback)
-        self.ready_for_pose_pub = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
-        self.ready_for_new_path = rospy.Publisher('/ready_for_new_path', Bool, queue_size=1, latch=True)
+        self.goal_pub = rospy.Publisher("/goal", PoseStamped, queue_size=10)
+        self.path_sub = rospy.Subscriber("/path_topic", Path, self.path_callback)
+        self.ready_for_pose_sub = rospy.Subscriber(
+            "/ready_for_pose", Bool, self.ready_for_path_callback
+        )
+        self.ready_for_pose_pub = rospy.Publisher(
+            "/ready_for_pose", Bool, queue_size=1, latch=True
+        )
+        self.ready_for_new_path = rospy.Publisher(
+            "/ready_for_new_path", Bool, queue_size=1, latch=True
+        )
 
-        self.path = None#Path()
+        self.path = None  # Path()
         self.ready_for_pose = Bool()
         self.ready_for_path = True
         self.pose_to_send = 0
@@ -33,15 +42,19 @@ class give_path(pt.behaviour.Behaviour):
     def ready_for_path_callback(self, msg):
         self.ready_for_pose = msg.data
 
-    def get_current_pose(self):    
+    def get_current_pose(self):
 
         robot_pose = PoseStamped()
         robot_pose.header.stamp = rospy.Time.now()
         base_link_origin = PoseStamped()
         base_link_origin.header.stamp = robot_pose.header.stamp
 
-        transform_to_map = self.buffer.lookup_transform("base_link", "map", robot_pose.header.stamp , rospy.Duration(1))  #TODO: check order of target/source frrame
-        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
+        transform_to_map = self.buffer.lookup_transform(
+            "base_link", "map", robot_pose.header.stamp, rospy.Duration(1)
+        )  # TODO: check order of target/source frrame
+        baseInMapPose = tf2_geometry_msgs.do_transform_pose(
+            base_link_origin, transform_to_map
+        )
 
         robot_pose.pose.position.z = baseInMapPose.pose.position.z
         robot_pose.pose.position.x = baseInMapPose.pose.position.x
@@ -52,15 +65,15 @@ class give_path(pt.behaviour.Behaviour):
         robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
 
         robot_pose.header.frame_id = "map"
-        
+
         return robot_pose
 
     def update(self):
         #print(self.ready_for_pose)
         #print("ready for path in give_path:", self.ready_for_path)
         if self.path is not None:
-            if self.ready_for_pose:#and self.path.poses != []:
-                #print('Ready for new pose! Sending RUNNING in tree')
+            if self.ready_for_pose:  # and self.path.poses != []:
+                # print('Ready for new pose! Sending RUNNING in tree')
                 self.ready_for_pose = False
                 self.ready_for_pose_pub.publish(self.ready_for_pose)
                 self.goal_pub.publish(self.path.poses[self.pose_to_send])
@@ -75,7 +88,8 @@ class give_path(pt.behaviour.Behaviour):
                 
                 #Kalla på function som kollar vart man är och om det är rätt skicka success.
 
-                
+                # Kalla på function som kollar vart man är och om det är rätt skicka success.
+
                 self.pose_to_send = 0
                 self.ready_for_path = True
                 self.ready_for_new_path.publish(self.ready_for_path)
@@ -99,7 +113,7 @@ class give_path(pt.behaviour.Behaviour):
             else:
                 self.ready_for_path = False
                 self.ready_for_new_path.publish(self.ready_for_path)
-                #print('Moving to next pose in path array! Sending RUNNING in tree')
+                # print('Moving to next pose in path array! Sending RUNNING in tree')
                 return pt.common.Status.RUNNING
                 
         else:
@@ -214,3 +228,15 @@ class FrontierExploration(pt.behaviour.Behaviour):
 
             return pt.common.Status.RUNNING
 
+
+class playTuneBehaviour(pt.behaviour.Behaviour):
+    def __init__(self, tune_name: str):
+        super().__init__("Play tune : " + tune_name)
+        rospy.loginfo("Initialising playing sound behaviour for " + tune_name)
+        self.tune_name = tune_name
+        self.playTune_client = rospy.ServiceProxy("playTune", playTune)
+        rospy.wait_for_service("playTune", timeout=2)
+
+    def update(self):
+        self.playTune_client(String(self.tune_name))
+        return pt.common.Status.SUCCESS
