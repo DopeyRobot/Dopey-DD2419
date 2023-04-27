@@ -147,7 +147,7 @@ class RRTPlanner:
         if value == 0:
             # Free
             return True
-        elif value == 1:
+        elif value > 0:
             # Obstacle
             return False
         else:

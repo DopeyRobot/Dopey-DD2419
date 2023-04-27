@@ -251,9 +251,14 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
     def __init__(self, p):
         self.name = "ReturnKnownMapPercent"
         rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
+        self.playTune_client = rospy.ServiceProxy("playTune", playTune)
+        rospy.wait_for_service("playTune", timeout=2)
 
         self.occupancy_grid = None
         self.p = p
+        self.number_of_total_map_cells = None
+        self.collectedFirstMap = False
+        
 
         super(ReturnKnownMapPercent, self).__init__("Explored space > "+str(self.p*100)+"%")
 
@@ -261,18 +266,21 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
     def map_callback(self, msg):
         self.map_data = msg
         self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
+        if not self.collectedFirstMap:
+            self.number_of_total_map_cells = np.count_nonzero(self.occupancy_grid == -1) #number of cells to explore initially, will only run once
+            self.collectedFirstMap = True
 
 
     def update(self):
         condition = self.occupancy_grid == -1
         number_of_unexplored_elements = np.count_nonzero(condition)
 
-        number_of_elements = self.occupancy_grid.shape[0]*self.occupancy_grid.shape[1]
-        percentage_of_unexplored = number_of_unexplored_elements/number_of_elements
-
+        # number_of_elements = self.occupancy_grid.shape[0]*self.occupancy_grid.shape[1]
+        percentage_of_unexplored = number_of_unexplored_elements/self.number_of_total_map_cells
         print(percentage_of_unexplored)
         print(self.p)
         if percentage_of_unexplored >= self.p:
+            self.playTune_client(String("gothim"))
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
@@ -284,7 +292,7 @@ class StopRobot(pt.behaviour.Behaviour):
         self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
         self.duration = duration
 
-        super(StopRobot, self).__init__("Stop Robot for"+str(int(duration))+"sec")
+        super(StopRobot, self).__init__("Stop Robot for "+str(int(duration))+" sec")
         
         self.start = rospy.Time.now()
 
