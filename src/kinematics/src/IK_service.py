@@ -116,7 +116,7 @@ class IKService:
         self.cur_joint_state = msg
 
     def move_to(self, pos, wrist_pitch, wrist_rotation):
-        sol = self.solver.analytical_IK(pos, wrist_pitch, wrist_rotation)
+        sol = self.solver.analytical_IK(pos, wrist_pitch, wrist_rotation, reflect_angle=True)
         if sol is not None:
             rospy.loginfo(sol)
             self.pose_service(sol.to_np_array(), 800)
@@ -129,9 +129,9 @@ class IKService:
     def pickup_routine_callback(self, req: TriggerRequest) -> TriggerResponse:
         rospy.loginfo("pickup routine started")
         self.pose_service(RefPoses.HOME.value.to_joint_angles_req())
-        rospy.sleep(2)
-        rospy.loginfo("moving to front pickup zone")
-        self.pose_service(RefPoses.PREPICK_F.value.to_joint_angles_req())
+        # rospy.sleep(2)
+        # rospy.loginfo("moving to front pickup zone")
+        # self.pose_service(RefPoses.PREPICK_F.value.to_joint_angles_req())
         rospy.sleep(2)
         self.gripper_open_service(TriggerRequest())
         rospy.sleep(2)

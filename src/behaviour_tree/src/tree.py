@@ -56,26 +56,43 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         
         rospy.wait_for_message("pickup_goal", PoseStamped)
         behavs = [
-            MoveArmToPickupFront(),
-            Wait(4),
-	        MoveArmToHome(),
-		    Wait(4),
-            OpenGripper(),
-            Wait(4),
-            MoveArmToUnfold(),
-	        Wait(4),
             PickupToTarget(),
             Wait(4),
 	        MoveArmToUnfold(),
 	        Wait(4),
-		    MoveArmToDrop()
+		    MoveArmToDrop(),
+		    Wait(4),
+		    OpenGripper()
 	    
         ]
+	
+        pickup_behavs = pt.Sequence("PICKUP", [
+            PickupToTarget(),
+            Wait(4),
+	        MoveArmToUnfold(),
+            Wait(4)
 
-        AND = RSequence(name="->", children=behavs)
+        ])
+	
+        drop_behavs = pt.Sequence("DROP", [
+		    MoveArmToDrop(),
+            Wait(4),
+            OpenGripper(),
+            Wait(4),
+            MoveArmToHome()
+		
+        ])
+	
+        test = pt.Sequence("pickanddrop", [pickup_behavs,drop_behavs])
+        root.add_child(test)
+        
+        # move_pickup= pt.Sequence("moveandpickup", [move_behavs, pickup_behavs])
+        # move_drop = pt.Sequence("moveanddrop", [move_behavs, drop_behavs])
+        # pickup_subtree = RSequence(name="", children=move_pickup)
+        # drop_subtree = RSequence(name="->", children=move_drop)
 
-
-        root.add_child(AND)
+        # root.add_child(pickup_subtree)
+        # root.add_child(drop_subtree)
 	
 
         # for job in ["Action 1", "Action 2", "Action 3"]:

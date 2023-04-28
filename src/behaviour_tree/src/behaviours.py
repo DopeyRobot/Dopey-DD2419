@@ -4,7 +4,7 @@ import tf2_geometry_msgs
 import py_trees as pt
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Bool, Empty, String
-from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse, String
+from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 from nav_msgs.msg import Path
 from kinematics.srv import GripStrength, GripStrengthRequest, GripStrengthResponse
 from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
