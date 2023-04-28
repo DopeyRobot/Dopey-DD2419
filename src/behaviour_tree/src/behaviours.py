@@ -4,10 +4,10 @@ import tf2_geometry_msgs
 import py_trees as pt
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Bool, Empty, String
-from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
+from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse, String
 from nav_msgs.msg import Path
 from kinematics.srv import GripStrength, GripStrengthRequest, GripStrengthResponse
-import py_trees as pt
+from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
 
 
 class give_path(pt.behaviour.Behaviour):
@@ -301,4 +301,16 @@ class Wait(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         rospy.sleep(self.duration)
         self.done = True
+        return pt.common.Status.SUCCESS
+
+class playTuneBehaviour(pt.behaviour.Behaviour):
+    def __init__(self, tune_name: str):
+        super().__init__("Play tune : " + tune_name)
+        rospy.loginfo("Initialising playing sound behaviour for " + tune_name)
+        self.tune_name = tune_name
+        self.playTune_client = rospy.ServiceProxy("playTune", playTune)
+        rospy.wait_for_service("playTune", timeout=2)
+
+    def update(self):
+        self.playTune_client(String(self.tune_name))
         return pt.common.Status.SUCCESS
