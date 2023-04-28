@@ -71,7 +71,7 @@ class BoundingBoxNode:
         self.broadcaster = TransformBroadcaster()
         self.buffer = Buffer(rospy.Duration(1200.0))
         self.listener = TransformListener(self.buffer)
-
+        self.new_names = StringArray()
         self.bbs: List[utils.BoundingBox] = []
 
         self.image_subscriber = rospy.Subscriber(
@@ -101,7 +101,6 @@ class BoundingBoxNode:
 
         self.short_term_mem_proxy = rospy.ServiceProxy("/add2shortterm", add2ShortTerm)
         rospy.wait_for_service("/add2shortterm", 5)
-        self.new_names = StringArray()
         self.new_names_sub = rospy.Subscriber("/new_names", StringArray)
         self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
         self.play_tune_service = rospy.ServiceProxy("/playTune", playTune)

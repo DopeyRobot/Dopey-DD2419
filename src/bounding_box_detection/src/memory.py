@@ -271,6 +271,15 @@ class LongTermMemory:
             self.last_time_seen[name],
             self.locations[name],
         )
+    
+    def get_instance(self, instance_name:str):
+        return LongTermInstance(
+            instance_name,
+            self.positions[instance_name],
+            self.last_time_seen[instance_name],
+            self.locations[instance_name],
+        )
+    
 
 
 class MemoryNode:
@@ -330,7 +339,7 @@ class MemoryNode:
 
     def instances_in_LTM_srv_cb(self, req: instanceNamesRequest):
         resp_list = []
-        for name in self.instances_in_memory:
+        for name in self.lt.instances_in_memory:
             resp_list.append(String(name))
         resp = instanceNamesResponse(resp_list)
         #print(resp)
@@ -404,16 +413,18 @@ class MemoryNode:
             print("sending transform to tf failed")
 
     def publish_long_term_memory(self):
-        for instance in self.lt.instances_in_memory:
+        for instance_name in self.lt.instances_in_memory:
+            instance = self.lt.get_instance(instance_name)
             self.publish_to_tf(
-                instance.instance_name,
-                instance.position,
+                instance_name,
+                instance.position
                 )
+            
     # returns the pose of an object in the desired frame
     def get_object_pose_cb(self,req: twoStrInPoseOutRequest) -> PoseStamped:
-        object_frame_id= req.object_frame_id.data
-        ref_frame_id = req.reference_frame_id.data
-        return twoStrInPoseOutResponse(self.get_object_pose(object_frame_id, ref_frame_id))
+        ref_frame_id = req.str1.data
+        object_frame_id= req.str2.data
+        return twoStrInPoseOutResponse(self.get_object_pose(ref_frame_id,object_frame_id))
     
     def get_object_pose(self, ref_frame_id:str, object_frame_id:str) -> PoseStamped:
         pose = PoseStamped()
@@ -436,36 +447,37 @@ class MemoryNode:
             return None
         
     def check_for_obj_type(self, instance_name: str, desired_class_of_obj:str) -> bool:
-        if (desired_class_of_obj.lower == self.lt.get_class_name(instance_name).lower 
-            or desired_class_of_obj.lower == "all"
-            or (desired_class_of_obj.lower == "plushie" 
-                and self.lt.get_class_name(instance_name).lower in [e.value for e in Plushies])):
+        if (desired_class_of_obj.lower() == self.lt.get_class_name(instance_name).lower() 
+            or desired_class_of_obj.lower() == "all"
+            or (desired_class_of_obj.lower() == "plushie" 
+                and self.lt.get_class_name(instance_name).lower() in [e.value for e in Plushies])):
             return True
         else:
             return False
-
+    # find the closest object in the memory node of the given class and returns its pose in the ref_frame
     def get_closest_obj_cb(self, req: twoStrInPoseOutRequest) -> PoseStamped:
         """ Finds the closest instance in the long term memory that isn't a box"""
         ref_frame_id = req.str1.data # first arg is the reference frame id
         desired_class_of_obj = req.str2.data # second arg is the class of the object ball/plushie/box
-            
         closest_instance_pose = None
         poseOfRobot = self.get_object_pose(ref_frame_id, "base_link")
+        name_of_closest_obj_found = "Nothing Found"
         dist = float("inf")
         prev_dist = float("inf")
         for instance_name in self.lt.instances_in_memory:
-            if self.check_for_obj_type(instance_name, desired_class_of_obj):
+            if self.check_for_obj_type(instance_name, desired_class_of_obj) and self.lt.get_instance(instance_name).location.lower() == "map":
                 poseOfObj = self.get_object_pose(ref_frame_id, instance_name)
                 dist = self.get_distance(poseOfRobot,poseOfObj)
                 if dist < prev_dist:
                     prev_dist = dist
+                    name_of_closest_obj_found = instance_name
                     closest_instance_pose = poseOfObj
         if closest_instance_pose is not None:
-            rospy.loginfo("closest obstacle to  base_link found at: " + dist)
+            rospy.loginfo(f"closest obstacle to base_link found is \"{name_of_closest_obj_found}\" at dist: {np.sqrt(prev_dist)}")
             return twoStrInPoseOutResponse(closest_instance_pose)
         else:
-            rospy.loginfo("no obstacle found")
-            return None
+            rospy.loginfo("no obstacle found on the map")
+            return None #maybe it should return something else other than None
         
     def get_distance(self, pose1, pose2) -> float:
         """Returns the square of the distance between two poses"""
