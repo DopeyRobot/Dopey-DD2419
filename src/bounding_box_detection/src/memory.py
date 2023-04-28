@@ -289,7 +289,7 @@ class MemoryNode:
         distance_threshold=0.2,
         time_threshold=rospy.Duration(10),
     ) -> None:
-        self.f = 30
+        self.f = 1
         self.db = ShortTermMemory(
             distance_threshold=distance_threshold, time_threshold=time_threshold
         )

@@ -77,8 +77,8 @@
 	
 	<node pkg="play_tunes" type="audio_service.py" name="audio_service_node" output="screen" />
 	<!-- launch memory node -->
-	<node pkg="bounding_box_detection" type="memory.py" name="memory_node" output="screen" />
-	<node pkg="bounding_box_detection" type="detector_node.py" name="detector_node" output="screen" />
+	<!-- <node pkg="bounding_box_detection" type="memory.py" name="memory_node" output="screen" />
+	<node pkg="bounding_box_detection" type="detector_node.py" name="detector_node" output="screen" /> -->
 
 	
 
