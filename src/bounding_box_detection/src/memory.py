@@ -21,6 +21,7 @@ from bounding_box_detection.srv import (
     twoStrInPoseOutRequest,
     twoStrInPoseOutResponse,
 )
+from workspace.srv import PolyCheck, PolyCheckRequest
 from bounding_box_detection.msg import StringArray
 from geometry_msgs.msg import PoseStamped
 from tf2_geometry_msgs import PoseStamped as Tf2PoseStamped
@@ -320,6 +321,8 @@ class MemoryNode:
         self.get_closest_obj_srv = rospy.Service(
             "/get_closest_obj", twoStrInPoseOut, self.get_closest_obj_cb
         )
+        
+        self.polygon_checker = rospy.ServiceProxy("/polygon_service", PolyCheck)
         self.camera_frame = "camera_color_optical_frame"
 
         self.run()
@@ -444,6 +447,11 @@ class MemoryNode:
             return True
         else:
             return False
+    def obj_inside_map(self, pose:PoseStamped)-> bool:
+        poly_req = PolyCheckRequest()
+        poly_req.point_of_interest = [pose.pose.position.x, pose.pose.position.y]
+        poly_resp = self.polygon_checker(poly_req)
+        return poly_resp.poly_bool
     # find the closest object in the memory node of the given class and returns its pose in the ref_frame
     def get_closest_obj_cb(self, req: twoStrInPoseOutRequest) -> PoseStamped:
         """ Finds the closest instance in the long term memory
@@ -465,7 +473,7 @@ class MemoryNode:
             if self.check_for_obj_type(instance_name, desired_class_of_obj) and self.lt.get_instance(instance_name).location.lower() == "map":
                 poseOfObj = self.get_object_pose(ref_frame_id, instance_name)
                 dist = self.get_distance(poseOfRobot,poseOfObj)
-                if dist < prev_dist:
+                if dist < prev_dist and self.obj_inside_map(poseOfObj):
                     prev_dist = dist
                     name_of_closest_obj_found = instance_name
                     closest_instance_pose = poseOfObj
