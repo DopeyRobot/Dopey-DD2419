@@ -114,13 +114,9 @@ class ShortTermMemory:
         """Increments the counter for the instance (whther it exists or not) and updates the average position"""
 
         if instance_name in self.instances_detected_counter:
-            self.average_position[instance_name] = (
-                self.instances_detected_counter[instance_name]
-                / (self.instances_detected_counter[instance_name] + 1)
-            ) * (
-                self.average_position[instance_name]
-                + position / (self.instances_detected_counter[instance_name])
-            )
+            self.average_position[instance_name] = position
+            #(self.instances_detected_counter[instance_name]/ (self.instances_detected_counter[instance_name] + 1)) * 
+            #(self.average_position[instance_name]+ position / (self.instances_detected_counter[instance_name]))
             self.instances_detected_counter[
                 instance_name
             ] += 1  # we saw this instance again
@@ -323,7 +319,12 @@ class MemoryNode:
         while not rospy.is_shutdown():
             new_names = self.update_long_term(rospy.Time.now())
             self.publish_new_names(new_names)
-            self.publish_long_term_memory()
+            for instance_name in new_names:
+                instance = self.lt.get_instance(instance_name)
+                self.publish_to_tf(
+                    instance_name,
+                    instance.position
+                    )
             rate.sleep()
 
     def publish_new_names(self, new_names):
