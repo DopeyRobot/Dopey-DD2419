@@ -21,6 +21,7 @@ from bounding_box_detection.srv import (
     twoStrInPoseOutRequest,
     twoStrInPoseOutResponse,
 )
+from workspace.srv import PolyCheck, PolyCheckRequest
 from bounding_box_detection.msg import StringArray
 from geometry_msgs.msg import PoseStamped
 from tf2_geometry_msgs import PoseStamped as Tf2PoseStamped
@@ -63,7 +64,7 @@ class ShortTermMemory:
     It keeps track of how many times an instance has been detected and how many times a class has been detected."""
 
     def __init__(
-        self, distance_threshold=0.05, time_threshold=rospy.Duration(5)
+        self, same_obj_threshold=0.05, time_threshold=rospy.Duration(5)
     ) -> None:
         self.instances_detected_counter = (
             Counter()
@@ -73,7 +74,7 @@ class ShortTermMemory:
         )  # keeps track of how many times a new element of every class has been detected
         self.last_time_seen = {}
         self.average_position = {}
-        self.distance_threshold = distance_threshold
+        self.same_obj_threshold = same_obj_threshold
         self.time_threshold = time_threshold
 
     def get_next_instance_name(self, class_name):
@@ -88,7 +89,7 @@ class ShortTermMemory:
     def check_position(self, position):
         keys = []
         for key, value in self.average_position.items():
-            if np.linalg.norm(position - value) < self.distance_threshold:
+            if np.linalg.norm(position - value) < self.same_obj_threshold:
                 keys.append(key)
         keys = sorted(
             keys, key=lambda x: np.linalg.norm(position - self.average_position[x])
@@ -114,13 +115,9 @@ class ShortTermMemory:
         """Increments the counter for the instance (whther it exists or not) and updates the average position"""
 
         if instance_name in self.instances_detected_counter:
-            self.average_position[instance_name] = (
-                self.instances_detected_counter[instance_name]
-                / (self.instances_detected_counter[instance_name] + 1)
-            ) * (
-                self.average_position[instance_name]
-                + position / (self.instances_detected_counter[instance_name])
-            )
+            self.average_position[instance_name] = 0.5*position +0.5*self.average_position[instance_name]
+            #(self.instances_detected_counter[instance_name]/ (self.instances_detected_counter[instance_name] + 1)) * 
+            #(self.average_position[instance_name]+ position / (self.instances_detected_counter[instance_name]))
             self.instances_detected_counter[
                 instance_name
             ] += 1  # we saw this instance again
@@ -168,13 +165,14 @@ class ShortTermMemory:
 class LongTermMemory:
     """Stores the objects that have been detected more than N times in the DetectionBuffer"""
 
-    def __init__(self, frames_needed_for_reconition=5, distance_threshold=0.2) -> None:
+    def __init__(self, frames_needed_for_reconition=20, same_obj_threshold=0.2, other_obj_threshold=0.15) -> None:
         self.class_counter = (Counter())  # keeps track of how many times a new element of every class has been detected
         self.instances_in_memory = []
         self.locations = {}  # is the instance in the Map, Tray, Grip, Box?
         self.last_time_seen = {}
         self.positions = {}
-        self.distance_threshold = distance_threshold
+        self.same_obj_threshold = same_obj_threshold
+        self.other_obj_threshold = other_obj_threshold
         self.min_frames_needed = frames_needed_for_reconition  # how many times the object has to be detected in the DetectionBuffer to be added to the LongTermMemory
 
     def get_next_instance_name(self, class_name):
@@ -188,7 +186,7 @@ class LongTermMemory:
         to the position we want to add and returns the name of the closest one"""
         keys = []
         for key, value in self.positions.items():
-            if np.linalg.norm(position - value) < self.distance_threshold:
+            if np.linalg.norm(position - value) < self.same_obj_threshold:
                 keys.append(key)
         keys = sorted(keys, key=lambda x: np.linalg.norm(position - self.positions[x]))
 
@@ -213,7 +211,7 @@ class LongTermMemory:
                 self.locations[
                     closest_instance_in_lt_memory
                 ] = "map"  # !!!FOR NOW ONLY OBJECTS IN MAP ARE STORED IN THE LONG TERM MEMORY!!!
-                self.positions[closest_instance_in_lt_memory] = position
+                self.positions[closest_instance_in_lt_memory] = (position + self.positions[closest_instance_in_lt_memory])/2
                 self.last_time_seen[closest_instance_in_lt_memory] = timestamp
                 return None
 
@@ -236,6 +234,8 @@ class LongTermMemory:
         new_names = []
         for db_instance, counter in db.instances_detected_counter.items():
             if counter > self.min_frames_needed:
+                if self.too_crowded(db_instance, db):
+                    continue
                 new_name = self._updateMemory(
                     timestamp,
                     db,
@@ -243,13 +243,20 @@ class LongTermMemory:
                     db_instance,
                     db.get_instance_position(db_instance),
                 )
-                if self.get_class_name(db_instance).lower() == "box":
-                    # call box rosservice
-                    pass
                 if new_name is not None:
                     new_names.append(new_name)
         return new_names
 
+    def too_crowded(self, db_instance, db:ShortTermMemory):
+        for lt_instance in self.instances_in_memory:
+            if (
+                np.linalg.norm(
+                    db.get_instance_position(db_instance)
+                    - self.positions[lt_instance]
+                )
+                < self.other_obj_threshold
+            ):
+                return True
         #!!!!NCOMMENT THE FOLLOWING LINES ONCE THE JAMMIN BRANCH AND THIS ONE ARE MERGED!!!!
         # # play sounds every time we either add or update an instance in the long term memory
         # try:
@@ -286,14 +293,14 @@ class MemoryNode:
     def __init__(
         self,
         frames_needed_for_reconition=5,
-        distance_threshold=0.2,
+        same_obj_threshold=0.2,
         time_threshold=rospy.Duration(10),
     ) -> None:
-        self.f = 1
+        self.f = 5
         self.db = ShortTermMemory(
-            distance_threshold=distance_threshold, time_threshold=time_threshold
+            same_obj_threshold=same_obj_threshold, time_threshold=time_threshold
         )
-        self.lt = LongTermMemory(frames_needed_for_reconition, distance_threshold)
+        self.lt = LongTermMemory(frames_needed_for_reconition, same_obj_threshold)
         self.buffer = Buffer(rospy.Duration(1200.0))
         rospy.sleep(5)
         self.tranform_listener = TransformListener(self.buffer)
@@ -314,6 +321,8 @@ class MemoryNode:
         self.get_closest_obj_srv = rospy.Service(
             "/get_closest_obj", twoStrInPoseOut, self.get_closest_obj_cb
         )
+        
+        self.polygon_checker = rospy.ServiceProxy("/polygon_service", PolyCheck)
         self.camera_frame = "camera_color_optical_frame"
 
         self.run()
@@ -336,6 +345,9 @@ class MemoryNode:
                 msg_list.append(name_msg)
             new_names_msg.array = msg_list
             self.new_names_pub.publish(new_names_msg)
+        else:
+            self.new_names_pub.publish(StringArray())
+
 
     def instances_in_LTM_srv_cb(self, req: instanceNamesRequest):
         resp_list = []
@@ -376,35 +388,18 @@ class MemoryNode:
         """
         Publish a transform from the camera frame to the map frame
         """
-        pose = PoseStamped()
-        pose.header.frame_id = self.camera_frame
-        pose.header.stamp = rospy.Time.now()
-        pose.pose.position.x = position[0]
-        pose.pose.position.y = position[1]
-        pose.pose.position.z = position[2]
-
-        pose.pose.orientation.x = 0.5
-        pose.pose.orientation.y = 0.5
-        pose.pose.orientation.z = 0.5
-        pose.pose.orientation.w = 0.5
-        try:
-            transformed_pose = self.buffer.transform(
-                pose, "map", rospy.Duration(1.0)
-            )
-        except:
-            rospy.loginfo("NO MAP FRAME")
         t = TransformStamped()
-        t.header.stamp = transformed_pose.header.stamp
+        t.header.stamp = rospy.Time.now()
         t.header.frame_id = "map"
 
-        t.transform.translation.x = transformed_pose.pose.position.x
-        t.transform.translation.y = transformed_pose.pose.position.y
-        t.transform.translation.z = transformed_pose.pose.position.z
+        t.transform.translation.x = position[0]
+        t.transform.translation.y = position[1]
+        t.transform.translation.z = position[2]
 
-        t.transform.rotation.x = transformed_pose.pose.orientation.x
-        t.transform.rotation.y = transformed_pose.pose.orientation.y
-        t.transform.rotation.z = transformed_pose.pose.orientation.z
-        t.transform.rotation.w = transformed_pose.pose.orientation.w
+        t.transform.rotation.x = 0.5
+        t.transform.rotation.y = 0.5
+        t.transform.rotation.z = 0.5
+        t.transform.rotation.w = 0.5
 
         t.child_frame_id = frame_name
         try:
@@ -455,6 +450,13 @@ class MemoryNode:
             return True
         else:
             return False
+    def obj_inside_map(self, object_frame_id:str)-> bool:
+        poly_req = PolyCheckRequest()
+        pose = self.get_object_pose("map", object_frame_id)
+        poly_req.point_of_interest = [pose.pose.position.x, pose.pose.position.y]
+        poly_resp = self.polygon_checker(poly_req)
+        rospy.loginfo(f"object inside {poly_resp.poly_bool}")
+        return poly_resp.poly_bool
     # find the closest object in the memory node of the given class and returns its pose in the ref_frame
     def get_closest_obj_cb(self, req: twoStrInPoseOutRequest) -> PoseStamped:
         """ Finds the closest instance in the long term memory
@@ -476,7 +478,7 @@ class MemoryNode:
             if self.check_for_obj_type(instance_name, desired_class_of_obj) and self.lt.get_instance(instance_name).location.lower() == "map":
                 poseOfObj = self.get_object_pose(ref_frame_id, instance_name)
                 dist = self.get_distance(poseOfRobot,poseOfObj)
-                if dist < prev_dist:
+                if dist < prev_dist and self.obj_inside_map(instance_name):
                     prev_dist = dist
                     name_of_closest_obj_found = instance_name
                     closest_instance_pose = poseOfObj

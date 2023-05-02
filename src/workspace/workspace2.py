@@ -219,8 +219,7 @@ class Workspace():
     def callback_polycheck(self, req:PolyCheckRequest):
         #points need to be in continuous space
         p_check = list(req.point_of_interest)
-        p_inf = list(req.point_at_infinity)
-        return self.checkpointinsidepoly(p_check, p_inf)
+        return self.checkpointinsidepoly2(p_check)
     
     def callback_occupancycheck(self, req:OccupancyCheckRequest):
         # for x in range(self.x_cells):
