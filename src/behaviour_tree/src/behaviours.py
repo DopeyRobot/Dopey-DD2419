@@ -70,67 +70,6 @@ class give_path(pt.behaviour.Behaviour):
 
         return robot_pose
 
-    # def update(self):
-    #     #print(self.ready_for_pose)
-    #     #print("ready for path in give_path:", self.ready_for_path)
-    #     if self.path is not None:
-    #         if self.ready_for_pose:  # and self.path.poses != []:
-    #             # print('Ready for new pose! Sending RUNNING in tree')
-    #             self.ready_for_pose = False
-    #             self.ready_for_pose_pub.publish(self.ready_for_pose)
-    #             self.goal_pub.publish(self.path.poses[self.pose_to_send])
-    #             self.pose_to_send = self.pose_to_send + 1
-
-    #             #Send RUNNING to behaviour tree
-    #             #print("sending running")
-    #             return pt.common.Status.RUNNING
-                
-            
-    #         if self.pose_to_send >= len(self.path.poses): #TODO
-                
-    #             #Kalla på function som kollar vart man är och om det är rätt skicka success.
-
-    #             # Kalla på function som kollar vart man är och om det är rätt skicka success.
-                
-
-
-    #             #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
-    #             #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
-    #                 #Send SUCCESS to behaviour tree
-           
-    #             # self.__init__()#path = None #TODO
-    #             if self.ready_for_pose:
-    #                 self.__init__()#path = None
-    #                 self.pose_to_send = 0
-    #                 self.ready_for_path = True
-    #                 self.ready_for_new_path.publish(self.ready_for_path)
-    #                 print("Reached final pose, sending SUCCESS in tree")
-    #                 return pt.common.Status.SUCCESS
-                    
-    #             else: 
-    #                 self.pose_to_send = len(self.path.poses)-1
-    #                 print("Reached final pose, sending RUNNING in tree")
-    #                 return pt.common.Status.RUNNING
-                   
-                
-            
-    #             #Else send FAILURE to behaviour tree
-    #             # return pt.common.Status.FAILURE
-
-    #         else:
-    #             self.ready_for_path = False
-    #             self.ready_for_new_path.publish(self.ready_for_path)
-    #             # print('Moving to next pose in path array! Sending RUNNING in tree')
-    #             return pt.common.Status.RUNNING
-                
-    #     else:
-    #         #print("Waiting for path, none given yet! Sending RUNNING in tree")
-    #         self.ready_for_new_path.publish(self.ready_for_path)
-    #         return pt.common.Status.RUNNING
-    #     # else: 
-    #     #     print("sending final RUNNING")
-    #     #     return pt.common.Status.RUNNING
-
 
     def update(self):
             #print(self.ready_for_pose)
@@ -144,10 +83,6 @@ class give_path(pt.behaviour.Behaviour):
                     self.pose_to_send = self.pose_to_send + 1
 
 
-
-                    #Send RUNNING to behaviour tree
-                    #print("sending running")
-                    # if self.pose_to_send < len(self.path.poses):
                     return pt.common.Status.RUNNING
 
                 elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
@@ -158,36 +93,6 @@ class give_path(pt.behaviour.Behaviour):
                     print("Reached final pose, sending SUCCESS in tree")
                     return pt.common.Status.SUCCESS
                 
-                # if self.pose_to_send >= len(self.path.poses): #TODO
-                    
-                #     #Kalla på function som kollar vart man är och om det är rätt skicka success.
-
-                #     # Kalla på function som kollar vart man är och om det är rätt skicka success.
-                    
-
-
-                #     #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
-                #     #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
-                #         #Send SUCCESS to behaviour tree
-            
-                #     # self.__init__()#path = None #TODO
-                #     if self.ready_for_pose:
-                #         self.__init__()#path = None
-                #         self.pose_to_send = 0
-                #         self.ready_for_path = True
-                #         self.ready_for_new_path.publish(self.ready_for_path)
-                #         print("Reached final pose, sending SUCCESS in tree")
-                #         return pt.common.Status.SUCCESS
-                        
-                #     else: 
-                #         self.pose_to_send = len(self.path.poses)-1
-                #         print("Reached final pose, sending RUNNING in tree")
-                #         return pt.common.Status.RUNNING
-                    
-                    
-                
-                    #Else send FAILURE to behaviour tree
-                    # return pt.common.Status.FAILURE
 
                 else:
                     self.ready_for_path = False
