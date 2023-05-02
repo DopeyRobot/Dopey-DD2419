@@ -53,6 +53,7 @@ class BoundingBoxNode:
 
         self.f = 30
         self.max_rec_dist = 1 # max distance at whinch objects should still be considered by the memory
+        self.min_rec_dist = 0.01
         self.rate = rospy.Rate(self.f)
 
         self.camera_topic = "/camera/color/image_raw"
@@ -147,7 +148,7 @@ class BoundingBoxNode:
         for bb in self.bbs:
             class_name = String(self.get_class_name(bb, self.array_image))
             position = self.project_bb(bb)
-            if np.linalg.norm(position) > self.max_rec_dist:
+            if np.linalg.norm(position) > self.max_rec_dist or np.linalg.norm(position)<self.min_rec_dist:
                 continue
             position = self.convert_to_map(position)
             add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())

@@ -171,7 +171,7 @@ class LongTermMemory:
         self.last_time_seen = {}
         self.positions = {}
         self.same_obj_threshold = same_obj_threshold
-        self.same_obj_threshold = other_obj_threshold
+        self.other_obj_threshold = other_obj_threshold
         self.min_frames_needed = frames_needed_for_reconition  # how many times the object has to be detected in the DetectionBuffer to be added to the LongTermMemory
 
     def get_next_instance_name(self, class_name):
