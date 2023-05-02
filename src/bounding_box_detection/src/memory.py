@@ -63,7 +63,7 @@ class ShortTermMemory:
     It keeps track of how many times an instance has been detected and how many times a class has been detected."""
 
     def __init__(
-        self, distance_threshold=0.05, time_threshold=rospy.Duration(5)
+        self, same_obj_threshold=0.05, time_threshold=rospy.Duration(5)
     ) -> None:
         self.instances_detected_counter = (
             Counter()
@@ -73,7 +73,7 @@ class ShortTermMemory:
         )  # keeps track of how many times a new element of every class has been detected
         self.last_time_seen = {}
         self.average_position = {}
-        self.distance_threshold = distance_threshold
+        self.same_obj_threshold = same_obj_threshold
         self.time_threshold = time_threshold
 
     def get_next_instance_name(self, class_name):
@@ -88,7 +88,7 @@ class ShortTermMemory:
     def check_position(self, position):
         keys = []
         for key, value in self.average_position.items():
-            if np.linalg.norm(position - value) < self.distance_threshold:
+            if np.linalg.norm(position - value) < self.same_obj_threshold:
                 keys.append(key)
         keys = sorted(
             keys, key=lambda x: np.linalg.norm(position - self.average_position[x])
@@ -164,13 +164,14 @@ class ShortTermMemory:
 class LongTermMemory:
     """Stores the objects that have been detected more than N times in the DetectionBuffer"""
 
-    def __init__(self, frames_needed_for_reconition=5, distance_threshold=0.2) -> None:
+    def __init__(self, frames_needed_for_reconition=5, same_obj_threshold=0.2, other_obj_threshold=0.2) -> None:
         self.class_counter = (Counter())  # keeps track of how many times a new element of every class has been detected
         self.instances_in_memory = []
         self.locations = {}  # is the instance in the Map, Tray, Grip, Box?
         self.last_time_seen = {}
         self.positions = {}
-        self.distance_threshold = distance_threshold
+        self.same_obj_threshold = same_obj_threshold
+        self.same_obj_threshold = other_obj_threshold
         self.min_frames_needed = frames_needed_for_reconition  # how many times the object has to be detected in the DetectionBuffer to be added to the LongTermMemory
 
     def get_next_instance_name(self, class_name):
@@ -184,7 +185,7 @@ class LongTermMemory:
         to the position we want to add and returns the name of the closest one"""
         keys = []
         for key, value in self.positions.items():
-            if np.linalg.norm(position - value) < self.distance_threshold:
+            if np.linalg.norm(position - value) < self.same_obj_threshold:
                 keys.append(key)
         keys = sorted(keys, key=lambda x: np.linalg.norm(position - self.positions[x]))
 
@@ -232,6 +233,8 @@ class LongTermMemory:
         new_names = []
         for db_instance, counter in db.instances_detected_counter.items():
             if counter > self.min_frames_needed:
+                if self.too_crowded(db_instance, db):
+                    continue
                 new_name = self._updateMemory(
                     timestamp,
                     db,
@@ -239,13 +242,20 @@ class LongTermMemory:
                     db_instance,
                     db.get_instance_position(db_instance),
                 )
-                if self.get_class_name(db_instance).lower() == "box":
-                    # call box rosservice
-                    pass
                 if new_name is not None:
                     new_names.append(new_name)
         return new_names
 
+    def too_crowded(self, db_instance, db:ShortTermMemory):
+        for lt_instance in self.instances_in_memory:
+            if (
+                np.linalg.norm(
+                    db.get_instance_position(db_instance)
+                    - self.positions[lt_instance]
+                )
+                < self.other_obj_threshold
+            ):
+                return True
         #!!!!NCOMMENT THE FOLLOWING LINES ONCE THE JAMMIN BRANCH AND THIS ONE ARE MERGED!!!!
         # # play sounds every time we either add or update an instance in the long term memory
         # try:
@@ -282,14 +292,14 @@ class MemoryNode:
     def __init__(
         self,
         frames_needed_for_reconition=5,
-        distance_threshold=0.2,
+        same_obj_threshold=0.2,
         time_threshold=rospy.Duration(10),
     ) -> None:
         self.f = 5
         self.db = ShortTermMemory(
-            distance_threshold=distance_threshold, time_threshold=time_threshold
+            same_obj_threshold=same_obj_threshold, time_threshold=time_threshold
         )
-        self.lt = LongTermMemory(frames_needed_for_reconition, distance_threshold)
+        self.lt = LongTermMemory(frames_needed_for_reconition, same_obj_threshold)
         self.buffer = Buffer(rospy.Duration(1200.0))
         rospy.sleep(5)
         self.tranform_listener = TransformListener(self.buffer)

@@ -51,7 +51,8 @@ class BoundingBoxNode:
         rospy.wait_for_service("/playTune", 5)
         rospy.wait_for_service("/add2shortterm", 10)
 
-        self.f = 60
+        self.f = 30
+        self.max_rec_dist = 1 # max distance at whinch objects should still be considered by the memory
         self.rate = rospy.Rate(self.f)
 
         self.camera_topic = "/camera/color/image_raw"
@@ -146,6 +147,8 @@ class BoundingBoxNode:
         for bb in self.bbs:
             class_name = String(self.get_class_name(bb, self.array_image))
             position = self.project_bb(bb)
+            if np.linalg.norm(position) > self.max_rec_dist:
+                continue
             position = self.convert_to_map(position)
             add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())
             self.short_term_mem_proxy(add_req)
