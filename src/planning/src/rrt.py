@@ -29,31 +29,16 @@ class RRTNode:
         return self.parent
     
     def get_start(self):    
-
-        # robot_pose = PoseStamped()
-        # robot_pose.header.stamp = 
+        
         base_link_origin = PoseStamped()
         base_link_origin.header.stamp = rospy.Time.now()
+        if self.buffer.can_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1)):
+            transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1))  
+            baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
-        transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp , rospy.Duration(1))  
-        transform_to_map_from_odom = self.buffer.lookup_transform("map", "odom", base_link_origin.header.stamp , rospy.Duration(1))  
-        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
-
-        # robot_pose.pose.position.z = baseInMapPose.pose.position.z
-        # robot_pose.pose.position.x = baseInMapPose.pose.position.x
-        # robot_pose.pose.position.y = baseInMapPose.pose.position.y
-        # robot_pose.pose.orientation.w = baseInMapPose.pose.orientation.w
-        # robot_pose.pose.orientation.x = baseInMapPose.pose.orientation.x
-        # robot_pose.pose.orientation.y = baseInMapPose.pose.orientation.y
-        # robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
-
-        # robot_pose.header.frame_id = "map"
-        
-        # return robot_pose
-        #TODO: base_link doesn't seem to move according to this trasnform. Even though we can see in Rviz that base_link is not in the same palce as odom- The time stamp is correct thoguh, we're not collecting an old time stamp.
-        print(rospy.Time.now())
-        print(transform_to_map,transform_to_map_from_odom)
-        return baseInMapPose
+            return baseInMapPose
+        else:
+            return None
 
 class RRTPlanner:
     def __init__(self, start=None, goal=None, num_iterations=100, step_size=2, n_steps=1,runInit=True):
@@ -84,6 +69,8 @@ class RRTPlanner:
         
         self.start = RRTNode() 
         start_pose = self.start.get_start()
+        while start_pose is None:
+            start_pose = self.start.get_start()
         self.start.x = start_pose.pose.position.x
         self.start.y = start_pose.pose.position.y
         
@@ -98,7 +85,8 @@ class RRTPlanner:
             self.run()
 
     def get_map_callback(self, msg):
-
+        if msg is None:
+            print(msg)
         self.map_data = msg
         self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
 
@@ -159,7 +147,7 @@ class RRTPlanner:
         if value == 0:
             # Free
             return True
-        elif value == 1:
+        elif value > 0:
             # Obstacle
             return False
         else:
@@ -282,7 +270,7 @@ class RRTPlanner:
                 # self.start.y = self.start.get_start().pose.position.y
                 # self.RRT: List[RRTNode] = [self.start]
                 #print("goal received")
-
+        
                 self.generate_RRT()
                 self.generate_path()
                 #planner.plot_RRT_tree()
