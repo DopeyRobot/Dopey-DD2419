@@ -2,7 +2,7 @@
 import rospy
 import tf2_geometry_msgs
 import py_trees as pt
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Point
 from std_msgs.msg import Bool, String
 from nav_msgs.msg import Path
 from robp_msgs.msg import DutyCycles
@@ -70,63 +70,138 @@ class give_path(pt.behaviour.Behaviour):
 
         return robot_pose
 
-    def update(self):
-        #print(self.ready_for_pose)
-        #print("ready for path in give_path:", self.ready_for_path)
-        if self.path is not None:
-            if self.ready_for_pose:  # and self.path.poses != []:
-                # print('Ready for new pose! Sending RUNNING in tree')
-                self.ready_for_pose = False
-                self.ready_for_pose_pub.publish(self.ready_for_pose)
-                self.goal_pub.publish(self.path.poses[self.pose_to_send])
-                self.pose_to_send = self.pose_to_send + 1
+    # def update(self):
+    #     #print(self.ready_for_pose)
+    #     #print("ready for path in give_path:", self.ready_for_path)
+    #     if self.path is not None:
+    #         if self.ready_for_pose:  # and self.path.poses != []:
+    #             # print('Ready for new pose! Sending RUNNING in tree')
+    #             self.ready_for_pose = False
+    #             self.ready_for_pose_pub.publish(self.ready_for_pose)
+    #             self.goal_pub.publish(self.path.poses[self.pose_to_send])
+    #             self.pose_to_send = self.pose_to_send + 1
 
-                #Send RUNNING to behaviour tree
-                #print("sending running")
-                return pt.common.Status.RUNNING
+    #             #Send RUNNING to behaviour tree
+    #             #print("sending running")
+    #             return pt.common.Status.RUNNING
                 
             
-            if self.pose_to_send >= len(self.path.poses):
+    #         if self.pose_to_send >= len(self.path.poses): #TODO
                 
-                #Kalla på function som kollar vart man är och om det är rätt skicka success.
+    #             #Kalla på function som kollar vart man är och om det är rätt skicka success.
 
-                # Kalla på function som kollar vart man är och om det är rätt skicka success.
+    #             # Kalla på function som kollar vart man är och om det är rätt skicka success.
+                
 
-                self.pose_to_send = 0
-                self.ready_for_path = True
-                self.ready_for_new_path.publish(self.ready_for_path)
 
-                #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
-                #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
-                    #Send SUCCESS to behaviour tree
+    #             #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
+    #             #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
+    #                 #Send SUCCESS to behaviour tree
            
-                self.__init__()#path = None
-                if self.ready_for_pose:
-                    print("Reached final pose, sending SUCCESS in tree")
-                    return pt.common.Status.SUCCESS
+    #             # self.__init__()#path = None #TODO
+    #             if self.ready_for_pose:
+    #                 self.__init__()#path = None
+    #                 self.pose_to_send = 0
+    #                 self.ready_for_path = True
+    #                 self.ready_for_new_path.publish(self.ready_for_path)
+    #                 print("Reached final pose, sending SUCCESS in tree")
+    #                 return pt.common.Status.SUCCESS
                     
-                else:   
-                    print("Reached final pose, sending RUNNING in tree")
-                    return pt.common.Status.RUNNING
+    #             else: 
+    #                 self.pose_to_send = len(self.path.poses)-1
+    #                 print("Reached final pose, sending RUNNING in tree")
+    #                 return pt.common.Status.RUNNING
                    
                 
             
-                #Else send FAILURE to behaviour tree
-                # return pt.common.Status.FAILURE
+    #             #Else send FAILURE to behaviour tree
+    #             # return pt.common.Status.FAILURE
 
-            else:
-                self.ready_for_path = False
-                self.ready_for_new_path.publish(self.ready_for_path)
-                # print('Moving to next pose in path array! Sending RUNNING in tree')
-                return pt.common.Status.RUNNING
+    #         else:
+    #             self.ready_for_path = False
+    #             self.ready_for_new_path.publish(self.ready_for_path)
+    #             # print('Moving to next pose in path array! Sending RUNNING in tree')
+    #             return pt.common.Status.RUNNING
                 
-        else:
-            #print("Waiting for path, none given yet! Sending RUNNING in tree")
-            self.ready_for_new_path.publish(self.ready_for_path)
-            return pt.common.Status.RUNNING
-        # else: 
-        #     print("sending final RUNNING")
-        #     return pt.common.Status.RUNNING
+    #     else:
+    #         #print("Waiting for path, none given yet! Sending RUNNING in tree")
+    #         self.ready_for_new_path.publish(self.ready_for_path)
+    #         return pt.common.Status.RUNNING
+    #     # else: 
+    #     #     print("sending final RUNNING")
+    #     #     return pt.common.Status.RUNNING
+
+
+    def update(self):
+            #print(self.ready_for_pose)
+            #print("ready for path in give_path:", self.ready_for_path)
+            if self.path is not None:
+                if self.ready_for_pose and self.pose_to_send < len(self.path.poses):  # and self.path.poses != []:
+                    # print('Ready for new pose! Sending RUNNING in tree')
+                    self.ready_for_pose = False
+                    self.ready_for_pose_pub.publish(self.ready_for_pose)
+                    self.goal_pub.publish(self.path.poses[self.pose_to_send])
+                    self.pose_to_send = self.pose_to_send + 1
+
+
+
+                    #Send RUNNING to behaviour tree
+                    #print("sending running")
+                    # if self.pose_to_send < len(self.path.poses):
+                    return pt.common.Status.RUNNING
+
+                elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
+                    self.__init__()#path = None
+                    self.pose_to_send = 0
+                    self.ready_for_path = True
+                    self.ready_for_new_path.publish(self.ready_for_path)
+                    print("Reached final pose, sending SUCCESS in tree")
+                    return pt.common.Status.SUCCESS
+                
+                # if self.pose_to_send >= len(self.path.poses): #TODO
+                    
+                #     #Kalla på function som kollar vart man är och om det är rätt skicka success.
+
+                #     # Kalla på function som kollar vart man är och om det är rätt skicka success.
+                    
+
+
+                #     #Should probably implement a comparison between where base_link is in tf_tree and last desired pose
+                #     #If base_link is close enough to last desired pose, send SUCCESS to behaviour tree
+                #         #Send SUCCESS to behaviour tree
+            
+                #     # self.__init__()#path = None #TODO
+                #     if self.ready_for_pose:
+                #         self.__init__()#path = None
+                #         self.pose_to_send = 0
+                #         self.ready_for_path = True
+                #         self.ready_for_new_path.publish(self.ready_for_path)
+                #         print("Reached final pose, sending SUCCESS in tree")
+                #         return pt.common.Status.SUCCESS
+                        
+                #     else: 
+                #         self.pose_to_send = len(self.path.poses)-1
+                #         print("Reached final pose, sending RUNNING in tree")
+                #         return pt.common.Status.RUNNING
+                    
+                    
+                
+                    #Else send FAILURE to behaviour tree
+                    # return pt.common.Status.FAILURE
+
+                else:
+                    self.ready_for_path = False
+                    self.ready_for_new_path.publish(self.ready_for_path)
+                    # print('Moving to next pose in path array! Sending RUNNING in tree')
+                    return pt.common.Status.RUNNING
+                    
+            else:
+                #print("Waiting for path, none given yet! Sending RUNNING in tree")
+                self.ready_for_new_path.publish(self.ready_for_path)
+                return pt.common.Status.RUNNING
+            # else: 
+            #     print("sending final RUNNING")
+            #     return pt.common.Status.RUNNING
 
         
 class FrontierExploration(pt.behaviour.Behaviour):
@@ -135,6 +210,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
         rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
         self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
         self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+        # self.publish_frontier = rospy.Publisher('/frontier_point', PoseStamped, queue_size=1)
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
         rospy.sleep(0.5)
@@ -213,6 +289,8 @@ class FrontierExploration(pt.behaviour.Behaviour):
         # while not rospy.is_shutdown():
         # FIX THE self.goal = None
         frontier_to_publish = PoseStamped()
+        frontier_to_publish.header.frame_id = "map"
+        frontier_to_publish.header.stamp = rospy.Time.now()
         closest_frontier = self.distance2frontier()
         if closest_frontier is not None:
             frontier_to_publish.pose.position.x = closest_frontier[0]
@@ -222,6 +300,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
                 self.publish_goal.publish(frontier_to_publish)
                 print("Sending current frontier goal, sending SUCCESS in tree")
                 #print("ready for path in explore:", self.ready_for_path)
+                # self.publish_frontier.publish(frontier_to_publish)
                 return pt.common.Status.SUCCESS
             else:
                 #Currently moving to a frontier, not ready to publish a new one

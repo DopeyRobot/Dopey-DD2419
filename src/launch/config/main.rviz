@@ -6,7 +6,9 @@ Panels:
       Expanded:
         - /Image2
         - /LaserScan1
-      Splitter Ratio: 0.7439024448394775
+        - /Pose2
+        - /Pose2/Status1
+      Splitter Ratio: 0.5647059082984924
     Tree Height: 164
   - Class: rviz/Selection
     Name: Selection
@@ -325,6 +327,22 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/Pose
+      Color: 248; 246; 14
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /send_goal
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
@@ -353,7 +371,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 4.971268653869629
+      Distance: 3.895429849624634
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -361,8 +379,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -2.066282272338867
-        Y: 0.49948549270629883
+        X: -0.11983120441436768
+        Y: -0.3268436789512634
         Z: 3.2186508178710938e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806

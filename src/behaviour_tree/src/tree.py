@@ -55,7 +55,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             )
         frontier_exploration_behaviour = behaviours.FrontierExploration()
         give_path_behaviour = behaviours.give_path()
-        percentage_of_unknown_behaviour = behaviours.ReturnKnownMapPercent(0.2)
+        percentage_of_unknown_behaviour = behaviours.ReturnKnownMapPercent(0.9)
         stop_robot_behaviour = behaviours.StopRobot(2)
 
         explore_subtree = RSequence(name="RSequence", children=[frontier_exploration_behaviour,give_path_behaviour, stop_robot_behaviour, percentage_of_unknown_behaviour]) #need to add a third child to check amount explored
