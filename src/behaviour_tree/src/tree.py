@@ -50,25 +50,35 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # #... add more nodes
         # #...
 
-        root = pt.composites.Parallel(
-        name="root",
+        root = pt.composites.Sequence(
+        name="sequence",
             )
-        
+        frontier_exploration_behaviour = behaviours.FrontierExploration()
         give_path_behaviour = behaviours.give_path()
-	
-        test = behaviours.give_path()
-        test1 = behaviours.give_path()
-        test2 = behaviours.give_path()
+        percentage_of_unknown_behaviour = behaviours.ReturnKnownMapPercent(0.9)
+        stop_robot_behaviour = behaviours.StopRobot(2)
 
-        AND = RSequence(name="->", children=[test1,test2])
+        explore_subtree = RSequence(name="RSequence", children=[frontier_exploration_behaviour,give_path_behaviour, stop_robot_behaviour, percentage_of_unknown_behaviour]) #need to add a third child to check amount explored
+        lebron_behaviour = behaviours.playTuneBehaviour("lebronjames")
+        # explore_subtree = give_path_behaviour
+        # test = behaviours.give_path()
+        # test1 = behaviours.give_path()
+        # test2 = behaviours.give_path()
 
-        OR = pt.composites.Selector(
-            name="?", 
-            children=[give_path_behaviour,test,AND]
+        # AND = RSequence(name="->", children=[test1,test2])
+
+        # OR = pt.composites.Selector(
+        #     name="?", 
+        #     children=[give_path_behaviour,test,AND]
 	    
-	    )
-
-        root.add_child(OR)
+	    # )
+        root.add_child(stop_robot_behaviour)
+        root.add_child(lebron_behaviour)
+        root.add_child(frontier_exploration_behaviour)
+        root.add_child(give_path_behaviour)
+        root.add_child(percentage_of_unknown_behaviour)
+        
+        
 	
 
         # for job in ["Action 1", "Action 2", "Action 3"]:
@@ -78,6 +88,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         #         eventually = pt.common.Status.SUCCESS
         #     )
         #     give_path_behaviour.add_child(success_after_two)
+        # root = explore_subtree
         pt.display.render_dot_tree(root)
         # tree = give_path_behaviour
         # tree = root 
@@ -89,6 +100,12 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         
         
         super(BehaviourTree, self).__init__(root)
+
+        # self.add_post_tick_handler(self.post_tick_handler())
+        self.visitors.append(pt.visitors.DebugVisitor())
+        snapshot_visitor = pt.visitors.SnapshotVisitor()
+        self.visitors.append(snapshot_visitor)
+
 
         # ##ATTEMPT TO PRINT CURRENT TREEE
         # snapshot_visitor = pt.visitors.SnapshotVisitor()
@@ -108,9 +125,17 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # print(rospy.Time.now())
         # print(transform_to_map,transform_to_map_from_odom)
 
-        
+        rospy.sleep(5)
         self.setup(timeout=10000)
-        while not rospy.is_shutdown(): self.tick_tock(1)
+        while not rospy.is_shutdown(): 
+            self.tick()
+            # print("TICK IN TREE")
+            ascii_tree = pt.display.ascii_tree(
+            self.root,
+            snapshot_information=snapshot_visitor)
+            print(ascii_tree)
+
+
 
         # #MAJA
         # print("\n" + "-"*80)
@@ -119,15 +144,18 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # print(pt.display.ascii_tree(root))
         # rospy.sleep(0.5)
 	
-    # def post_tick_handler(self,snapshot_visitor, behaviour_tree):
-    #     pdb.set_trace()
+    # def post_tick_handler(self):
+    #     # pdb.set_trace()
+        
     #     print(
-    #         pt.display.ascii_tree(
-    #             behaviour_tree.root,
-    #             visited=snapshot_visitor.visited,
-    #             previously_visited=snapshot_visitor.visited
-    #         )
-    #     )
+    #         pt.display.ascii_tree(tree=self,snapshot_information=snapshot_visitor))
+              
+
+        #         self.root,
+        #         visited=snapshot_visitor.running_nodes,
+        #         previously_visited=snapshot_visitor.previously_running_nodes
+        #     )
+        # )
     # def print_snapshot_continously(self,behaviour_tree):
     #     snapshot_visitor = pt.visitors.SnapshotVisitor()
     #     behaviour_tree.add_post_tick_handler(
