@@ -63,6 +63,8 @@ class AudioService:
         elif req == "woodencube":
             self.play_woodencube()
             return EmptyResponse()
+        elif req == "box":
+            self.play_box()
         #memes
         elif req == "ugh":
             self.play_ugh()    
@@ -114,7 +116,8 @@ class AudioService:
         playsound(AUDIO_PATH+"greencube.wav")
     def play_woodencube(self) ->None:
         playsound(AUDIO_PATH+"woodencube.wav")
-        
+    def play_box(self):
+        playsound(AUDIO_PATH+"box.mp3")
 
 
     #memes
