@@ -51,7 +51,9 @@ class BoundingBoxNode:
         rospy.wait_for_service("/playTune", 5)
         rospy.wait_for_service("/add2shortterm", 10)
 
-        self.f = 60
+        self.f = 30
+        self.max_rec_dist = 1 # max distance at whinch objects should still be considered by the memory
+        self.min_rec_dist = 0.01
         self.rate = rospy.Rate(self.f)
 
         self.camera_topic = "/camera/color/image_raw"
@@ -104,7 +106,7 @@ class BoundingBoxNode:
         self.K = np.array(self.camera_info.K).reshape(3, 3)
 
         self.short_term_mem_proxy = rospy.ServiceProxy("/add2shortterm", add2ShortTerm)
-        self.new_names_sub = rospy.Subscriber("/new_names", StringArray)
+        self.new_names_sub = rospy.Subscriber("/new_names", StringArray, self.new_names_cb)
         self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
         self.play_tune_service = rospy.ServiceProxy("/playTune", playTune)
 
@@ -112,6 +114,7 @@ class BoundingBoxNode:
         self.run()
 
     def new_names_cb(self, msg:StringArray):
+        print(msg)
         self.new_names = msg
 
 
@@ -146,16 +149,21 @@ class BoundingBoxNode:
         for bb in self.bbs:
             class_name = String(self.get_class_name(bb, self.array_image))
             position = self.project_bb(bb)
+            if np.linalg.norm(position) > self.max_rec_dist or np.linalg.norm(position)<self.min_rec_dist:
+                continue
+            position = self.convert_to_map(position)
             add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())
             self.short_term_mem_proxy(add_req)
 
 
         if len(self.new_names.array) > 0:
             path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/evidence"
-            instances = "_".join(self.new_names.array)
+            names = [s.data for s in self.new_names.array]
+            instances = "_".join(names)
             full_path = path + "/" + instances + ".jpg"
             self.save_pic(bb_image, full_path)
-            for name in self.new_names.array:
+            for name in names:
+                rospy.loginfo("name")
                 self.play_tune(name)
 
     def depth_callback(self, msg):
@@ -227,7 +235,7 @@ class BoundingBoxNode:
 
         return color
 
-    def publish_to_tf(self, frame_name: str, position: np.ndarray):
+    def convert_to_map(self, position: np.ndarray):
         """
         Publish a transform from the camera frame to the map frame
         """
@@ -247,28 +255,16 @@ class BoundingBoxNode:
             pose, self.map_frame, rospy.Duration(1.0)
         )
 
-        t = TransformStamped()
-        t.header.stamp = transformed_pose.header.stamp
-        t.header.frame_id = "map"
+        map_position = np.array(
+            [
+            transformed_pose.pose.position.x,
+            transformed_pose.pose.position.y,
+            transformed_pose.pose.position.z
+            ]
+        )
 
-        t.transform.translation.x = transformed_pose.pose.position.x
-        t.transform.translation.y = transformed_pose.pose.position.y
-        t.transform.translation.z = transformed_pose.pose.position.z
+        return map_position
 
-        t.transform.rotation.x = transformed_pose.pose.orientation.x
-        t.transform.rotation.y = transformed_pose.pose.orientation.y
-        t.transform.rotation.z = transformed_pose.pose.orientation.z
-        t.transform.rotation.w = transformed_pose.pose.orientation.w
-
-        t.child_frame_id = frame_name
-        self.broadcaster.sendTransform(t)
-
-    def publish_long_term_memory(self):
-        for instance in self.long_term_memory:
-            self.publish_to_tf(
-                self.get_frame_name(instance.instance_name, ""),
-                instance.position,
-            )
 
     def run(self):
         while not rospy.is_shutdown():
