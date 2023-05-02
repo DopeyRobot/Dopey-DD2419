@@ -450,13 +450,21 @@ class MemoryNode:
         if (desired_class_of_obj.lower() == self.lt.get_class_name(instance_name).lower() 
             or desired_class_of_obj.lower() == "all"
             or (desired_class_of_obj.lower() == "plushie" 
-                and self.lt.get_class_name(instance_name).lower() in [e.value for e in Plushies])):
+                and self.lt.get_class_name(instance_name).lower() in [e.value for e in Plushies])
+            or (desired_class_of_obj.lower() == "no_box" and self.lt.get_class_name(instance_name).lower() !="box")):
             return True
         else:
             return False
     # find the closest object in the memory node of the given class and returns its pose in the ref_frame
     def get_closest_obj_cb(self, req: twoStrInPoseOutRequest) -> PoseStamped:
-        """ Finds the closest instance in the long term memory that isn't a box"""
+        """ Finds the closest instance in the long term memory
+        if str2 == plushie--> returns closest plushie
+                == kiki --> closest kiki (or any plushy name)
+                == ball --> closest ball
+                == cube --> closest cube 
+                == box --> closest box
+                == all --> closest object
+                == no_box--> closest object that ain't a box"""
         ref_frame_id = req.str1.data # first arg is the reference frame id
         desired_class_of_obj = req.str2.data # second arg is the class of the object ball/plushie/box
         closest_instance_pose = None
