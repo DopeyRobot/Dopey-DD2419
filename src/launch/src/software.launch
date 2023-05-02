@@ -66,15 +66,23 @@
     <remap from="camera_info" to="/camera/aligned_depth_to_color/camera_info"/> 
     <!-- the remap for camera_info by default uses the same path as the one given to the image topic. Default: "<path_to_image_topic>/camera_info>" -->
 
-    <!-- PARAMETERS: -->
-    <!-- These are the default values. --> 
-    <param name="scan_height"     type="int"    value="100"/> <!-- default: 1 pixel. Number of pixel rows used to generate laser scan. -->
-    <param name="scan_time"       type="double" value="0.033"/> <!-- default:0.033, 30 FPS . Time between scans. -->
-    <param name="range_min"       type="double" value="0.15"/> <!--default:0.45m. Ranges less than this are considered -Inf. -->
-    <param name="range_max"       type="double" value="1.0"/> <!--default: 10m. Ranges less than this are considered +Inf. -->
-    <param name="output_frame_id" type="str"    value="camera_depth_frame"/> <!--default: camera_depth_frame. Frame id of the laser scan. -->
+		<!-- PARAMETERS: -->
+		<!-- These are the default values. --> 
+		<param name="scan_height"     type="int"    value="100"/> <!-- default: 1 pixel. Number of pixel rows used to generate laser scan. -->
+		<param name="scan_time"       type="double" value="0.033"/> <!-- default:0.033, 30 FPS . Time between scans. -->
+		<param name="range_min"       type="double" value="0.10"/> <!--default:0.45m. Ranges less than this are considered -Inf. -->
+		<param name="range_max"       type="double" value="2.0"/> <!--default: 10m. Ranges less than this are considered +Inf. -->
+		<param name="output_frame_id" type="str"    value="camera_depth_frame"/> <!--default: camera_depth_frame. Frame id of the laser scan. -->
+  	</node>
 	
-  </node>
+	<!-- launch plaTune node -->
+	
+	<node pkg="play_tunes" type="audio_service.py" name="audio_service_node" output="screen" />
+	<!-- launch memory node -->
+	<!-- <node pkg="bounding_box_detection" type="memory.py" name="memory_node" output="screen" />
+	<node pkg="bounding_box_detection" type="detector_node.py" name="detector_node" output="screen" /> -->
+
+	
 
   <!-- Launch behaviour tree  -->
   	<!-- <node pkg="behaviour_tree" type="tree.py" name="behaviour_tree_node" output="screen" />  -->

@@ -21,6 +21,8 @@ from tf2_geometry_msgs import PoseStamped
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
 from take_photos.srv import takePic, takePicRequest
 from play_tunes.srv import playTune, playTuneRequest
+from bounding_box_detection.srv import add2ShortTerm, add2ShortTermRequest, add2ShortTermResponse, instanceNames, instanceNamesRequest, instanceNamesResponse
+from bounding_box_detection.msg import StringArray
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 torch.cuda.set_per_process_memory_fraction(0.6, 0)
@@ -37,12 +39,18 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+        print(f"Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds")
         return result
+
     return timeit_wrapper
+
 
 class BoundingBoxNode:
     def __init__(self) -> None:
+        rospy.wait_for_service("/take_pic", 5)
+        rospy.wait_for_service("/playTune", 5)
+        rospy.wait_for_service("/add2shortterm", 10)
+
         self.f = 60
         self.rate = rospy.Rate(self.f)
 
@@ -67,7 +75,7 @@ class BoundingBoxNode:
         self.broadcaster = TransformBroadcaster()
         self.buffer = Buffer(rospy.Duration(1200.0))
         self.listener = TransformListener(self.buffer)
-
+        self.new_names = StringArray()
         self.bbs: List[utils.BoundingBox] = []
 
         self.image_subscriber = rospy.Subscriber(
@@ -95,18 +103,23 @@ class BoundingBoxNode:
         )
         self.K = np.array(self.camera_info.K).reshape(3, 3)
 
-        self.short_term_memory = ShortTermMemory()
-        self.long_term_memory = LongTermMemory(frames_needed_for_reconition=15)
+        self.short_term_mem_proxy = rospy.ServiceProxy("/add2shortterm", add2ShortTerm)
+        self.new_names_sub = rospy.Subscriber("/new_names", StringArray)
         self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
-        self.play_tune_service = rospy.ServiceProxy('/playTune', playTune)
-    
+        self.play_tune_service = rospy.ServiceProxy("/playTune", playTune)
+
+
         self.run()
+
+    def new_names_cb(self, msg:StringArray):
+        self.new_names = msg
+
 
     def take_pic(self, path):
         req = takePicRequest()
         req.path = String(path)
         self.pic_service(req)
-    
+
     def play_tune(self, name):
         req = playTuneRequest()
         req.tuneToPlay = String(name)
@@ -121,7 +134,7 @@ class BoundingBoxNode:
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         self.image = PILImage.fromarray(image)
         self.array_image = np.asarray(image)
-        
+
         bbs = self.predict(self.image.copy())
         # supress multiple bbs
         self.bbs = utils.non_max_suppresion(
@@ -131,24 +144,19 @@ class BoundingBoxNode:
         bb_image = self.show_bbs_in_image(self.bbs, self.array_image)
 
         for bb in self.bbs:
-            class_name = self.get_class_name(bb, self.array_image)
+            class_name = String(self.get_class_name(bb, self.array_image))
             position = self.project_bb(bb)
-            self.short_term_memory.add(class_name, position, timestamp)
+            add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())
+            self.short_term_mem_proxy(add_req)
 
-        new_names = self.long_term_memory.checkForObjectsToRemember(
-            timestamp, self.short_term_memory
-        )
-        
-        if len(new_names)>0:
+
+        if len(self.new_names.array) > 0:
             path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/evidence"
-            instances = "_".join(new_names)
+            instances = "_".join(self.new_names.array)
             full_path = path + "/" + instances + ".jpg"
             self.save_pic(bb_image, full_path)
-            for name in new_names:
+            for name in self.new_names.array:
                 self.play_tune(name)
-        self.publish_long_term_memory()
-        
-
 
     def depth_callback(self, msg):
         self.ros_depth = msg

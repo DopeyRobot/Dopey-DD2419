@@ -1,0 +1,5 @@
+std_msgs/String class_name
+float64[] position
+time stamp
+---
+bool success
