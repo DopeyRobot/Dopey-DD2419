@@ -447,10 +447,12 @@ class MemoryNode:
             return True
         else:
             return False
-    def obj_inside_map(self, pose:PoseStamped)-> bool:
+    def obj_inside_map(self, object_frame_id:str)-> bool:
         poly_req = PolyCheckRequest()
+        pose = self.get_object_pose("map", object_frame_id)
         poly_req.point_of_interest = [pose.pose.position.x, pose.pose.position.y]
         poly_resp = self.polygon_checker(poly_req)
+        rospy.loginfo(f"object inside {poly_resp.poly_bool}")
         return poly_resp.poly_bool
     # find the closest object in the memory node of the given class and returns its pose in the ref_frame
     def get_closest_obj_cb(self, req: twoStrInPoseOutRequest) -> PoseStamped:
@@ -473,7 +475,7 @@ class MemoryNode:
             if self.check_for_obj_type(instance_name, desired_class_of_obj) and self.lt.get_instance(instance_name).location.lower() == "map":
                 poseOfObj = self.get_object_pose(ref_frame_id, instance_name)
                 dist = self.get_distance(poseOfRobot,poseOfObj)
-                if dist < prev_dist and self.obj_inside_map(poseOfObj):
+                if dist < prev_dist and self.obj_inside_map(instance_name):
                     prev_dist = dist
                     name_of_closest_obj_found = instance_name
                     closest_instance_pose = poseOfObj
