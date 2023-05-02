@@ -146,6 +146,7 @@ class BoundingBoxNode:
         for bb in self.bbs:
             class_name = String(self.get_class_name(bb, self.array_image))
             position = self.project_bb(bb)
+            position = self.convert_to_map(position)
             add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())
             self.short_term_mem_proxy(add_req)
 
@@ -227,7 +228,7 @@ class BoundingBoxNode:
 
         return color
 
-    def publish_to_tf(self, frame_name: str, position: np.ndarray):
+    def convert_to_map(self, position: np.ndarray):
         """
         Publish a transform from the camera frame to the map frame
         """
@@ -247,28 +248,16 @@ class BoundingBoxNode:
             pose, self.map_frame, rospy.Duration(1.0)
         )
 
-        t = TransformStamped()
-        t.header.stamp = transformed_pose.header.stamp
-        t.header.frame_id = "map"
+        map_position = np.array(
+            [
+            transformed_pose.pose.position.x,
+            transformed_pose.pose.position.y,
+            transformed_pose.pose.position.z
+            ]
+        )
 
-        t.transform.translation.x = transformed_pose.pose.position.x
-        t.transform.translation.y = transformed_pose.pose.position.y
-        t.transform.translation.z = transformed_pose.pose.position.z
+        return map_position
 
-        t.transform.rotation.x = transformed_pose.pose.orientation.x
-        t.transform.rotation.y = transformed_pose.pose.orientation.y
-        t.transform.rotation.z = transformed_pose.pose.orientation.z
-        t.transform.rotation.w = transformed_pose.pose.orientation.w
-
-        t.child_frame_id = frame_name
-        self.broadcaster.sendTransform(t)
-
-    def publish_long_term_memory(self):
-        for instance in self.long_term_memory:
-            self.publish_to_tf(
-                self.get_frame_name(instance.instance_name, ""),
-                instance.position,
-            )
 
     def run(self):
         while not rospy.is_shutdown():

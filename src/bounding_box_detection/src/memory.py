@@ -114,7 +114,7 @@ class ShortTermMemory:
         """Increments the counter for the instance (whther it exists or not) and updates the average position"""
 
         if instance_name in self.instances_detected_counter:
-            self.average_position[instance_name] = position
+            self.average_position[instance_name] = 0.5*position +0.5*self.average_position[instance_name]
             #(self.instances_detected_counter[instance_name]/ (self.instances_detected_counter[instance_name] + 1)) * 
             #(self.average_position[instance_name]+ position / (self.instances_detected_counter[instance_name]))
             self.instances_detected_counter[
@@ -285,7 +285,7 @@ class MemoryNode:
         distance_threshold=0.2,
         time_threshold=rospy.Duration(10),
     ) -> None:
-        self.f = 1
+        self.f = 5
         self.db = ShortTermMemory(
             distance_threshold=distance_threshold, time_threshold=time_threshold
         )
@@ -319,12 +319,7 @@ class MemoryNode:
         while not rospy.is_shutdown():
             new_names = self.update_long_term(rospy.Time.now())
             self.publish_new_names(new_names)
-            for instance_name in new_names:
-                instance = self.lt.get_instance(instance_name)
-                self.publish_to_tf(
-                    instance_name,
-                    instance.position
-                    )
+            self.publish_long_term_memory()
             rate.sleep()
 
     def publish_new_names(self, new_names):
@@ -377,35 +372,18 @@ class MemoryNode:
         """
         Publish a transform from the camera frame to the map frame
         """
-        pose = PoseStamped()
-        pose.header.frame_id = self.camera_frame
-        pose.header.stamp = rospy.Time.now()
-        pose.pose.position.x = position[0]
-        pose.pose.position.y = position[1]
-        pose.pose.position.z = position[2]
-
-        pose.pose.orientation.x = 0.5
-        pose.pose.orientation.y = 0.5
-        pose.pose.orientation.z = 0.5
-        pose.pose.orientation.w = 0.5
-        try:
-            transformed_pose = self.buffer.transform(
-                pose, "map", rospy.Duration(1.0)
-            )
-        except:
-            rospy.loginfo("NO MAP FRAME")
         t = TransformStamped()
-        t.header.stamp = transformed_pose.header.stamp
+        t.header.stamp = rospy.Time.now()
         t.header.frame_id = "map"
 
-        t.transform.translation.x = transformed_pose.pose.position.x
-        t.transform.translation.y = transformed_pose.pose.position.y
-        t.transform.translation.z = transformed_pose.pose.position.z
+        t.transform.translation.x = position[0]
+        t.transform.translation.y = position[1]
+        t.transform.translation.z = position[2]
 
-        t.transform.rotation.x = transformed_pose.pose.orientation.x
-        t.transform.rotation.y = transformed_pose.pose.orientation.y
-        t.transform.rotation.z = transformed_pose.pose.orientation.z
-        t.transform.rotation.w = transformed_pose.pose.orientation.w
+        t.transform.rotation.x = 0.5
+        t.transform.rotation.y = 0.5
+        t.transform.rotation.z = 0.5
+        t.transform.rotation.w = 0.5
 
         t.child_frame_id = frame_name
         try:
