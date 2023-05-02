@@ -51,14 +51,22 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # #...
 
         root = pt.composites.Sequence(
-        name="sequence",
+        name="exploration_subtree",
             )
+        
+        root_pickup = pt.composites.Sequence(name="Pick up object")
+        root_drop = pt.composites.Sequence(name="Drop object")
+
         frontier_exploration_behaviour = behaviours.FrontierExploration()
         give_path_behaviour = behaviours.give_path()
-        percentage_of_unknown_behaviour = behaviours.ReturnKnownMapPercent(0.9)
+        percentage_of_unknown_behaviour = behaviours.ReturnKnownMapPercent(0.2)
         stop_robot_behaviour = behaviours.StopRobot(2)
+        pick_up_object_behaviour = behaviours.PickUpObject()
+        drop_object_behaviour = behaviours.DropObject()
 
         explore_subtree = RSequence(name="RSequence", children=[frontier_exploration_behaviour,give_path_behaviour, stop_robot_behaviour, percentage_of_unknown_behaviour]) #need to add a third child to check amount explored
+        # move_subtree = RSequence(name="RSequence", children=[pick_up_object_behaviour, give_path_behaviour])
+
         lebron_behaviour = behaviours.playTuneBehaviour("lebronjames")
         # explore_subtree = give_path_behaviour
         # test = behaviours.give_path()
@@ -77,6 +85,12 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         root.add_child(frontier_exploration_behaviour)
         root.add_child(give_path_behaviour)
         root.add_child(percentage_of_unknown_behaviour)
+
+        root_pickup.add_child(pick_up_object_behaviour)
+        root_pickup.add_child(give_path_behaviour)
+
+        root_drop.add_child(drop_object_behaviour)
+        root_drop.add_child(give_path_behaviour)
         
         
 	
@@ -90,6 +104,9 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         #     give_path_behaviour.add_child(success_after_two)
         # root = explore_subtree
         pt.display.render_dot_tree(root)
+
+        pt.display.render_dot_tree(root_pickup)
+        pt.display.render_dot_tree(root_drop)
         # tree = give_path_behaviour
         # tree = root 
         

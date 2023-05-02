@@ -296,7 +296,7 @@ class StopRobot(pt.behaviour.Behaviour):
         self.start = rospy.Time.now()
 
 
-class DesiredRobotPose(pt.behaviour.Behaviour):
+class PickUpObject(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "desired pose"
         self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
@@ -308,7 +308,7 @@ class DesiredRobotPose(pt.behaviour.Behaviour):
         rospy.wait_for_service("/get_closest_obj", timeout=2)
 
         # become a behaviour
-        super(DesiredRobotPose, self).__init__("Get desired pose!")
+        super(PickUpObject, self).__init__("Get pick up pose")
 
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
@@ -316,8 +316,8 @@ class DesiredRobotPose(pt.behaviour.Behaviour):
     def update(self):
         req = twoStrInPoseOutRequest()
         req.str1.data = "map" #frame_id
-        req.str2.data = #object class ball/plushie/box
-        desPose = self.getPose_client()
+        req.str2.data = "no_box" #object class ball/plushie/box
+        desPose = self.getPose_client(req) #assume awlays a pose is given
 
         if self.ready_for_path:
             self.publish_goal.publish(desPose)
@@ -325,7 +325,38 @@ class DesiredRobotPose(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         
         else:
-            return pt.common.Status.RUNNING    
+            return pt.common.Status.RUNNING   
+
+class DropObject(pt.behaviour.Behaviour):
+    def __init__(self):
+        self.name = "desired pose"
+        self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
+        self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+
+        self.ready_for_path = True
+
+        self.getPose_client = rospy.ServiceProxy("/get_closest_obj", twoStrInPoseOut)
+        rospy.wait_for_service("/get_closest_obj", timeout=2)
+
+        # become a behaviour
+        super(DropObject, self).__init__("Get drop off pose")
+
+    def ready_for_path_callback(self, msg):
+        self.ready_for_path = msg.data
+
+    def update(self):
+        req = twoStrInPoseOutRequest()
+        req.str1.data = "map" #frame_id
+        req.str2.data = "box" #object class ball/plushie/box
+        desPose = self.getPose_client(req) #assume awlays a pose is given
+
+        if self.ready_for_path:
+            self.publish_goal.publish(desPose)
+            print("Sending current desired pose, sending SUCCESS in tree")
+            return pt.common.Status.SUCCESS
+        
+        else:
+            return pt.common.Status.RUNNING  
 
 
 
