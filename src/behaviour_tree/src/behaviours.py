@@ -12,6 +12,7 @@ import math
 import numpy as np
 # class give_path(pt.behaviour.Behaviour):
 from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
+from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest
 
 
 
@@ -293,6 +294,40 @@ class StopRobot(pt.behaviour.Behaviour):
     def initialise(self):
         print("Resetting start time")
         self.start = rospy.Time.now()
+
+
+class DesiredRobotPose(pt.behaviour.Behaviour):
+    def __init__(self):
+        self.name = "desired pose"
+        self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
+        self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+
+        self.ready_for_path = True
+
+        self.getPose_client = rospy.ServiceProxy("/get_closest_obj", twoStrInPoseOut)
+        rospy.wait_for_service("/get_closest_obj", timeout=2)
+
+        # become a behaviour
+        super(DesiredRobotPose, self).__init__("Get desired pose!")
+
+    def ready_for_path_callback(self, msg):
+        self.ready_for_path = msg.data
+
+    def update(self):
+        req = twoStrInPoseOutRequest()
+        req.str1.data = "map" #frame_id
+        req.str2.data = #object class ball/plushie/box
+        desPose = self.getPose_client()
+
+        if self.ready_for_path:
+            self.publish_goal.publish(desPose)
+            print("Sending current desired pose, sending SUCCESS in tree")
+            return pt.common.Status.SUCCESS
+        
+        else:
+            return pt.common.Status.RUNNING    
+
+
 
 
 
