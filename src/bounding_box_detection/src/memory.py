@@ -165,7 +165,7 @@ class ShortTermMemory:
 class LongTermMemory:
     """Stores the objects that have been detected more than N times in the DetectionBuffer"""
 
-    def __init__(self, frames_needed_for_reconition=5, same_obj_threshold=0.2, other_obj_threshold=0.2) -> None:
+    def __init__(self, frames_needed_for_reconition=20, same_obj_threshold=0.2, other_obj_threshold=0.15) -> None:
         self.class_counter = (Counter())  # keeps track of how many times a new element of every class has been detected
         self.instances_in_memory = []
         self.locations = {}  # is the instance in the Map, Tray, Grip, Box?
@@ -211,7 +211,7 @@ class LongTermMemory:
                 self.locations[
                     closest_instance_in_lt_memory
                 ] = "map"  # !!!FOR NOW ONLY OBJECTS IN MAP ARE STORED IN THE LONG TERM MEMORY!!!
-                self.positions[closest_instance_in_lt_memory] = position
+                self.positions[closest_instance_in_lt_memory] = (position + self.positions[closest_instance_in_lt_memory])/2
                 self.last_time_seen[closest_instance_in_lt_memory] = timestamp
                 return None
 
