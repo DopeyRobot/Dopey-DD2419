@@ -212,13 +212,16 @@ class Occupancygrid:
         N = int((self.laserscan.angle_max-self.laserscan.angle_min)/self.laserscan.angle_increment)
         angle = self.laserscan.angle_min
         for i, dist in enumerate(self.laserscan.ranges):
-            if np.isnan(dist) or i%10!=0:
-                # if dist >=0:
-                #     dist = self.laserscan.range_max
-                # else:
-                #     dist = self.laserscan.range_min
-                angle += self.laserscan.angle_increment
+            if i%10!=0:
+                angle+=self.laserscan.angle_increment
                 continue
+
+            if np.isnan(dist):
+                dist = self.laserscan.range_max
+
+                # else:
+                #     angle+=self.laserscan.angle_increment
+                #     continue
             distancePoseStamped = PoseStamped()
             distancePoseStamped.pose.position.x = dist * np.cos(angle) #these need to be rotated into the map frame 
             distancePoseStamped.pose.position.y = dist * np.sin(angle)
@@ -310,6 +313,8 @@ class Occupancygrid:
         self.inflate_map()
         occupancygrid_data.header = header
         occupancygrid_data.data = list(self.grid.T.reshape(-1).astype(np.int8))
+        if self.grid is None:
+            print("fjdkasjf blyat")
         self.publisher_occupancygrid.publish(occupancygrid_data)
 
 
