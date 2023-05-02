@@ -345,6 +345,9 @@ class MemoryNode:
                 msg_list.append(name_msg)
             new_names_msg.array = msg_list
             self.new_names_pub.publish(new_names_msg)
+        else:
+            self.new_names_pub.publish(StringArray())
+
 
     def instances_in_LTM_srv_cb(self, req: instanceNamesRequest):
         resp_list = []

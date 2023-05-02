@@ -106,7 +106,7 @@ class BoundingBoxNode:
         self.K = np.array(self.camera_info.K).reshape(3, 3)
 
         self.short_term_mem_proxy = rospy.ServiceProxy("/add2shortterm", add2ShortTerm)
-        self.new_names_sub = rospy.Subscriber("/new_names", StringArray)
+        self.new_names_sub = rospy.Subscriber("/new_names", StringArray, self.new_names_cb)
         self.pic_service = rospy.ServiceProxy("/take_pic", takePic)
         self.play_tune_service = rospy.ServiceProxy("/playTune", playTune)
 
@@ -114,6 +114,7 @@ class BoundingBoxNode:
         self.run()
 
     def new_names_cb(self, msg:StringArray):
+        print(msg)
         self.new_names = msg
 
 
@@ -157,10 +158,12 @@ class BoundingBoxNode:
 
         if len(self.new_names.array) > 0:
             path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/evidence"
-            instances = "_".join(self.new_names.array)
+            names = [s.data for s in self.new_names.array]
+            instances = "_".join(names)
             full_path = path + "/" + instances + ".jpg"
             self.save_pic(bb_image, full_path)
-            for name in self.new_names.array:
+            for name in names:
+                rospy.loginfo("name")
                 self.play_tune(name)
 
     def depth_callback(self, msg):
