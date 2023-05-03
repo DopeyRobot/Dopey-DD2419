@@ -625,10 +625,17 @@ class DropObject(pt.behaviour.Behaviour):
             "/ready_for_new_path", Bool, self.ready_for_path_callback
         )
 
+        self.cur_obj_subscriber = rospy.Subscriber(
+            "./current__obj_id", String, self.current_object_callback
+        )
+
+        self.current_object = None
         self.ready_for_path = True
 
-        self.getPose_client = rospy.ServiceProxy("/get_closest_obj", twoStrInPoseOut)
-        rospy.wait_for_service("/get_closest_obj", timeout=2)
+        self.box_dict = {"ball": 1, "cube": 2, "plushie": 3}
+
+        self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        rospy.wait_for_service("/get_object_pose", timeout=2)
 
         # become a behaviour
         super(DropObject, self).__init__("Get drop off pose")
@@ -636,10 +643,18 @@ class DropObject(pt.behaviour.Behaviour):
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
 
+    def current_object_callback(self, msg):
+        object_type = msg.data.split("_")[0]
+        if object_type != "cube" and object_type != "ball":
+            object_type = "plushie"
+        self.current_object = object_type
+
     def update(self):
+        landmark_id = self.box_dict[self.current_object]
+        target_frame = "Landmark" + str(landmark_id)
         req = twoStrInPoseOutRequest()
         req.str1.data = "map"  # frame_id
-        req.str2.data = "box"  # object class ball/plushie/box
+        req.str2.data = target_frame  # object class ball/plushie/box
         desPose = self.getPose_client(req)  # assume awlays a pose is given
 
         if self.ready_for_path:
