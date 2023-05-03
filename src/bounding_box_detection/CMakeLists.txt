@@ -61,6 +61,7 @@ add_service_files(
   instanceNames.srv
   setLocation.srv
   twoStrInPoseOut.srv
+  FixHeading.srv
   #stringInPoseOut.srv
 )
 
