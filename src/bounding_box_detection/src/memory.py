@@ -20,9 +20,9 @@ from bounding_box_detection.srv import (
     twoStrInPoseOut,
     twoStrInPoseOutRequest,
     twoStrInPoseOutResponse,
-    FixHeading,
-    FixHeadingRequest,
-    FixHeadingResponse
+    closestObj,
+    closestObjRequest,
+    closestObjResponse,
 )
 from workspace.srv import PolyCheck, PolyCheckRequest
 from bounding_box_detection.msg import StringArray
@@ -322,7 +322,7 @@ class MemoryNode:
             "/get_object_pose", twoStrInPoseOut, self.get_object_pose_cb
         )
         self.get_closest_obj_srv = rospy.Service(
-            "/get_closest_obj", twoStrInPoseOut, self.get_closest_obj_cb
+            "/get_closest_obj", closestObj, self.get_closest_obj_cb
         )
 
         # self.heading_srv = rospy.Service(
@@ -465,7 +465,7 @@ class MemoryNode:
         rospy.loginfo(f"object inside {poly_resp.poly_bool}")
         return poly_resp.poly_bool
     # find the closest object in the memory node of the given class and returns its pose in the ref_frame
-    def get_closest_obj_cb(self, req: twoStrInPoseOutRequest) -> PoseStamped:
+    def get_closest_obj_cb(self, req: closestObjRequest) -> PoseStamped:
         """ Finds the closest instance in the long term memory
         if str2 == plushie--> returns closest plushie
                 == kiki --> closest kiki (or any plushy name)
@@ -474,8 +474,8 @@ class MemoryNode:
                 == box --> closest box
                 == all --> closest object
                 == no_box--> closest object that ain't a box"""
-        ref_frame_id = req.str1.data # first arg is the reference frame id
-        desired_class_of_obj = req.str2.data # second arg is the class of the object ball/plushie/box
+        ref_frame_id = req.ref_frame.data # first arg is the reference frame id
+        desired_class_of_obj = req.desired_class.data # second arg is the class of the object ball/plushie/box
         closest_instance_pose = None
         poseOfRobot = self.get_object_pose(ref_frame_id, "base_link")
         name_of_closest_obj_found = "Nothing Found"
@@ -491,10 +491,11 @@ class MemoryNode:
                     closest_instance_pose = poseOfObj
         if closest_instance_pose is not None:
             rospy.loginfo(f"closest obstacle to base_link found is \"{name_of_closest_obj_found}\" at dist: {np.sqrt(prev_dist)}")
-            return twoStrInPoseOutResponse(closest_instance_pose)
+            return closestObjResponse(closest_instance_pose, name_of_closest_obj_found)
         else:
             rospy.loginfo("no obstacle found on the map")
-            return None #maybe it should return something else other than None
+            failed_pose = PoseStamped()
+            return closestObjResponse(failed_pose, "poop") # "poop" is the name of the object if there was no object found
         
     # def heading_fix_cb(self, req: FixHeadingRequest) -> float:
     #     ref_frame_id = req.ref_frame

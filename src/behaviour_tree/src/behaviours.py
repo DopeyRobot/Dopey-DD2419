@@ -6,7 +6,7 @@ import py_trees as pt
 import rospy
 import tf2_geometry_msgs
 import tf2_ros
-from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest
+from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
 from geometry_msgs.msg import Point, PoseStamped
 
 # class give_path(pt.behaviour.Behaviour):
@@ -259,6 +259,11 @@ class MoveArmToPickupFront(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
+
 
 class MoveArmToHome(pt.behaviour.Behaviour):
     def __init__(self):
@@ -281,6 +286,11 @@ class MoveArmToHome(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
 
 
 class MoveArmToUnfold(pt.behaviour.Behaviour):
@@ -305,6 +315,11 @@ class MoveArmToUnfold(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
+
 
 class MoveArmToDrop(pt.behaviour.Behaviour):
     def __init__(self):
@@ -327,6 +342,11 @@ class MoveArmToDrop(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
 
 
 class MoveArmToTray(pt.behaviour.Behaviour):
@@ -351,6 +371,11 @@ class MoveArmToTray(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
+
 
 class OpenGripper(pt.behaviour.Behaviour):
     def __init__(self):
@@ -373,6 +398,11 @@ class OpenGripper(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
 
 
 class CloseGripper(pt.behaviour.Behaviour):
@@ -397,6 +427,11 @@ class CloseGripper(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
 
 
 class PickupToTarget(pt.behaviour.Behaviour):
@@ -425,6 +460,11 @@ class PickupToTarget(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
+
 
 class Wait(pt.behaviour.Behaviour):
     def __init__(self, duration: int):
@@ -437,6 +477,23 @@ class Wait(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         rospy.sleep(self.duration)
         self.done = True
+        return pt.common.Status.SUCCESS
+
+    def reset(self):
+        self.done = False
+
+
+class Reset(pt.behaviour.Behaviour):
+    def __init__(
+        self,
+        behaviors: list,
+    ):
+        super().__init__("reset")
+        self.behaviors = behaviors
+
+    def update(self):
+        for behavior in self.behaviors:
+            behavior.reset()
         return pt.common.Status.SUCCESS
 
 
@@ -459,8 +516,8 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
     def __init__(self, p):
         self.name = "ReturnKnownMapPercent"
         rospy.Subscriber("/occupancygrid", OccupancyGrid, self.map_callback)
-        self.playTune_client = rospy.ServiceProxy("playTune", playTune)
-        rospy.wait_for_service("playTune", timeout=2)
+        # self.playTune_client = rospy.ServiceProxy("playTune", playTune)
+        # rospy.wait_for_service("playTune", timeout=2)
 
         self.occupancy_grid = None
         self.p = p
@@ -490,10 +547,11 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         percentage_of_unexplored = (
             number_of_unexplored_elements / self.number_of_total_map_cells
         )
+        percentage_of_unexplored = 1-percentage_of_unexplored
         print(percentage_of_unexplored)
         print(self.p)
         if percentage_of_unexplored >= self.p:
-            self.playTune_client(String("gothim"))
+            # self.playTune_client(String("gothim"))
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
@@ -524,7 +582,7 @@ class StopRobot(pt.behaviour.Behaviour):
         self.start = rospy.Time.now()
 
 
-class PickUpObject(pt.behaviour.Behaviour):
+class GetClosestObject(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "desired pose"
         self.publish_goal = rospy.Publisher(
@@ -533,27 +591,35 @@ class PickUpObject(pt.behaviour.Behaviour):
         self.subcribe_ready_for_path = rospy.Subscriber(
             "/ready_for_new_path", Bool, self.ready_for_path_callback
         )
+        self.publish_obj_id = rospy.Publisher(
+            "/current_obj_id", String, queue_size=1, latch=True
+        )
 
         self.ready_for_path = True
 
-        self.getPose_client = rospy.ServiceProxy("/get_closest_obj", twoStrInPoseOut)
+        self.getPose_client = rospy.ServiceProxy("/get_closest_obj", closestObj)
         rospy.wait_for_service("/get_closest_obj", timeout=2)
 
         # become a behaviour
-        super(PickUpObject, self).__init__("Get pick up pose")
+        super(GetClosestObject, self).__init__("Get pick up pose")
 
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
 
     def update(self):
-        req = twoStrInPoseOutRequest()
-        req.str1.data = "map"  # frame_id
-        req.str2.data = "no_box"  # object class ball/plushie/box
+        req = closestObjRequest()
+        req.ref_frame.data = "map"  # frame_id
+        req.desired_class.data = "no_box"  # object class ball/plushie/box
         desPose = self.getPose_client(req)  # assume awlays a pose is given
+        if desPose.foundId.data == "poop": # no object found
+            print("Poop No object found D:<")
+            return pt.common.Status.FAILURE
 
-        if self.ready_for_path:
-            self.publish_goal.publish(desPose)
-            print("Sending current desired pose, sending SUCCESS in tree")
+        elif self.ready_for_path:
+            self.publish_goal.publish(desPose.pose)
+            print("Sending current desired pose\n")
+            self.publish_obj_id.publish(desPose.foundId.data)
+            print("Sending current object id: " + desPose.foundId.data, "\n:) Sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
 
         else:
@@ -570,10 +636,17 @@ class DropObject(pt.behaviour.Behaviour):
             "/ready_for_new_path", Bool, self.ready_for_path_callback
         )
 
+        self.cur_obj_subscriber = rospy.Subscriber(
+            "./current__obj_id", String, self.current_object_callback
+        )
+
+        self.current_object = None
         self.ready_for_path = True
 
-        self.getPose_client = rospy.ServiceProxy("/get_closest_obj", twoStrInPoseOut)
-        rospy.wait_for_service("/get_closest_obj", timeout=2)
+        self.box_dict = {"ball": 1, "cube": 2, "plushie": 3}
+
+        self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        rospy.wait_for_service("/get_object_pose", timeout=2)
 
         # become a behaviour
         super(DropObject, self).__init__("Get drop off pose")
@@ -581,10 +654,18 @@ class DropObject(pt.behaviour.Behaviour):
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
 
+    def current_object_callback(self, msg):
+        object_type = msg.data.split("_")[0]
+        if object_type != "cube" and object_type != "ball":
+            object_type = "plushie"
+        self.current_object = object_type
+
     def update(self):
+        landmark_id = self.box_dict[self.current_object]
+        target_frame = "Landmark" + str(landmark_id)
         req = twoStrInPoseOutRequest()
         req.str1.data = "map"  # frame_id
-        req.str2.data = "box"  # object class ball/plushie/box
+        req.str2.data = target_frame  # object class ball/plushie/box
         desPose = self.getPose_client(req)  # assume awlays a pose is given
 
         if self.ready_for_path:

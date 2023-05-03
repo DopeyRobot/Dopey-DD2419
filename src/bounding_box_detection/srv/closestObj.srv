@@ -1,0 +1,5 @@
+std_msgs/String ref_frame
+std_msgs/String desired_class
+---
+geometry_msgs/PoseStamped pose
+std_msgs/String foundId
