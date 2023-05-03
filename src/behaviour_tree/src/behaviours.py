@@ -6,7 +6,7 @@ import py_trees as pt
 import rospy
 import tf2_geometry_msgs
 import tf2_ros
-from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest
+from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
 from geometry_msgs.msg import Point, PoseStamped
 
 # class give_path(pt.behaviour.Behaviour):
@@ -579,7 +579,7 @@ class StopRobot(pt.behaviour.Behaviour):
         self.start = rospy.Time.now()
 
 
-class PickUpObject(pt.behaviour.Behaviour):
+class GetClosestObject(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "desired pose"
         self.publish_goal = rospy.Publisher(
@@ -588,27 +588,35 @@ class PickUpObject(pt.behaviour.Behaviour):
         self.subcribe_ready_for_path = rospy.Subscriber(
             "/ready_for_new_path", Bool, self.ready_for_path_callback
         )
+        self.publish_obj_id = rospy.Publisher(
+            "/current_obj_id", String, queue_size=1, latch=True
+        )
 
         self.ready_for_path = True
 
-        self.getPose_client = rospy.ServiceProxy("/get_closest_obj", twoStrInPoseOut)
+        self.getPose_client = rospy.ServiceProxy("/get_closest_obj", closestObj)
         rospy.wait_for_service("/get_closest_obj", timeout=2)
 
         # become a behaviour
-        super(PickUpObject, self).__init__("Get pick up pose")
+        super(GetClosestObject, self).__init__("Get pick up pose")
 
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
 
     def update(self):
-        req = twoStrInPoseOutRequest()
-        req.str1.data = "map"  # frame_id
-        req.str2.data = "no_box"  # object class ball/plushie/box
+        req = closestObjRequest()
+        req.ref_frame.data = "map"  # frame_id
+        req.desired_class.data = "no_box"  # object class ball/plushie/box
         desPose = self.getPose_client(req)  # assume awlays a pose is given
+        if desPose.foundId.data == "poop": # no object found
+            print("Poop No object found D:<")
+            return pt.common.Status.FAILURE
 
-        if self.ready_for_path:
-            self.publish_goal.publish(desPose)
-            print("Sending current desired pose, sending SUCCESS in tree")
+        elif self.ready_for_path:
+            self.publish_goal.publish(desPose.pose)
+            print("Sending current desired pose\n")
+            self.publish_obj_id.publish(desPose.foundId.data)
+            print("Sending current object id: " + desPose.foundId.data, "\n:) Sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
 
         else:

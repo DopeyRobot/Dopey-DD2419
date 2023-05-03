@@ -61,6 +61,7 @@ add_service_files(
   instanceNames.srv
   setLocation.srv
   twoStrInPoseOut.srv
+  closestObj.srv
   #stringInPoseOut.srv
 )
 
