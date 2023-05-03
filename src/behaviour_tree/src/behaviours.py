@@ -456,8 +456,8 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
     def __init__(self, p):
         self.name = "ReturnKnownMapPercent"
         rospy.Subscriber("/occupancygrid", OccupancyGrid, self.map_callback)
-        self.playTune_client = rospy.ServiceProxy("playTune", playTune)
-        rospy.wait_for_service("playTune", timeout=2)
+        # self.playTune_client = rospy.ServiceProxy("playTune", playTune)
+        # rospy.wait_for_service("playTune", timeout=2)
 
         self.occupancy_grid = None
         self.p = p
@@ -487,10 +487,11 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         percentage_of_unexplored = (
             number_of_unexplored_elements / self.number_of_total_map_cells
         )
+        percentage_of_unexplored = 1-percentage_of_unexplored
         print(percentage_of_unexplored)
         print(self.p)
         if percentage_of_unexplored >= self.p:
-            self.playTune_client(String("gothim"))
+            # self.playTune_client(String("gothim"))
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
