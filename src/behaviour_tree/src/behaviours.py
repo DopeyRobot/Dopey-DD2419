@@ -18,6 +18,7 @@ from std_msgs.msg import Bool, Empty, String
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 
 
+
 class give_path(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "give_path"
@@ -450,6 +451,8 @@ class playTuneBehaviour(pt.behaviour.Behaviour):
     def update(self):
         self.playTune_client(String(self.tune_name))
         return pt.common.Status.SUCCESS
+    
+
 
 
 class ReturnKnownMapPercent(pt.behaviour.Behaviour):
@@ -591,3 +594,15 @@ class DropObject(pt.behaviour.Behaviour):
 
         else:
             return pt.common.Status.RUNNING
+
+class Lookat(pt.behaviour.Behaviour):
+    def __init__(self):
+        rospy.Subscriber("/current_focus_id", )
+        super().__init__("Look at : " + frame_id)
+        self.targetframe = frame_id
+        self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        rospy.wait_for_service("playTune", timeout=2)
+
+    def update(self):
+        self.getpose_client(String(self.tune_name))
+        return pt.common.Status.SUCCESS
