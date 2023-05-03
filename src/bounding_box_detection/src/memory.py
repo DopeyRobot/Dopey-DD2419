@@ -324,6 +324,10 @@ class MemoryNode:
         self.get_closest_obj_srv = rospy.Service(
             "/get_closest_obj", closestObj, self.get_closest_obj_cb
         )
+
+        # self.heading_srv = rospy.Service(
+        #     "/heading_fix", FixHeading, self.heading_fix_cb 
+        # )
         
         self.polygon_checker = rospy.ServiceProxy("/polygon_service", PolyCheck)
         self.camera_frame = "camera_color_optical_frame"
@@ -492,6 +496,17 @@ class MemoryNode:
             rospy.loginfo("no obstacle found on the map")
             failed_pose = PoseStamped()
             return closestObjResponse(failed_pose, "poop") # "poop" is the name of the object if there was no object found
+        
+    # def heading_fix_cb(self, req: FixHeadingRequest) -> float:
+    #     ref_frame_id = req.ref_frame
+    #     object_frame_id = req.object_frame
+    #     pose_robot = self.get_object_pose("map", ref_frame_id)
+    #     pose_object = self.get_object_pose("map", object_frame_id)
+
+    #     #create while loop here and check what angle_error are
+    #     angle_error = np.arctan2((pose_object.y - pose_robot.y), (pose_robot.x - pose_robot.x))
+        
+    #     return FixHeadingResponse(angle_error)
         
     def get_distance(self, pose1, pose2) -> float:
         """Returns the square of the distance between two poses"""

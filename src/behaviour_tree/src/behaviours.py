@@ -16,6 +16,9 @@ from play_tunes.srv import playTune, playTuneRequest, playTuneResponse
 from robp_msgs.msg import DutyCycles
 from std_msgs.msg import Bool, Empty, String
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
+import tf_conversions
+
+
 
 
 class give_path(pt.behaviour.Behaviour):
@@ -507,6 +510,8 @@ class playTuneBehaviour(pt.behaviour.Behaviour):
     def update(self):
         self.playTune_client(String(self.tune_name))
         return pt.common.Status.SUCCESS
+    
+
 
 
 class ReturnKnownMapPercent(pt.behaviour.Behaviour):
@@ -579,7 +584,7 @@ class StopRobot(pt.behaviour.Behaviour):
         self.start = rospy.Time.now()
 
 
-class GetClosestObject(pt.behaviour.Behaviour):
+class GetClosestObjectPose(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "desired pose"
         self.publish_goal = rospy.Publisher(
@@ -592,13 +597,17 @@ class GetClosestObject(pt.behaviour.Behaviour):
             "/current_obj_id", String, queue_size=1, latch=True
         )
 
+        self.publisher_focus_frame_id = rospy.Publisher(
+            "/current_focus_id", String, queue_size=1, latch= True
+        )
+
         self.ready_for_path = True
 
         self.getPose_client = rospy.ServiceProxy("/get_closest_obj", closestObj)
         rospy.wait_for_service("/get_closest_obj", timeout=2)
 
         # become a behaviour
-        super(GetClosestObject, self).__init__("Get pick up pose")
+        super(GetClosestObjectPose, self).__init__("Get pick up pose")
 
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
@@ -616,6 +625,7 @@ class GetClosestObject(pt.behaviour.Behaviour):
             self.publish_goal.publish(desPose.pose)
             print("Sending current desired pose\n")
             self.publish_obj_id.publish(desPose.foundId.data)
+            self.publisher_focus_frame_id.publish(desPose.foundId.data)
             print("Sending current object id: " + desPose.foundId.data, "\n:) Sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
 
@@ -623,7 +633,7 @@ class GetClosestObject(pt.behaviour.Behaviour):
             return pt.common.Status.RUNNING
 
 
-class DropObject(pt.behaviour.Behaviour):
+class GetBoxPose(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "desired pose"
         self.publish_goal = rospy.Publisher(
@@ -637,6 +647,10 @@ class DropObject(pt.behaviour.Behaviour):
             "./current__obj_id", String, self.current_object_callback
         )
 
+        self.publisher_focus_frame_id = rospy.Publisher(
+            "/current_focus_id", String, queue_size=1, latch= True
+        )
+
         self.current_object = None
         self.ready_for_path = True
 
@@ -646,7 +660,7 @@ class DropObject(pt.behaviour.Behaviour):
         rospy.wait_for_service("/get_object_pose", timeout=2)
 
         # become a behaviour
-        super(DropObject, self).__init__("Get drop off pose")
+        super(GetBoxPose, self).__init__("Get drop off pose")
 
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
@@ -667,8 +681,71 @@ class DropObject(pt.behaviour.Behaviour):
 
         if self.ready_for_path:
             self.publish_goal.publish(desPose)
+            self.publisher_focus_frame_id.publish(target_frame)
             print("Sending current desired pose, sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
 
         else:
             return pt.common.Status.RUNNING
+
+class LookatCurrentFocus(pt.behaviour.Behaviour):
+    def __init__(self):
+        rospy.Subscriber("/current_focus_id", String, self.focus_cb)
+        super().__init__("Look at current focus")
+        self.targetframe = None
+        self.ready_for_pose_sub = rospy.Subscriber(
+            "/ready_for_pose", Bool, self.ready_for_pose_callback
+        )
+        self.move2goalDone = Bool()
+        self.move2goalDone.data = False
+        self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        rospy.wait_for_service("playTune", timeout=2)
+        self.pose_sent = False
+
+        self.goal_pub = rospy.Publisher("/goal", PoseStamped, queue_size=10)
+
+    def focus_cb(self, msg):
+        self.targetframe = msg.data
+
+    def ready_for_pose_callback(self, msg):
+        self.move2goalDone = msg.data
+
+    def update(self):
+        if not self.pose_sent:
+            # headingpose = PoseStamped()
+            # headingpose.header.stamp = rospy.Time.now()
+            # headingpose.header.frame_id = "map"
+        #         poly_req = PolyCheckRequest()
+        #         poly_req.point_at_infinity = self.pinf
+        #         poly_req.point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
+        #         poly_resp = self.polygon_client.call(poly_req)
+            targetinbaselink_req = twoStrInPoseOutRequest()
+            targetinbaselink_req.str1 = "base_link"
+            targetinbaselink_req.str2 = self.targetframe
+            targetinbaselink_pose = self.getpose_client(targetinbaselink_req)
+            baselinkinmap_req = twoStrInPoseOutRequest()
+            baselinkinmap_req.str1 = "map"
+            baselinkinmap_req.str2 = "base_link"
+            baselinkinmap_pose = self.getpose_client(baselinkinmap_req)
+
+            tx = targetinbaselink_pose.pose.position.x
+            ty = targetinbaselink_pose.pose.position.y
+
+            angle_correction = math.pi/2 - np.arctan2(ty, tx)
+
+            currentheading_euler = tf_conversions.transformations.euler_from_quaternion([baselinkinmap_pose.pose.orientation.x, baselinkinmap_pose.pose.orientation.y, baselinkinmap_pose.pose.orientation.z, baselinkinmap_pose.pose.orientation.w])[2]
+            q = tf_conversions.transformations.quaternion_from_euler(0, 0, angle_correction + currentheading_euler)
+
+            baselinkinmap_pose.orientation.x = q[0]
+            baselinkinmap_pose.orientation.y = q[1]
+            baselinkinmap_pose.orientation.z = q[2]
+            baselinkinmap_pose.orientation.w = q[3]
+            self.pose_sent = True
+            self.goal_pub.publish(baselinkinmap_pose)
+            return pt.common.Status.RUNNING()
+        
+        elif self.move2goalDone:
+            return pt.common.Status.SUCCESS()
+        else:
+            return pt.common.Status.RUNNING()
+        
