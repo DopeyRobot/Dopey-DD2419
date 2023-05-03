@@ -88,7 +88,7 @@ class KinematicsSolver:
 
         return pe_b[:3]
 
-    def analytical_IK(self, desired_pos, desired_wrist_pitch, desired_theta5 = 0.0, reflect_angle=False):
+    def analytical_IK(self, desired_pos, desired_wrist_pitch, desired_theta5 = 0.0, reflect_angle=True):
         """
         Solves the analytical IK sometimes, desired pos in robot base frame.
         """

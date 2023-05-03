@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
+import math
+
+import numpy as np
+import py_trees as pt
 import rospy
 import tf2_geometry_msgs
-import py_trees as pt
-from geometry_msgs.msg import PoseStamped, Point
-from std_msgs.msg import Bool, String
-from nav_msgs.msg import Path
-from robp_msgs.msg import DutyCycles
 import tf2_ros
-from nav_msgs.msg import OccupancyGrid
-import math
-import numpy as np
-# class give_path(pt.behaviour.Behaviour):
-from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
 from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest
+from geometry_msgs.msg import Point, PoseStamped
 
+# class give_path(pt.behaviour.Behaviour):
+from kinematics.srv import GripStrength, GripStrengthRequest, GripStrengthResponse
+from nav_msgs.msg import OccupancyGrid, Path
+from play_tunes.srv import playTune, playTuneRequest, playTuneResponse
+from robp_msgs.msg import DutyCycles
+from std_msgs.msg import Bool, Empty, String
+from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 
 
 class give_path(pt.behaviour.Behaviour):
@@ -71,51 +73,54 @@ class give_path(pt.behaviour.Behaviour):
 
         return robot_pose
 
-
     def update(self):
-            #print(self.ready_for_pose)
-            #print("ready for path in give_path:", self.ready_for_path)
-            if self.path is not None:
-                if self.ready_for_pose and self.pose_to_send < len(self.path.poses):  # and self.path.poses != []:
-                    # print('Ready for new pose! Sending RUNNING in tree')
-                    self.ready_for_pose = False
-                    self.ready_for_pose_pub.publish(self.ready_for_pose)
-                    self.goal_pub.publish(self.path.poses[self.pose_to_send])
-                    self.pose_to_send = self.pose_to_send + 1
+        # print(self.ready_for_pose)
+        # print("ready for path in give_path:", self.ready_for_path)
+        if self.path is not None:
+            if self.ready_for_pose and self.pose_to_send < len(
+                self.path.poses
+            ):  # and self.path.poses != []:
+                # print('Ready for new pose! Sending RUNNING in tree')
+                self.ready_for_pose = False
+                self.ready_for_pose_pub.publish(self.ready_for_pose)
+                self.goal_pub.publish(self.path.poses[self.pose_to_send])
+                self.pose_to_send = self.pose_to_send + 1
 
-
-                    return pt.common.Status.RUNNING
-
-                elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
-                    self.__init__()#path = None
-                    self.pose_to_send = 0
-                    self.ready_for_path = True
-                    self.ready_for_new_path.publish(self.ready_for_path)
-                    print("Reached final pose, sending SUCCESS in tree")
-                    return pt.common.Status.SUCCESS
-                
-
-                else:
-                    self.ready_for_path = False
-                    self.ready_for_new_path.publish(self.ready_for_path)
-                    # print('Moving to next pose in path array! Sending RUNNING in tree')
-                    return pt.common.Status.RUNNING
-                    
-            else:
-                #print("Waiting for path, none given yet! Sending RUNNING in tree")
-                self.ready_for_new_path.publish(self.ready_for_path)
                 return pt.common.Status.RUNNING
-            # else: 
-            #     print("sending final RUNNING")
-            #     return pt.common.Status.RUNNING
 
-        
+            elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
+                self.__init__()  # path = None
+                self.pose_to_send = 0
+                self.ready_for_path = True
+                self.ready_for_new_path.publish(self.ready_for_path)
+                print("Reached final pose, sending SUCCESS in tree")
+                return pt.common.Status.SUCCESS
+
+            else:
+                self.ready_for_path = False
+                self.ready_for_new_path.publish(self.ready_for_path)
+                # print('Moving to next pose in path array! Sending RUNNING in tree')
+                return pt.common.Status.RUNNING
+
+        else:
+            # print("Waiting for path, none given yet! Sending RUNNING in tree")
+            self.ready_for_new_path.publish(self.ready_for_path)
+            return pt.common.Status.RUNNING
+        # else:
+        #     print("sending final RUNNING")
+        #     return pt.common.Status.RUNNING
+
+
 class FrontierExploration(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "exploration"
-        rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
-        self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
-        self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+        rospy.Subscriber("/occupancygrid", OccupancyGrid, self.map_callback)
+        self.publish_goal = rospy.Publisher(
+            "/send_goal", PoseStamped, queue_size=1, latch=True
+        )
+        self.subcribe_ready_for_path = rospy.Subscriber(
+            "/ready_for_new_path", Bool, self.ready_for_path_callback
+        )
         # self.publish_frontier = rospy.Publisher('/frontier_point', PoseStamped, queue_size=1)
 
         self.buffer = tf2_ros.Buffer(rospy.Duration(100.0))
@@ -132,43 +137,55 @@ class FrontierExploration(pt.behaviour.Behaviour):
 
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
-        
 
     def map_callback(self, msg):
         self.map_data = msg
-        self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
+        self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(
+            self.map_data.info.height, self.map_data.info.width
+        )
         # print("Inside map callback")
         # print(self.occupancy_grid)
-
 
     def identify_froniters(self):
 
         frontier_cells = []
         if self.occupancy_grid is not None:
-            for i in range(1, self.occupancy_grid.shape[0]-1):
-                for j in range(1, self.occupancy_grid.shape[1]-1):
-                    if self.occupancy_grid[i][j] == 0 and np.sum(self.occupancy_grid[i-1:i+2, j-1:j+2]) < 0:
-                        x = (j - 0.5) * self.map_data.info.resolution + self.map_data.info.origin.position.x
-                        y = (i - 0.5) * self.map_data.info.resolution + self.map_data.info.origin.position.y 
-                        
+            for i in range(1, self.occupancy_grid.shape[0] - 1):
+                for j in range(1, self.occupancy_grid.shape[1] - 1):
+                    if (
+                        self.occupancy_grid[i][j] == 0
+                        and np.sum(self.occupancy_grid[i - 1 : i + 2, j - 1 : j + 2])
+                        < 0
+                    ):
+                        x = (
+                            (j - 0.5) * self.map_data.info.resolution
+                            + self.map_data.info.origin.position.x
+                        )
+                        y = (
+                            (i - 0.5) * self.map_data.info.resolution
+                            + self.map_data.info.origin.position.y
+                        )
+
                         frontier_cells.append((x, y))
 
         return frontier_cells
 
-
     def euclidean_distance(self, x1, y1, x2, y2):
 
-        return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+        return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
     def get_current_position(self):
         base_link_origin = PoseStamped()
         base_link_origin.header.stamp = rospy.Time.now()
 
-        transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp , rospy.Duration(1))  
-        baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
+        transform_to_map = self.buffer.lookup_transform(
+            "map", "base_link", base_link_origin.header.stamp, rospy.Duration(1)
+        )
+        baseInMapPose = tf2_geometry_msgs.do_transform_pose(
+            base_link_origin, transform_to_map
+        )
 
         return baseInMapPose
-        
 
     def distance2frontier(self):
         current_position = self.get_current_position()
@@ -205,18 +222,221 @@ class FrontierExploration(pt.behaviour.Behaviour):
             if self.ready_for_path:
                 self.publish_goal.publish(frontier_to_publish)
                 print("Sending current frontier goal, sending SUCCESS in tree")
-                #print("ready for path in explore:", self.ready_for_path)
+                # print("ready for path in explore:", self.ready_for_path)
                 # self.publish_frontier.publish(frontier_to_publish)
                 return pt.common.Status.SUCCESS
             else:
-                #Currently moving to a frontier, not ready to publish a new one
-                #print("running expl 1")
-                return pt.common.Status.RUNNING    
+                # Currently moving to a frontier, not ready to publish a new one
+                # print("running expl 1")
+                return pt.common.Status.RUNNING
         else:
-            #Not yet found a frontier
-            #print("running expl 2")
+            # Not yet found a frontier
+            # print("running expl 2")
 
             return pt.common.Status.RUNNING
+
+
+class MoveArmToPickupFront(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Moving arm to pickup front")
+        self.move_srv = rospy.ServiceProxy("/pickup/front", Trigger)
+        rospy.wait_for_service("/pickup/front", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+
+class MoveArmToHome(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Moving arm to home")
+        self.move_srv = rospy.ServiceProxy("/home", Trigger)
+        rospy.wait_for_service("/home", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+
+class MoveArmToUnfold(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Moving arm to home")
+        self.move_srv = rospy.ServiceProxy("/unfold", Trigger)
+        rospy.wait_for_service("/unfold", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+
+class MoveArmToDrop(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Moving arm to drop pos")
+        self.move_srv = rospy.ServiceProxy("/drop", Trigger)
+        rospy.wait_for_service("/drop", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+
+class MoveArmToTray(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Moving arm to tray")
+        self.move_srv = rospy.ServiceProxy("/pickup/tray", Trigger)
+        rospy.wait_for_service("/pickup/tray", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+
+class OpenGripper(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Opening gripper")
+        self.move_srv = rospy.ServiceProxy("/gripper/open", Trigger)
+        rospy.wait_for_service("/gripper/open", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+
+class CloseGripper(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Closing gripper")
+        self.move_srv = rospy.ServiceProxy("/gripper/close", GripStrength)
+        rospy.wait_for_service("/gripper/close", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            req = GripStrengthRequest(String("cube"))
+            self.resp: TriggerResponse = self.move_srv(req)
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+
+class PickupToTarget(pt.behaviour.Behaviour):
+    """
+    pickup to target that is a poststamped publish to the pickup_goal topic in base_link frame
+    """
+
+    def __init__(self):
+        super().__init__("Pickup to goal")
+        self.move_srv = rospy.ServiceProxy("/full_pickup_pose", Trigger)
+        rospy.wait_for_service("/full_pickup_pose", timeout=5)
+        self.tried = False
+        self.done = False
+        self.resp = None
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        if not self.tried:
+            self.tried = True
+            self.resp: TriggerResponse = self.move_srv(TriggerRequest())
+            return pt.common.Status.RUNNING
+        if self.resp.success:
+            self.done = True
+            return pt.common.Status.SUCCESS
+        else:
+            return pt.common.Status.FAILURE
+
+
+class Wait(pt.behaviour.Behaviour):
+    def __init__(self, duration: int):
+        super().__init__("wait")
+        self.duration = duration
+        self.done = False
+
+    def update(self):
+        if self.done:
+            return pt.common.Status.SUCCESS
+        rospy.sleep(self.duration)
+        self.done = True
+        return pt.common.Status.SUCCESS
 
 
 class playTuneBehaviour(pt.behaviour.Behaviour):
@@ -235,7 +455,7 @@ class playTuneBehaviour(pt.behaviour.Behaviour):
 class ReturnKnownMapPercent(pt.behaviour.Behaviour):
     def __init__(self, p):
         self.name = "ReturnKnownMapPercent"
-        rospy.Subscriber('/occupancygrid', OccupancyGrid, self.map_callback)
+        rospy.Subscriber("/occupancygrid", OccupancyGrid, self.map_callback)
         self.playTune_client = rospy.ServiceProxy("playTune", playTune)
         rospy.wait_for_service("playTune", timeout=2)
 
@@ -243,25 +463,30 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         self.p = p
         self.number_of_total_map_cells = None
         self.collectedFirstMap = False
-        
 
-        super(ReturnKnownMapPercent, self).__init__("Explored space > "+str(self.p*100)+"%")
-
+        super(ReturnKnownMapPercent, self).__init__(
+            "Explored space > " + str(self.p * 100) + "%"
+        )
 
     def map_callback(self, msg):
         self.map_data = msg
-        self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
+        self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(
+            self.map_data.info.height, self.map_data.info.width
+        )
         if not self.collectedFirstMap:
-            self.number_of_total_map_cells = np.count_nonzero(self.occupancy_grid == -1) #number of cells to explore initially, will only run once
+            self.number_of_total_map_cells = np.count_nonzero(
+                self.occupancy_grid == -1
+            )  # number of cells to explore initially, will only run once
             self.collectedFirstMap = True
-
 
     def update(self):
         condition = self.occupancy_grid == -1
         number_of_unexplored_elements = np.count_nonzero(condition)
 
         # number_of_elements = self.occupancy_grid.shape[0]*self.occupancy_grid.shape[1]
-        percentage_of_unexplored = number_of_unexplored_elements/self.number_of_total_map_cells
+        percentage_of_unexplored = (
+            number_of_unexplored_elements / self.number_of_total_map_cells
+        )
         print(percentage_of_unexplored)
         print(self.p)
         if percentage_of_unexplored >= self.p:
@@ -269,20 +494,20 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
-        
+
 
 class StopRobot(pt.behaviour.Behaviour):
-    def __init__(self,duration):
+    def __init__(self, duration):
         self.name = "StopRobot"
         self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
         self.duration = duration
 
-        super(StopRobot, self).__init__("Stop Robot for "+str(int(duration))+" sec")
-        
+        super(StopRobot, self).__init__("Stop Robot for " + str(int(duration)) + " sec")
+
         self.start = rospy.Time.now()
 
     def update(self):
-        if rospy.Time.now()-self.start > rospy.Duration(self.duration):
+        if rospy.Time.now() - self.start > rospy.Duration(self.duration):
             return pt.common.Status.SUCCESS
         else:
             msg = DutyCycles()
@@ -290,7 +515,7 @@ class StopRobot(pt.behaviour.Behaviour):
             msg.duty_cycle_right = 0
             self.duty_pub.publish(msg)
             return pt.common.Status.RUNNING
-        
+
     def initialise(self):
         print("Resetting start time")
         self.start = rospy.Time.now()
@@ -299,8 +524,12 @@ class StopRobot(pt.behaviour.Behaviour):
 class PickUpObject(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "desired pose"
-        self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
-        self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+        self.publish_goal = rospy.Publisher(
+            "/send_goal", PoseStamped, queue_size=1, latch=True
+        )
+        self.subcribe_ready_for_path = rospy.Subscriber(
+            "/ready_for_new_path", Bool, self.ready_for_path_callback
+        )
 
         self.ready_for_path = True
 
@@ -315,23 +544,28 @@ class PickUpObject(pt.behaviour.Behaviour):
 
     def update(self):
         req = twoStrInPoseOutRequest()
-        req.str1.data = "map" #frame_id
-        req.str2.data = "no_box" #object class ball/plushie/box
-        desPose = self.getPose_client(req) #assume awlays a pose is given
+        req.str1.data = "map"  # frame_id
+        req.str2.data = "no_box"  # object class ball/plushie/box
+        desPose = self.getPose_client(req)  # assume awlays a pose is given
 
         if self.ready_for_path:
             self.publish_goal.publish(desPose)
             print("Sending current desired pose, sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
-        
+
         else:
-            return pt.common.Status.RUNNING   
+            return pt.common.Status.RUNNING
+
 
 class DropObject(pt.behaviour.Behaviour):
     def __init__(self):
         self.name = "desired pose"
-        self.publish_goal = rospy.Publisher('/send_goal', PoseStamped, queue_size=1, latch=True)
-        self.subcribe_ready_for_path = rospy.Subscriber('/ready_for_new_path', Bool, self.ready_for_path_callback)
+        self.publish_goal = rospy.Publisher(
+            "/send_goal", PoseStamped, queue_size=1, latch=True
+        )
+        self.subcribe_ready_for_path = rospy.Subscriber(
+            "/ready_for_new_path", Bool, self.ready_for_path_callback
+        )
 
         self.ready_for_path = True
 
@@ -346,20 +580,14 @@ class DropObject(pt.behaviour.Behaviour):
 
     def update(self):
         req = twoStrInPoseOutRequest()
-        req.str1.data = "map" #frame_id
-        req.str2.data = "box" #object class ball/plushie/box
-        desPose = self.getPose_client(req) #assume awlays a pose is given
+        req.str1.data = "map"  # frame_id
+        req.str2.data = "box"  # object class ball/plushie/box
+        desPose = self.getPose_client(req)  # assume awlays a pose is given
 
         if self.ready_for_path:
             self.publish_goal.publish(desPose)
             print("Sending current desired pose, sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
-        
+
         else:
-            return pt.common.Status.RUNNING  
-
-
-
-
-
-        
+            return pt.common.Status.RUNNING

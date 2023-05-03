@@ -152,6 +152,7 @@ class RefPoses(Enum):
     """
 
     HOME = JointData.from_list(positions=[1.57, 0.91, -1.6, -1.2, 0, 0])
+    UNFOLD = JointData.from_list(positions=[0, 0, 0, 0, 0, 0])
     PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
     PREPICK_R = JointData.from_list(positions=[0 -0.2, -1.2, -1.75, 0.0, -1.5])
     PICKUP_F = JointData.from_list(positions=[1.57, -0.9, -1.15, -1.1, 0, -1.5])
@@ -159,6 +160,7 @@ class RefPoses(Enum):
     LOOK_TRAY = JointData.from_list(positions=[-1.57, 0.33, -1.20, -1.88, 0, -0.2])
     PICKUP_TRAY = JointData.from_list(positions=[-1.57, 0.33, -1.20, -1.88, 0, -0.2])
     OPEN_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, -1.5])
+    DROP_POS = JointData.from_list(positions=[1.57, -0.175, -0.785, -1.309, 0,0])
     CLOSE_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])
     CLOSE_GRIPPER_CUBE = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.3])
     CLOSE_GRIPPER_BALL = JointData.from_list(positions=[0, 0, 0, 0, 0, 0.2])
