@@ -525,6 +525,12 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         rospy.Subscriber("/occupancygrid", OccupancyGrid, self.map_callback)
         # self.playTune_client = rospy.ServiceProxy("playTune", playTune)
         # rospy.wait_for_service("playTune", timeout=2)
+        self.ready_for_new_path_pub = rospy.Publisher(
+            "/ready_for_new_path", Bool, queue_size=1, latch=True
+        )
+        self.reset_pub = rospy.Publisher(
+            "/reset_path_planning", Bool
+        )
 
         self.occupancy_grid = None
         self.p = p
@@ -559,6 +565,11 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         print(self.p)
         if percentage_of_unexplored >= self.p:
             # self.playTune_client(String("gothim"))
+            # NOTE: LOOK HERE; test to clear the path lpannign before moving onto main mission
+            true = Bool()
+            true.data = True
+            self.reset_pub.publish(true)
+            self.ready_for_new_path_pub.publish(true)
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
@@ -627,7 +638,7 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
             return pt.common.Status.FAILURE
 
         elif self.ready_for_path:
-            desPose.pose.pose.position.x -= 0.1
+            desPose.pose.pose.position.x += 0.1 #NOTE: look here, offset to not crash into object
             self.publish_goal.publish(desPose.pose)
             print("Sending current desired pose\n")
             self.publish_obj_id.publish(desPose.foundId)
