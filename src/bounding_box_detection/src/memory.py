@@ -25,6 +25,7 @@ from bounding_box_detection.srv import (
     closestObjResponse,
 )
 from workspace.srv import PolyCheck, PolyCheckRequest
+from play_tunes.srv import playTune, playTuneRequest
 from bounding_box_detection.msg import StringArray
 from geometry_msgs.msg import PoseStamped
 from tf2_geometry_msgs import PoseStamped as Tf2PoseStamped
@@ -324,6 +325,7 @@ class MemoryNode:
         self.get_closest_obj_srv = rospy.Service(
             "/get_closest_obj", closestObj, self.get_closest_obj_cb
         )
+        self.play_tune_srv = rospy.ServiceProxy("playTune", playTune)
 
         # self.heading_srv = rospy.Service(
         #     "/heading_fix", FixHeading, self.heading_fix_cb 
@@ -491,9 +493,11 @@ class MemoryNode:
                     closest_instance_pose = poseOfObj
         if closest_instance_pose is not None:
             rospy.loginfo(f"closest obstacle to base_link found is \"{name_of_closest_obj_found}\" at dist: {np.sqrt(prev_dist)}")
+            self.play_tune_srv("!")
             return closestObjResponse(closest_instance_pose, name_of_closest_obj_found)
         else:
             rospy.loginfo("no obstacle found on the map")
+            self.play_tune_srv("no_object_found") 
             failed_pose = PoseStamped()
             return closestObjResponse(failed_pose, "poop") # "poop" is the name of the object if there was no object found
         
