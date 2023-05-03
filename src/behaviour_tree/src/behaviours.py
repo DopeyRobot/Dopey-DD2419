@@ -258,6 +258,11 @@ class MoveArmToPickupFront(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
+
 
 class MoveArmToHome(pt.behaviour.Behaviour):
     def __init__(self):
@@ -280,6 +285,11 @@ class MoveArmToHome(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
 
 
 class MoveArmToUnfold(pt.behaviour.Behaviour):
@@ -304,6 +314,11 @@ class MoveArmToUnfold(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
+
 
 class MoveArmToDrop(pt.behaviour.Behaviour):
     def __init__(self):
@@ -326,6 +341,11 @@ class MoveArmToDrop(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
 
 
 class MoveArmToTray(pt.behaviour.Behaviour):
@@ -350,6 +370,11 @@ class MoveArmToTray(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
+
 
 class OpenGripper(pt.behaviour.Behaviour):
     def __init__(self):
@@ -372,6 +397,11 @@ class OpenGripper(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
 
 
 class CloseGripper(pt.behaviour.Behaviour):
@@ -396,6 +426,11 @@ class CloseGripper(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
 
 
 class PickupToTarget(pt.behaviour.Behaviour):
@@ -424,6 +459,11 @@ class PickupToTarget(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.FAILURE
 
+    def reset(self):
+        self.tried = False
+        self.done = False
+        self.resp = None
+
 
 class Wait(pt.behaviour.Behaviour):
     def __init__(self, duration: int):
@@ -436,6 +476,23 @@ class Wait(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         rospy.sleep(self.duration)
         self.done = True
+        return pt.common.Status.SUCCESS
+
+    def reset(self):
+        self.done = False
+
+
+class Reset(pt.behaviour.Behaviour):
+    def __init__(
+        self,
+        behaviors: list,
+    ):
+        super().__init__("reset")
+        self.behaviors = behaviors
+
+    def update(self):
+        for behavior in self.behaviors:
+            behavior.reset()
         return pt.common.Status.SUCCESS
 
 
