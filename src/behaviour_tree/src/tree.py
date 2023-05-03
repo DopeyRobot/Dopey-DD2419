@@ -114,9 +114,24 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         )
         aaaah_tune_behavior = playTuneBehaviour("agh")
         # root.add_child(test)
+        bombastic_tune_behavior = playTuneBehaviour("bombastic")
+        bombastic_tune_behavior_again = playTuneBehaviour("bombastic")
 
         main_mission_subtree.add_children(
-            [stop_2_sec, get_closest_obj, go_to_pose, look_at_focus, stop_2_sec_again, send_goal_to_arm, pickup_seq, get_box_pose, go_to_box, look_at_focus_again, drop_seq,aaaah_tune_behavior]   
+            [stop_2_sec, 
+             get_closest_obj, 
+             go_to_pose, 
+             bombastic_tune_behavior,
+             look_at_focus, 
+             stop_2_sec_again, 
+             send_goal_to_arm, 
+             pickup_seq, 
+             get_box_pose, 
+             go_to_box, 
+             bombastic_tune_behavior_again, 
+             look_at_focus_again, 
+             drop_seq,
+             aaaah_tune_behavior]   
         )
 
         ## MAIN ROOT

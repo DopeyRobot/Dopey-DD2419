@@ -35,7 +35,9 @@ class give_path(pt.behaviour.Behaviour):
         self.ready_for_new_path = rospy.Publisher(
             "/ready_for_new_path", Bool, queue_size=1, latch=True
         )
-
+        self.reset_sub = rospy.Subscriber(
+            "/reset_path_planning", Bool, self.reset_cb
+        )
         self.path = None  # Path()
         self.ready_for_pose = Bool()
         self.ready_for_path = True
@@ -49,6 +51,9 @@ class give_path(pt.behaviour.Behaviour):
 
     def ready_for_path_callback(self, msg):
         self.ready_for_pose = msg.data
+
+    def reset_cb(self,msg):
+        self.__init__()
 
     def get_current_pose(self):
 
@@ -622,10 +627,11 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
             return pt.common.Status.FAILURE
 
         elif self.ready_for_path:
+            desPose.pose.pose.position.x -= 0.1
             self.publish_goal.publish(desPose.pose)
             print("Sending current desired pose\n")
-            self.publish_obj_id.publish(desPose.foundId.data)
-            self.publisher_focus_frame_id.publish(desPose.foundId.data)
+            self.publish_obj_id.publish(desPose.foundId)
+            self.publisher_focus_frame_id.publish(desPose.foundId)
             print("Sending current object id: " + desPose.foundId.data, "\n:) Sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
 
@@ -644,7 +650,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
         )
 
         self.cur_obj_subscriber = rospy.Subscriber(
-            "/current__obj_id", String, self.current_object_callback
+            "/current_obj_id", String, self.current_object_callback
         )
 
         self.publisher_focus_frame_id = rospy.Publisher(
@@ -654,7 +660,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
         self.current_object = None
         self.ready_for_path = True
 
-        self.box_dict = {"ball": 4, "cube": 3, "plushie": 2}
+        self.box_dict = {"ball": 2, "cube": 2, "plushie": 2}
 
         self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         rospy.wait_for_service("/get_object_pose", timeout=2)
@@ -672,19 +678,22 @@ class GetBoxPose(pt.behaviour.Behaviour):
         self.current_object = object_type
 
     def update(self):
-        landmark_id = self.box_dict[self.current_object]
-        target_frame = "Landmark" + str(landmark_id)
-        req = twoStrInPoseOutRequest()
-        req.str1.data = "map"  # frame_id
-        req.str2.data = target_frame  # object class ball/plushie/box
-        desPose = self.getPose_client(req)  # assume awlays a pose is given
+        if self.current_object is not None:
+            landmark_id = self.box_dict[self.current_object]
+            target_frame = "Landmark" + str(landmark_id)
+            req = twoStrInPoseOutRequest()
+            req.str1.data = "map"  # frame_id
+            req.str2.data = target_frame  # object class ball/plushie/box
+            desPose = self.getPose_client(req)  # assume awlays a pose is given
 
-        if self.ready_for_path:
-            self.publish_goal.publish(desPose)
-            self.publisher_focus_frame_id.publish(target_frame)
-            print("Sending current desired pose, sending SUCCESS in tree")
-            return pt.common.Status.SUCCESS
+            if self.ready_for_path:
+                self.publish_goal.publish(desPose)
+                self.publisher_focus_frame_id.publish(target_frame)
+                print("Sending current desired pose, sending SUCCESS in tree")
+                return pt.common.Status.SUCCESS
 
+            else:
+                return pt.common.Status.RUNNING
         else:
             return pt.common.Status.RUNNING
 
@@ -720,41 +729,41 @@ class LookatCurrentFocus(pt.behaviour.Behaviour):
         #         poly_req.point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
         #         poly_resp = self.polygon_client.call(poly_req)
             targetinbaselink_req = twoStrInPoseOutRequest()
-            targetinbaselink_req.str1 = "base_link"
-            targetinbaselink_req.str2 = self.targetframe
+            targetinbaselink_req.str1 = String("base_link")
+            targetinbaselink_req.str2 = String(self.targetframe)
             targetinbaselink_pose = self.getpose_client(targetinbaselink_req)
             baselinkinmap_req = twoStrInPoseOutRequest()
-            baselinkinmap_req.str1 = "map"
-            baselinkinmap_req.str2 = "base_link"
+            baselinkinmap_req.str1 = String("map")
+            baselinkinmap_req.str2 = String("base_link")
             baselinkinmap_pose = self.getpose_client(baselinkinmap_req)
 
-            tx = targetinbaselink_pose.pose.position.x
-            ty = targetinbaselink_pose.pose.position.y
+            tx = targetinbaselink_pose.pose.pose.position.x
+            ty = targetinbaselink_pose.pose.pose.position.y
 
             angle_correction = math.pi/2 - np.arctan2(ty, tx)
 
-            currentheading_euler = tf_conversions.transformations.euler_from_quaternion([baselinkinmap_pose.pose.orientation.x, baselinkinmap_pose.pose.orientation.y, baselinkinmap_pose.pose.orientation.z, baselinkinmap_pose.pose.orientation.w])[2]
+            currentheading_euler = tf_conversions.transformations.euler_from_quaternion([baselinkinmap_pose.pose.pose.orientation.x, baselinkinmap_pose.pose.pose.orientation.y, baselinkinmap_pose.pose.pose.orientation.z, baselinkinmap_pose.pose.pose.orientation.w])[2]
             q = tf_conversions.transformations.quaternion_from_euler(0, 0, angle_correction + currentheading_euler)
 
-            baselinkinmap_pose.orientation.x = q[0]
-            baselinkinmap_pose.orientation.y = q[1]
-            baselinkinmap_pose.orientation.z = q[2]
-            baselinkinmap_pose.orientation.w = q[3]
+            baselinkinmap_pose.pose.pose.orientation.x = q[0]
+            baselinkinmap_pose.pose.pose.orientation.y = q[1]
+            baselinkinmap_pose.pose.pose.orientation.z = q[2]
+            baselinkinmap_pose.pose.pose.orientation.w = q[3]
             self.pose_sent = True
-            self.goal_pub.publish(baselinkinmap_pose)
-            return pt.common.Status.RUNNING()
+            self.goal_pub.publish(baselinkinmap_pose.pose)
+            return pt.common.Status.RUNNING
         
         elif self.move2goalDone:
-            return pt.common.Status.SUCCESS()
+            return pt.common.Status.SUCCESS
         else:
-            return pt.common.Status.RUNNING()
+            return pt.common.Status.RUNNING
         
 class SendGoalToArm(pt.behaviour.Behaviour):
     def __init__(self):
         super().__init__("SendGoal")
         self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         self.cur_obj_subscriber = rospy.Subscriber(
-            "/current__obj_id", String, self.current_object_callback
+            "/current_obj_id", String, self.current_object_callback
         )
         self.pickup_goal_publisher = rospy.Publisher(
             "/pickup_goal", PoseStamped, queue_size=10
@@ -764,7 +773,7 @@ class SendGoalToArm(pt.behaviour.Behaviour):
 
 
     def current_object_callback(self, msg):
-        self.current_object = msg
+        self.current_obj = msg
 
     def update(self):
         if self.current_obj is not None:
@@ -774,7 +783,7 @@ class SendGoalToArm(pt.behaviour.Behaviour):
 
             pose = self.getpose_client(req)
 
-            self.pickup_goal_publisher.publish(pose)
+            self.pickup_goal_publisher.publish(pose.pose)
 
             return pt.common.Status.SUCCESS
         
