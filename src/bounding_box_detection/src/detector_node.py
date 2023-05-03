@@ -114,7 +114,6 @@ class BoundingBoxNode:
         self.run()
 
     def new_names_cb(self, msg:StringArray):
-        print(msg)
         self.new_names = msg
 
 
