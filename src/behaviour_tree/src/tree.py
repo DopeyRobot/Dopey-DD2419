@@ -54,7 +54,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.9 #percentage to check for complete exploration
+        P = 0.2 #percentage to check for complete exploration
 
         frontier_exploration_behaviour = behaviours.FrontierExploration()
         give_path_behaviour = behaviours.give_path()
@@ -90,48 +90,41 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         
 
         ## MAIN MISSION SUBTREE
+        main_mission_subtree = pt.composites.Sequence(
+            name="->",
+        )
 
-        # rospy.wait_for_message("pickup_goal", PoseStamped)
-        # behavs = [
-        #     PickupToTarget(),
-        #     Wait(4),
-        #     MoveArmToUnfold(),
-        #     Wait(4),
-        #     MoveArmToDrop(),
-        #     Wait(4),
-        #     OpenGripper(),
-        # ]
 
-        # pickup_behavs = pt.Sequence(
-        #     "PICKUP", [PickupToTarget(), Wait(4), MoveArmToUnfold(), Wait(4)]
-        # )
+        stop_2_sec = StopRobot(2)
+        get_closest_obj = GetClosestObjectPose()
+        go_to_pose= give_path()
+        look_at_focus = LookatCurrentFocus()
+        stop_2_sec_again = StopRobot(2)
+        send_goal_to_arm = SendGoalToArm()
+        pickup_behavs = [PickupToTarget(), Wait(4), MoveArmToUnfold(), Wait(4)]
+        pickup_seq = pt.Sequence(
+            "PICKUP", [*pickup_behavs, Reset(pickup_behavs)]
+        )
+        get_box_pose = GetBoxPose()
+        go_to_box = give_path()
+        look_at_focus_again = LookatCurrentFocus()
+        drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
+        drop_seq = pt.Sequence(
+            "DROP", [*drop_behavs, Reset(drop_behavs)]
+        )
+        aaaah_tune_behavior = playTuneBehaviour("agh")
+        # root.add_child(test)
 
-        # drop_behavs = pt.Sequence(
-        #     "DROP", [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
-        # )
-
-        # test = pt.Sequence("pickanddrop", [pickup_behavs, drop_behavs])
-        # # root.add_child(test)
-
-        # root_pickup = pt.composites.Sequence(name="Pick up object")
-        # root_drop = pt.composites.Sequence(name="Drop object")
-
-        
-
-        # pick_up_object_behaviour = behaviours.PickUpObject()
-        # drop_object_behaviour = behaviours.DropObject()
-
-        # root_pickup.add_child(pick_up_object_behaviour)
-        # root_pickup.add_child(give_path_behaviour)
-
-        # root_drop.add_child(drop_object_behaviour)
-        # root_drop.add_child(give_path_behaviour)
+        main_mission_subtree.add_children(
+            [stop_2_sec, get_closest_obj, go_to_pose, look_at_focus, stop_2_sec_again, send_goal_to_arm, pickup_seq, get_box_pose, go_to_box, look_at_focus_again, drop_seq,aaaah_tune_behavior]   
+        )
 
         ## MAIN ROOT
         ROOT_node = pt.composites.Sequence(
             name="ROOT_seq",
         )
         ROOT_node.add_child(explore_subtree)
+        ROOT_node.add_child(main_mission_subtree)
         pt.display.render_dot_tree(ROOT_node)
 
         super(BehaviourTree, self).__init__(ROOT_node)

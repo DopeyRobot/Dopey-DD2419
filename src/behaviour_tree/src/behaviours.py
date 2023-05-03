@@ -614,10 +614,10 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
 
     def update(self):
         req = closestObjRequest()
-        req.ref_frame.data = "map"  # frame_id
-        req.desired_class.data = "no_box"  # object class ball/plushie/box
+        req.ref_frame = String("map")  # frame_id
+        req.desired_class = String("no_box")  # object class ball/plushie/box
         desPose = self.getPose_client(req)  # assume awlays a pose is given
-        if desPose.foundId.data == "poop": # no object found
+        if desPose.foundId == "poop": # no object found
             print("Poop No object found D:<")
             return pt.common.Status.FAILURE
 
@@ -644,7 +644,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
         )
 
         self.cur_obj_subscriber = rospy.Subscriber(
-            "./current__obj_id", String, self.current_object_callback
+            "/current__obj_id", String, self.current_object_callback
         )
 
         self.publisher_focus_frame_id = rospy.Publisher(
@@ -654,7 +654,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
         self.current_object = None
         self.ready_for_path = True
 
-        self.box_dict = {"ball": 1, "cube": 2, "plushie": 3}
+        self.box_dict = {"ball": 4, "cube": 3, "plushie": 2}
 
         self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         rospy.wait_for_service("/get_object_pose", timeout=2)
@@ -749,3 +749,33 @@ class LookatCurrentFocus(pt.behaviour.Behaviour):
         else:
             return pt.common.Status.RUNNING()
         
+class SendGoalToArm(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("SendGoal")
+        self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        self.cur_obj_subscriber = rospy.Subscriber(
+            "/current__obj_id", String, self.current_object_callback
+        )
+        self.pickup_goal_publisher = rospy.Publisher(
+            "/pickup_goal", PoseStamped, queue_size=10
+        )
+        self.current_obj = None
+        self.ref_frame = String("base_link")
+
+
+    def current_object_callback(self, msg):
+        self.current_object = msg
+
+    def update(self):
+        if self.current_obj is not None:
+            req = twoStrInPoseOutRequest()
+            req.str1 = self.ref_frame
+            req.str2 = self.current_obj
+
+            pose = self.getpose_client(req)
+
+            self.pickup_goal_publisher.publish(pose)
+
+            return pt.common.Status.SUCCESS
+        
+        return pt.common.Status.RUNNING
