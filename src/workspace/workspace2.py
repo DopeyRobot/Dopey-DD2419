@@ -20,13 +20,13 @@ class Workspace():
         self.robot_position = None
         self.navgoal_position = None
         self.navgoal = PoseStamped() #does that work?
-        self.publisher_dutycycle = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
+        # self.publisher_dutycycle = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
         self.publisher_vertices = rospy.Publisher("workspace", PolygonStamped, queue_size=10)
         self.subscriber_robopos = rospy.Subscriber("/odometry", Odometry, self.odom_callback)
         self.frame_id = "map"
 
         # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
-        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/workspace_2.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("/home/robot/dd2419_ws/src/workspace/QCaveWorkspace.tsv", sep="\t")
         # self.vertices_df = pd.read_csv("src/workspace/example_workspace.tsv", sep="\t")
 
 
@@ -219,8 +219,7 @@ class Workspace():
     def callback_polycheck(self, req:PolyCheckRequest):
         #points need to be in continuous space
         p_check = list(req.point_of_interest)
-        p_inf = list(req.point_at_infinity)
-        return self.checkpointinsidepoly(p_check, p_inf)
+        return self.checkpointinsidepoly2(p_check)
     
     def callback_occupancycheck(self, req:OccupancyCheckRequest):
         # for x in range(self.x_cells):

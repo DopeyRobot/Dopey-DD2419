@@ -212,12 +212,14 @@ class Occupancygrid:
         N = int((self.laserscan.angle_max-self.laserscan.angle_min)/self.laserscan.angle_increment)
         angle = self.laserscan.angle_min
         for i, dist in enumerate(self.laserscan.ranges):
+            isnan = False
             if i%10!=0:
                 angle+=self.laserscan.angle_increment
                 continue
 
             if np.isnan(dist):
                 dist = self.laserscan.range_max
+                isnan = True
 
                 # else:
                 #     angle+=self.laserscan.angle_increment
@@ -237,10 +239,14 @@ class Occupancygrid:
                     self.grid_freespace[xt, yt] = 1# FREE SPACE
                     self.grid_unknown[xt, yt]=0
                     self.grid_occupied[xt,yt]=0
-            
-            self.grid_occupied[x_o, y_o] = 1
-            self.grid_freespace[x_o, y_o] = 0
-            self.grid_unknown[x_o, y_o] = 0
+            if not isnan:
+                self.grid_occupied[x_o, y_o] = 1
+                self.grid_freespace[x_o, y_o] = 0
+                self.grid_unknown[x_o, y_o] = 0
+            else:
+                self.grid_occupied[x_o, y_o] = 0
+                self.grid_freespace[x_o, y_o] = 1
+                self.grid_unknown[x_o, y_o] = 0
             self.laserscan.angle_increment
 
 

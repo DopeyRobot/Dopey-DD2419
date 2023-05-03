@@ -46,6 +46,12 @@ class CartesianController:
         rospy.loginfo("Cartesian controller started")
 
         self.rate = rospy.Rate(self.f)
+        #Force calm start
+        msg = DutyCycles()
+        msg.duty_cycle_left = 0
+        msg.duty_cycle_right = 0
+        self.duty_pub.publish(msg)
+
         self.run()
 
     def run(self):

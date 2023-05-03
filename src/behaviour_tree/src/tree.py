@@ -50,8 +50,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # #... add more nodes
         # #...
 
-        root = pt.composites.Parallel(
-        name="root",
+        root = pt.composites.Sequence(
+        name="exploration_subtree",
             )
         
         rospy.wait_for_message("pickup_goal", PoseStamped)
@@ -91,8 +91,47 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # pickup_subtree = RSequence(name="", children=move_pickup)
         # drop_subtree = RSequence(name="->", children=move_drop)
 
-        # root.add_child(pickup_subtree)
-        # root.add_child(drop_subtree)
+        # root.add_child(pickup_subtree
+        root_pickup = pt.composites.Sequence(name="Pick up object")
+        root_drop = pt.composites.Sequence(name="Drop object")
+
+        frontier_exploration_behaviour = behaviours.FrontierExploration()
+        give_path_behaviour = behaviours.give_path()
+        percentage_of_unknown_behaviour = behaviours.ReturnKnownMapPercent(0.2)
+        stop_robot_behaviour = behaviours.StopRobot(2)
+        pick_up_object_behaviour = behaviours.PickUpObject()
+        drop_object_behaviour = behaviours.DropObject()
+
+        explore_subtree = RSequence(name="RSequence", children=[frontier_exploration_behaviour,give_path_behaviour, stop_robot_behaviour, percentage_of_unknown_behaviour]) #need to add a third child to check amount explored
+        # move_subtree = RSequence(name="RSequence", children=[pick_up_object_behaviour, give_path_behaviour])
+
+        lebron_behaviour = behaviours.playTuneBehaviour("lebronjames")
+        # explore_subtree = give_path_behaviour
+        # test = behaviours.give_path()
+        # test1 = behaviours.give_path()
+        # test2 = behaviours.give_path()
+
+        # AND = RSequence(name="->", children=[test1,test2])
+
+        # OR = pt.composites.Selector(
+        #     name="?", 
+        #     children=[give_path_behaviour,test,AND]
+	    
+	    # )
+        root.add_child(stop_robot_behaviour)
+        root.add_child(lebron_behaviour)
+        root.add_child(frontier_exploration_behaviour)
+        root.add_child(give_path_behaviour)
+        root.add_child(percentage_of_unknown_behaviour)
+
+        root_pickup.add_child(pick_up_object_behaviour)
+        root_pickup.add_child(give_path_behaviour)
+
+        root_drop.add_child(drop_object_behaviour)
+        root_drop.add_child(give_path_behaviour)
+        
+        
+>>>>>>> origin/master
 	
 
         # for job in ["Action 1", "Action 2", "Action 3"]:
@@ -102,7 +141,11 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         #         eventually = pt.common.Status.SUCCESS
         #     )
         #     give_path_behaviour.add_child(success_after_two)
+        # root = explore_subtree
         pt.display.render_dot_tree(root)
+
+        pt.display.render_dot_tree(root_pickup)
+        pt.display.render_dot_tree(root_drop)
         # tree = give_path_behaviour
         # tree = root 
         
@@ -113,6 +156,12 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         
         
         super(BehaviourTree, self).__init__(root)
+
+        # self.add_post_tick_handler(self.post_tick_handler())
+        self.visitors.append(pt.visitors.DebugVisitor())
+        snapshot_visitor = pt.visitors.SnapshotVisitor()
+        self.visitors.append(snapshot_visitor)
+
 
         # ##ATTEMPT TO PRINT CURRENT TREEE
         # snapshot_visitor = pt.visitors.SnapshotVisitor()
@@ -132,9 +181,17 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # print(rospy.Time.now())
         # print(transform_to_map,transform_to_map_from_odom)
 
-        
+        rospy.sleep(5)
         self.setup(timeout=10000)
-        while not rospy.is_shutdown(): self.tick_tock(1)
+        while not rospy.is_shutdown(): 
+            self.tick()
+            # print("TICK IN TREE")
+            ascii_tree = pt.display.ascii_tree(
+            self.root,
+            snapshot_information=snapshot_visitor)
+            print(ascii_tree)
+
+
 
         # #MAJA
         # print("\n" + "-"*80)
@@ -143,15 +200,18 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # print(pt.display.ascii_tree(root))
         # rospy.sleep(0.5)
 	
-    # def post_tick_handler(self,snapshot_visitor, behaviour_tree):
-    #     pdb.set_trace()
+    # def post_tick_handler(self):
+    #     # pdb.set_trace()
+        
     #     print(
-    #         pt.display.ascii_tree(
-    #             behaviour_tree.root,
-    #             visited=snapshot_visitor.visited,
-    #             previously_visited=snapshot_visitor.visited
-    #         )
-    #     )
+    #         pt.display.ascii_tree(tree=self,snapshot_information=snapshot_visitor))
+              
+
+        #         self.root,
+        #         visited=snapshot_visitor.running_nodes,
+        #         previously_visited=snapshot_visitor.previously_running_nodes
+        #     )
+        # )
     # def print_snapshot_continously(self,behaviour_tree):
     #     snapshot_visitor = pt.visitors.SnapshotVisitor()
     #     behaviour_tree.add_post_tick_handler(

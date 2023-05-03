@@ -1,4 +1,3 @@
 float64[] point_of_interest
-float64[] point_at_infinity
 ---
 bool poly_bool

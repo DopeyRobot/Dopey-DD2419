@@ -82,8 +82,8 @@ class move_to_goal():
     def goal_callback(self, msg):
         # rospy.loginfo("Recived new goal")
 
-        self.ready_for_pose.data = False
-        self.ready_for_pose_publisher.publish(self.ready_for_pose)
+        # self.ready_for_pose.data = False #TODO
+        # self.ready_for_pose_publisher.publish(self.ready_for_pose)
         self.goal_pose = PoseStamped()
         self.goal_pose.pose = msg.pose
         self.goal_pose.header.stamp = msg.header.stamp
@@ -163,20 +163,21 @@ class move_to_goal():
                         ang1out = 0
                         distout = 0
                         self.arrived2point = True
+                        
                 else:
                     if abs(error_ang2) > self.threshold_ang2:
-                         rospy.logdebug("Ajusting ang2")
-                         rospy.logdebug(error_ang2)
-                         self.twist.linear.x = 0.0
-                         self.twist.angular.z = ang2out
+                        rospy.logdebug("Ajusting ang2")
+                        rospy.logdebug(error_ang2)
+                        self.twist.linear.x = 0.0
+                        self.twist.angular.z = ang2out
 
                     else:
-                         rospy.logdebug("Done")
-                         self.twist.linear.x = 0.0
-                         self.twist.angular.z = 0.0
-
-                    self.ready_for_pose.data = True
-                    self.ready_for_pose_publisher.publish(self.ready_for_pose)
+                        rospy.logdebug("Done")
+                        self.twist.linear.x = 0.0
+                        self.twist.angular.z = 0.0
+                        self.ready_for_pose.data = True
+                        self.ready_for_pose_publisher.publish(self.ready_for_pose)
+                        rospy.sleep(3)
 
 
                 self.publisher_twist.publish(self.twist)
