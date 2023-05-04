@@ -498,7 +498,7 @@ class MemoryNode:
             return closestObjResponse(closest_instance_pose, String(name_of_closest_obj_found))
         else:
             rospy.loginfo("no obstacle found on the map")
-            self.play_tune_srv(String("no_object_found"))
+            self.play_tune_srv(String("nogod"))
             failed_pose = PoseStamped()
             return closestObjResponse(failed_pose, String("poop")) # "poop" is the name of the object if there was no object found
         
