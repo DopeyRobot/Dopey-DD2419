@@ -92,9 +92,12 @@ class AudioService:
         elif req == "underwater":
             playsound(AUDIO_PATH+"underwater.mp3")
             return EmptyResponse()
-        else: 
-            rospy.logerr("Invalid tune name")
+        elif req == "nogod":
             playsound(AUDIO_PATH+"noMichael.mp3")
+            return EmptyResponse()
+        else: 
+            playsound(AUDIO_PATH+"no_file.mp3")
+            rospy.logerr("Invalid tune name")
             return EmptyResponse()
 
 
