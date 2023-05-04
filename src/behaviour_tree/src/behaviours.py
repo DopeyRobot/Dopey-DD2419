@@ -638,7 +638,8 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
             return pt.common.Status.FAILURE
 
         elif self.ready_for_path:
-            desPose.pose.pose.position.x += 0.1 #NOTE: look here, offset to not crash into object
+            # desPose.pose.pose.position.x += 0.1 #NOTE: look here, offset to not crash into object
+            
             self.publish_goal.publish(desPose.pose)
             print("Sending current desired pose\n")
             self.publish_obj_id.publish(desPose.foundId)
