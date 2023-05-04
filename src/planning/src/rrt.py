@@ -93,6 +93,7 @@ class RRTPlanner:
     def send_goal_callback(self, msg):
         msgGoal = [msg.pose.position.x, msg.pose.position.y]
         # self.goal = [msg.pose.position.x, msg.pose.position.y]
+     
 
         if not np.allclose(np.array(self.goal,dtype=float),np.array(msgGoal,dtype=float)) or self.goal is None:#self.goal != msgGoal:
             # try:
@@ -276,6 +277,7 @@ class RRTPlanner:
                 #planner.plot_RRT_tree()
                 self.publish_path()
                 #self.goal = None
+
 
 if __name__ == "__main__":
     rospy.init_node("rrt")
