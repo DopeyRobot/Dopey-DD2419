@@ -8,6 +8,7 @@ import tf2_geometry_msgs
 import tf2_ros
 from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
 from geometry_msgs.msg import Point, PoseStamped
+from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse
 
 # class give_path(pt.behaviour.Behaviour):
 from kinematics.srv import GripStrength, GripStrengthRequest, GripStrengthResponse
@@ -22,7 +23,10 @@ import tf_conversions
 
 
 class give_path(pt.behaviour.Behaviour):
-    def __init__(self):
+    def __init__(self, exploring:bool= True):
+        super().__init__("Give path!")
+        self.exploring = exploring
+        self.goal_threshold =0.2
         self.name = "give_path"
         self.goal_pub = rospy.Publisher("/goal", PoseStamped, queue_size=10)
         self.path_sub = rospy.Subscriber("/path_topic", Path, self.path_callback)
@@ -38,13 +42,23 @@ class give_path(pt.behaviour.Behaviour):
         self.reset_sub = rospy.Subscriber(
             "/reset_path_planning", Bool, self.reset_cb
         )
+
+        self.pose_service = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        self.playtune_service = rospy.ServiceProxy("/playTune", playTune)
+
+        self.current_obj_id_sub = rospy.Subscriber("/current_obj_id", String, self.current_obj_id_cb)
+        self.current_obj_id = String()
+
         self.path = None  # Path()
         self.ready_for_pose = Bool()
         self.ready_for_path = True
         self.pose_to_send = 0
         # become a behaviour
-        super(give_path, self).__init__("Give path!")
+
         # self.update()
+
+    def current_obj_id_cb(self, msg):
+        self.current_obj_id = msg
 
     def path_callback(self, msg):
         self.path = msg
@@ -53,39 +67,28 @@ class give_path(pt.behaviour.Behaviour):
         self.ready_for_pose = msg.data
 
     def reset_cb(self,msg):
-        self.__init__()
-
-    def get_current_pose(self):
-
-        robot_pose = PoseStamped()
-        robot_pose.header.stamp = rospy.Time.now()
-        base_link_origin = PoseStamped()
-        base_link_origin.header.stamp = robot_pose.header.stamp
-
-        transform_to_map = self.buffer.lookup_transform(
-            "base_link", "map", robot_pose.header.stamp, rospy.Duration(1)
-        )  # TODO: check order of target/source frrame
-        baseInMapPose = tf2_geometry_msgs.do_transform_pose(
-            base_link_origin, transform_to_map
-        )
-
-        robot_pose.pose.position.z = baseInMapPose.pose.position.z
-        robot_pose.pose.position.x = baseInMapPose.pose.position.x
-        robot_pose.pose.position.y = baseInMapPose.pose.position.y
-        robot_pose.pose.orientation.w = baseInMapPose.pose.orientation.w
-        robot_pose.pose.orientation.x = baseInMapPose.pose.orientation.x
-        robot_pose.pose.orientation.y = baseInMapPose.pose.orientation.y
-        robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
-
-        robot_pose.header.frame_id = "map"
-
-        return robot_pose
+        self.__init__(self.exploring)
 
     def update(self):
+        print(f"is exploring {self.exploring}")
         # print(self.ready_for_pose)
         # print("ready for path in give_path:", self.ready_for_path)
         if self.path is not None:
-            if self.ready_for_pose and self.pose_to_send < len(
+            
+            dist = self.get_distance_to_goal()
+
+            if not self.exploring and  dist < self.goal_threshold:
+                self.__init__(self.exploring)  # path = None
+                self.pose_to_send = 0
+                self.ready_for_path = True
+                self.ready_for_new_path.publish(self.ready_for_path)
+                print("👉🥺👈, close enough")
+                req = playTuneRequest(String("underwater"))
+                self.playtune_service(req)
+                return pt.common.Status.SUCCESS
+
+
+            elif self.ready_for_pose and self.pose_to_send < len(
                 self.path.poses
             ):  # and self.path.poses != []:
                 # print('Ready for new pose! Sending RUNNING in tree')
@@ -97,7 +100,7 @@ class give_path(pt.behaviour.Behaviour):
                 return pt.common.Status.RUNNING
 
             elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
-                self.__init__()  # path = None
+                self.__init__(self.exploring)  # path = None
                 self.pose_to_send = 0
                 self.ready_for_path = True
                 self.ready_for_new_path.publish(self.ready_for_path)
@@ -117,6 +120,17 @@ class give_path(pt.behaviour.Behaviour):
         # else:
         #     print("sending final RUNNING")
         #     return pt.common.Status.RUNNING
+    
+    def get_distance_to_goal(self) -> float:
+        ref_frame = String("base_link")
+        req = twoStrInPoseOutRequest(ref_frame, self.current_obj_id)
+        pose = self.pose_service(req).pose
+        dist = np.sqrt((pose.pose.position.x) ** 2
+            + (pose.pose.position.y) ** 2)
+        
+        if not self.exploring:
+            print(f"current dist to goal = {dist}")
+        return dist
 
 
 class FrontierExploration(pt.behaviour.Behaviour):
@@ -616,6 +630,7 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
         self.publisher_focus_frame_id = rospy.Publisher(
             "/current_focus_id", String, queue_size=1, latch= True
         )
+        self.occupancy_client = rospy.ServiceProxy("/occupied_service", isOccupied)
 
         self.ready_for_path = True
 
@@ -639,7 +654,20 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
 
         elif self.ready_for_path:
             # desPose.pose.pose.position.x += 0.1 #NOTE: look here, offset to not crash into object
-            
+            gen = self.spiral_points()
+            orig_desPose = desPose
+            ocReq = isOccupiedRequest(desPose.pose)
+            poseIsOccupied = self.occupancy_client(ocReq)
+            x,y = next(gen)
+            while poseIsOccupied.isOccBool and np.sqrt(x**2+y**2) < 0.2:
+                
+                desPose.pose.pose.position.x = orig_desPose.pose.pose.position.x + x
+                desPose.pose.pose.position.y = orig_desPose.pose.pose.position.y + y
+                ocReq = isOccupiedRequest(desPose.pose)
+                poseIsOccupied = self.occupancy_client(ocReq)
+                x,y = next(gen)
+
+
             self.publish_goal.publish(desPose.pose)
             print("Sending current desired pose\n")
             self.publish_obj_id.publish(desPose.foundId)
@@ -649,6 +677,35 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
 
         else:
             return pt.common.Status.RUNNING
+            
+    def spiral_points(self, arc=0.1, separation=0.1):
+        """generate points on an Archimedes' spiral
+        with `arc` giving the length of arc between two points
+        and `separation` giving the distance between consecutive 
+        turnings
+        - approximate arc length with circle arc at given distance
+        - use a spiral equation r = b * phi
+        """
+        def p2c(r, phi):
+            """polar to cartesian
+            """
+            return (r * np.cos(phi), r * np.sin(phi))
+
+        # yield a point at origin
+        yield (0, 0)
+
+        # initialize the next point in the required distance
+        r = arc
+        b = separation / (2 * np.pi)
+        # find the first phi to satisfy distance of `arc` to the second point
+        while True:
+            phi = float(r) / b
+            yield p2c(r, phi)
+            # advance the variables
+            # calculate phi that will give desired arc length at current radius
+            # (approximating with circle)
+            phi += float(arc) / r
+            r = b * phi
 
 
 class GetBoxPose(pt.behaviour.Behaviour):
@@ -696,7 +753,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
             req = twoStrInPoseOutRequest()
             req.str1.data = "map"  # frame_id
             req.str2.data = target_frame  # object class ball/plushie/box
-            desPose = self.getPose_client(req)  # assume awlays a pose is given
+            desPose = self.getPose_client(req).pose  # assume awlays a pose is given
 
             if self.ready_for_path:
                 self.publish_goal.publish(desPose)

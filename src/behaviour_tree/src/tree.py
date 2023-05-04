@@ -56,15 +56,15 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         P = 0.2 #percentage to check for complete exploration
 
-        frontier_exploration_behaviour = behaviours.FrontierExploration()
-        give_path_behaviour = behaviours.give_path()
-        percentage_of_known_behaviour_1 = behaviours.ReturnKnownMapPercent(P)
-        stop_robot_behaviour = behaviours.StopRobot(2)
-        lebron_tune_behaviour = behaviours.playTuneBehaviour("lebronjames")
+        frontier_exploration_behaviour = FrontierExploration()
+        give_path_behaviour = give_path()
+        percentage_of_known_behaviour_1 = ReturnKnownMapPercent(P)
+        stop_robot_behaviour = StopRobot(2)
+        lebron_tune_behaviour = playTuneBehaviour("lebronjames")
 
-        gothim_tune_behaviour = behaviours.playTuneBehaviour("gothim")
+        gothim_tune_behaviour = playTuneBehaviour("gothim")
 
-        percentage_of_known_behaviour_2 = behaviours.ReturnKnownMapPercent(P)
+        percentage_of_known_behaviour_2 = ReturnKnownMapPercent(P)
         
 
         
@@ -97,7 +97,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         stop_2_sec = StopRobot(2)
         get_closest_obj = GetClosestObjectPose()
-        go_to_pose= give_path()
+        go_to_pose= give_path(exploring=False)
         look_at_focus = LookatCurrentFocus()
         stop_2_sec_again = StopRobot(2)
         send_goal_to_arm = SendGoalToArm()
@@ -106,7 +106,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             "PICKUP", [*pickup_behavs, Reset(pickup_behavs)]
         )
         get_box_pose = GetBoxPose()
-        go_to_box = give_path()
+        go_to_box = give_path(exploring=False)
         look_at_focus_again = LookatCurrentFocus()
         drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
         drop_seq = pt.Sequence(
@@ -157,7 +157,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             ascii_tree = pt.display.ascii_tree(
                 self.root, snapshot_information=snapshot_visitor
             )
-            print(ascii_tree)
+            # print(ascii_tree)
 
 
 if __name__ == "__main__":

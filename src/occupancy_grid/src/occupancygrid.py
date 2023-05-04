@@ -17,6 +17,7 @@ import math
 from workspace.srv import PolyCheck, PolyCheckRequest, OccupancyCheck, OccupancyCheckRequest
 # from std_srvs.srv import Empty
 from std_msgs.msg import Empty
+from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse
 import cv2
 
 
@@ -61,7 +62,7 @@ class Occupancygrid:
         self.timeout = rospy.Duration(1)
 
         self.pcd = o3d.geometry.PointCloud()
-
+        self.occpied_srv = rospy.Service("/occupied_service", isOccupied, self.is_occupied_callback)
         self.polygon_client = rospy.ServiceProxy("/polygon_service", PolyCheck)
         self.occupancy_client = rospy.ServiceProxy("/occupancy_service", OccupancyCheck)
 
@@ -329,6 +330,12 @@ class Occupancygrid:
 
             self.rate.sleep()
 
+    def is_occupied_callback(self, req: isOccupiedRequest):
+        pose = req.pose.pose # is a PoseStamped
+        x = self.get_i_index(pose.position.x)
+        y = self.get_j_index(pose.position.y)
+        return isOccupiedResponse(self.grid_occupied[x,y]>0)
+        
 
 if __name__ == "__main__":
     try:
