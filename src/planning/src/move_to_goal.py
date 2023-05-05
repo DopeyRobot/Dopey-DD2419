@@ -2,7 +2,6 @@
 import rospy
 import math
 import numpy as np
-import tf_conversions
 import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped, Twist
 from geometry_msgs.msg import  Twist
@@ -118,7 +117,7 @@ class move_to_goal():
     def odom_callback(self, msg):
         self.odom = msg
         odom_q = self.odom.pose.pose.orientation
-        (_, _, self.odom_theta) = tf_conversions.transformations.euler_from_quaternion([odom_q.w, odom_q.x, odom_q.y, odom_q.z])
+        (_, _, self.odom_theta) = euler_from_quaternion([odom_q.w, odom_q.x, odom_q.y, odom_q.z])
 
 
     def run(self):
@@ -131,16 +130,18 @@ class move_to_goal():
                 self.goal_pose.header.stamp = rospy.Time.now()
                 self.transformed_goal_pose = self.tf_buffer.transform(self.goal_pose, self.targetframe, self.timeout)
 
-                rot_q = self.goal_pose.pose.orientation
-                (_, _, self.goal_theta) = euler_from_quaternion([rot_q.x, rot_q.x, rot_q.y, rot_q.z])
-                #(_, _, self.goal_theta) = euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
+                goal_q = self.goal_pose.pose.orientation
+                own_q = self.get_current_pose().pose.orientation
+                # (_, _, self.goal_theta) = euler_from_quaternion([goal_q.w, goal_q.x, goal_q.y, goal_q.z])
+                (_, _, self.goal_theta) = euler_from_quaternion([goal_q.w, goal_q.x, goal_q.y, goal_q.z])
+                (_, _, own_theta) = euler_from_quaternion([own_q.w, own_q.x, own_q.y, own_q.z])
                 # (_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
+                error_ang2 = own_theta - self.goal_theta
 
-                current_angel = self.get_current_pose().pose.orientation.w
-                error_ang2 = current_angel - self.goal_theta
+                # rospy.loginfo(f"""💀\nerror_dist = {error_dist}\nerror_first_angle{error_ang1}\nerror_second_angle{error_ang2}💀""")
                 
                 ang1out = self.ang1PID(error_ang1)
                 distout = self.distPID(error_dist)
