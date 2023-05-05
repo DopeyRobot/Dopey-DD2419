@@ -296,11 +296,11 @@ class LongTermMemory:
 class MemoryNode:
     def __init__(
         self,
-        frames_needed_for_reconition=5,
+        frames_needed_for_reconition=15,
         same_obj_threshold=0.2,
-        time_threshold=rospy.Duration(10),
+        time_threshold=rospy.Duration(5),
     ) -> None:
-        self.f = 5
+        self.f = 30
         self.db = ShortTermMemory(
             same_obj_threshold=same_obj_threshold, time_threshold=time_threshold
         )
