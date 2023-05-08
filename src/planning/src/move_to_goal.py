@@ -83,23 +83,24 @@ class move_to_goal():
     def lastAngle_cb(self, req:lastAngleRequest):
         #angles are dealt with in base link reference frame
 
-        
-        
         # robotpos = req.robotpos.pose.position
         goalpos = req.goalpos.pose.position
 
         # rx = robotpos.x
         # ry = robotpos.y
-
+        anglePID = PID(1, 0, 0)
+        distancePID = PID(1, 0, 0)
         gx = goalpos.x
         gy = goalpos.y
-        Pcont_dist = 1
-        Pcont_ang = 1
+
         
         error_ang = math.atan2(gy, gx) 
+        error_dist = np.sqrt(gx**2 + gy**2)
+        
+        dist_cont = distancePID(error_dist)
+        angle_cont = anglePID(error_ang)
 
-        distout = Pcont_dist*np.sqrt(gx**2 + gy**2)
-        error_dist = distout*np.exp(-np.abs(error_ang)*10)
+        dist_angle_cont = dist_cont*np.exp(-np.abs(error_ang)*10)
         
         # error_dist = distout*Pcont_dist #alternative to the exponential 
 
@@ -110,13 +111,14 @@ class move_to_goal():
 
         if error_ang > 0.5:
             #Angle fix
-            twist_msg.angular.z = error_ang * Pcont_ang
+            twist_msg.angular.z = angle_cont
             self.publisher_twist.publish(twist_msg) #input new twist message
 
         else:
             #Distance fix
             twist_msg.angular.z = 0
-            # twist_msg.linear.x = error_dist
+            # twist_msg.linear.x = dist_cont 
+            # twist_msg.linear.x = dist_angle_cont
             self.publisher_twist.publish(twist_msg)
 
             # angle is done, drive towards it
