@@ -57,7 +57,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  lasAngle.srv
+  lastAngle.srv
 #   Service1.srv.py  map.npy  maptest.pgm  maptest.yaml  planning.py planning_alice.py  __pycache__  rrt.py
 #robot@DD2419SSD:~/Dopey_ws/Dopey-DD2419/src/planning/src$ code . 
 #robot@DD2419SSD:~/Dopey_ws/Dopey-DD2419/src/planning/src$ 

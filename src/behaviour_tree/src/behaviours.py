@@ -858,6 +858,7 @@ class SendGoalToArm(pt.behaviour.Behaviour):
 
 class approach_goal(pt.behaviour.Behaviour):
     def __init__(self):
+        super().__init__("Appraoching goal!")
         self.lastAngle_client = rospy.ServiceProxy("/lastAngle", lastAngle)
         self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
 

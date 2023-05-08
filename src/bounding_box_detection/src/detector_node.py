@@ -60,7 +60,7 @@ class BoundingBoxNode:
         self.out_image_topic = "/camera/color/image_bbs"
         self.depth_topic = "/camera/aligned_depth_to_color/image_raw"
         self.camera_info_topic = "/camera/aligned_depth_to_color/camera_info"
-        self.model_path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/models/det_2023-03-27_17-22-20-042133.pt"
+        self.model_path = "/home/dopey/dd2419_ws/src/bounding_box_detection/src/models/det_2023-03-27_17-22-20-042133.pt"
 
         self.camera_frame = "camera_color_optical_frame"
         self.map_frame = "map"
