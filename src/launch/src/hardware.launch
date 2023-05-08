@@ -37,7 +37,7 @@
 
 	<!-- launch the usb cam node -->
 	<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
-		<param name="video_device" value="/dev/video6" />
+		<param name="video_device" value="/dev/v4l/by-id/usb-Image_Processor_USB_2.0_PC_Cam-video-index0" />
 		<param name="image_width" value="640" />
 		<param name="image_height" value="480" />
 		<param name="pixel_format" value="yuyv" />

@@ -15,7 +15,6 @@
   </node>
 
   <node pkg="nodelet" type="nodelet" name="ImuFilterNodelet" args="load imu_filter_madgwick/ImuFilterNodelet $(arg manager)" output="screen">
-    <!-- Removed magnetometer due to disturbances -->
-    <param name="use_mag" value="false"/>
+    <param name="use_mag" value="true"/>
   </node>
 </launch>
