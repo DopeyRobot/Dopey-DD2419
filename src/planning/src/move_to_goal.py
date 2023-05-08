@@ -80,6 +80,59 @@ class move_to_goal():
         self.arrived2point = False
         self.run() 
 
+    def lastAngle_cb(self, req:lastAngleRequest):
+        #angles are dealt with in base link reference frame
+
+        
+        
+        # robotpos = req.robotpos.pose.position
+        goalpos = req.goalpos.pose.position
+
+        # rx = robotpos.x
+        # ry = robotpos.y
+
+        gx = goalpos.x
+        gy = goalpos.y
+        Pcont_dist = 1
+        Pcont_ang = 1
+        
+        error_ang = math.atan2(gy, gx) 
+
+        distout = Pcont_dist*np.sqrt(gx**2 + gy**2)
+        error_dist = distout*np.exp(-np.abs(error_ang)*10)
+        
+        # error_dist = distout*Pcont_dist #alternative to the exponential 
+
+
+        # heading_angle = math.pi - error_ang
+
+        twist_msg = Twist()
+
+        if error_ang > 0.5:
+            #Angle fix
+            twist_msg.angular.z = error_ang * Pcont_ang
+            self.publisher_twist.publish(twist_msg) #input new twist message
+
+        else:
+            #Distance fix
+            twist_msg.angular.z = 0
+            # twist_msg.linear.x = error_dist
+            self.publisher_twist.publish(twist_msg)
+
+            # angle is done, drive towards it
+            self.publisher_twist.publish(twist_msg)
+        # else
+        #     #Stop
+        #     twist_msg.angular.z = 0
+        #     twist_msg.linear.x = 0
+        #     self.publisher_twist.publish(twist_msg)
+
+        #control towards angle // converge to point
+
+
+
+
+
 
     def goal_callback(self, msg):
         # rospy.loginfo("Recived new goal")
