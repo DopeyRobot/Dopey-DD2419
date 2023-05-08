@@ -80,6 +80,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         root_explore.add_child(frontier_exploration_behaviour)
         root_explore.add_child(give_path_behaviour)
         root_explore.add_child(percentage_of_known_behaviour_1)
+        
 
         OR_explore = pt.composites.Selector(
             name="?"
@@ -115,7 +116,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         )
         get_box_pose = GetBoxPose()
         go_to_box = give_path(exploring=False)
-        approach_pose_again = approach_pose
+        approach_pose_again = approach_goal()
         # look_at_focus_again = LookatCurrentFocus()
         drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
         drop_seq = pt.Sequence(
@@ -131,7 +132,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
              get_closest_obj, 
              go_to_pose, 
              bombastic_tune_behavior,
-             approach_goal,
+             approach_pose,
             #  look_at_focus, 
              stop_2_sec_again, 
              send_goal_to_arm, 
@@ -139,7 +140,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
              get_box_pose, 
              go_to_box, 
              bombastic_tune_behavior_again, 
-             approach_pose_again
+             approach_pose_again,
             #  look_at_focus_again, 
              drop_seq,
              aaaah_tune_behavior]   
