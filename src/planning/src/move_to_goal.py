@@ -7,10 +7,12 @@ from geometry_msgs.msg import PoseStamped, Twist
 from geometry_msgs.msg import  Twist
 from tf2_geometry_msgs import PoseStamped 
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
+from std_srvs.srv import EmptyResponse
 from tf.transformations import euler_from_quaternion
 from tf2_ros import Buffer, TransformListener, TransformStamped, TransformBroadcaster
-from planning.srv import lastAngle, lastAngleRequest, lastANgleResponse
+from planning.srv import lastAngle, lastAngleRequest, lastAngleResponse
+from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
 
 class PID:
     def __init__(self, P:float = 0.0, I:float = 0.0, D:float=0.0) -> None:
@@ -73,7 +75,7 @@ class move_to_goal():
         self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
         self.goal_subscriber = rospy.Subscriber('/goal', PoseStamped, self.goal_callback) 
         self.odom_subscriber = rospy.Subscriber('/odometry', Odometry, self.odom_callback) 
-
+        self.getframe_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         #self.ready_for_pose.data = True # Maybe not needed?
         #self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
@@ -82,18 +84,22 @@ class move_to_goal():
 
     def lastAngle_cb(self, req:lastAngleRequest):
         #angles are dealt with in base link reference frame
-
+        
         # robotpos = req.robotpos.pose.position
-        goalpos = req.goalpos.pose.position
+        current_ob = req.goal_frameid #get string data and make into rospy String
+        req0 = twoStrInPoseOutRequest()
+        req0.str1 = self.targetframe #baselink
+        req0.str2 = current_ob
+        object_pose = self.getframe_client(req0)
+
+        gx = object_pose.pose.position.x
+        gy = object_pose.pose.position.y
 
         # rx = robotpos.x
         # ry = robotpos.y
-        anglePID = PID(1, 0, 0)
-        distancePID = PID(1, 0, 0)
-        gx = goalpos.x
-        gy = goalpos.y
+        anglePID = PID(0.001, 0, 0)
+        distancePID = PID(0.001, 0, 0)
 
-        
         error_ang = math.atan2(gy, gx) 
         error_dist = np.sqrt(gx**2 + gy**2)
         
@@ -103,33 +109,33 @@ class move_to_goal():
         dist_angle_cont = dist_cont*np.exp(-np.abs(error_ang)*10)
         
         # error_dist = distout*Pcont_dist #alternative to the exponential 
-
-
         # heading_angle = math.pi - error_ang
 
         twist_msg = Twist()
 
-        if error_ang > 0.5:
-            #Angle fix
+        while error_ang > 0.5:
+            req1 = twoStrInPoseOutRequest()
+            req1.str1 = self.targetframe #baselink
+            req1.str2 = current_ob 
+            object_pose_new = self.getframe_client(req1)
+
+            gx = object_pose_new.pose.pose.position.x
+            gy = object_pose_new.pose.pose.position.y
+
+            error_ang_new = math.atan2(gy, gx) 
+            angle_cont = anglePID(error_ang_new)
+
             twist_msg.angular.z = angle_cont
             self.publisher_twist.publish(twist_msg) #input new twist message
 
-        else:
-            #Distance fix
-            twist_msg.angular.z = 0
-            # twist_msg.linear.x = dist_cont 
-            # twist_msg.linear.x = dist_angle_cont
-            self.publisher_twist.publish(twist_msg)
+            error_ang = error_ang_new
 
-            # angle is done, drive towards it
-            self.publisher_twist.publish(twist_msg)
-        # else
-        #     #Stop
-        #     twist_msg.angular.z = 0
-        #     twist_msg.linear.x = 0
-        #     self.publisher_twist.publish(twist_msg)
 
-        #control towards angle // converge to point
+        twist_msg.angular.z = 0
+
+        self.publisher_twist.publish(twist_msg)
+
+        return EmptyResponse()
 
 
 
@@ -224,19 +230,27 @@ class move_to_goal():
                         self.arrived2point = True
                         
                 else:
-                    if abs(error_ang2) > self.threshold_ang2:
-                        rospy.logdebug("Ajusting ang2")
-                        rospy.logdebug(error_ang2)
-                        self.twist.linear.x = 0.0
-                        self.twist.angular.z = ang2out
-
-                    else:
+                        #Adjusting angle 2
                         rospy.logdebug("Done")
                         self.twist.linear.x = 0.0
                         self.twist.angular.z = 0.0
                         self.ready_for_pose.data = True
                         self.ready_for_pose_publisher.publish(self.ready_for_pose)
                         rospy.sleep(3)
+
+                    # if abs(error_ang2) > self.threshold_ang2:
+                    #     rospy.logdebug("Ajusting ang2")
+                    #     rospy.logdebug(error_ang2)
+                    #     self.twist.linear.x = 0.0
+                    #     self.twist.angular.z = ang2out
+
+                    # else:
+                    #     rospy.logdebug("Done")
+                    #     self.twist.linear.x = 0.0
+                    #     self.twist.angular.z = 0.0
+                    #     self.ready_for_pose.data = True
+                    #     self.ready_for_pose_publisher.publish(self.ready_for_pose)
+                    #     rospy.sleep(3)
 
 
                 self.publisher_twist.publish(self.twist)

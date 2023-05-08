@@ -38,6 +38,7 @@ class CartesianController:
         self.I_right = I
 
         self.max_v = 0.35
+        self.max_w = 0.05
         self.last_w = None
 
         self.verbose = verbose
@@ -61,6 +62,7 @@ class CartesianController:
 
             if abs(desired_v) > self.max_v:
                 desired_v = np.sign(desired_v)*self.max_v
+                desired_w = np.sign(desired_w)*self.max_w
 
             w_left, w_right = self.translate_encoders()
             #w_left, w_right = self.state_from_odom() ## WORK IN PROGRESS

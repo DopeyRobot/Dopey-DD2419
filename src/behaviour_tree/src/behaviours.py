@@ -68,7 +68,7 @@ class give_path(pt.behaviour.Behaviour):
         self.__init__(self.exploring)
 
     def update(self):
-        print(f"is exploring {self.exploring}")
+        # print(f"is exploring {self.exploring}")
         # print(self.ready_for_pose)
         # print("ready for path in give_path:", self.ready_for_path)
         if self.path is not None:
@@ -859,8 +859,8 @@ class SendGoalToArm(pt.behaviour.Behaviour):
 class approach_goal(pt.behaviour.Behaviour):
     def __init__(self):
         super().__init__("Appraoching goal!")
+
         self.lastAngle_client = rospy.ServiceProxy("/lastAngle", lastAngle)
-        self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
 
 
         self.cur_obj_subscriber = rospy.Subscriber(
@@ -873,15 +873,13 @@ class approach_goal(pt.behaviour.Behaviour):
         self.current_obj = msg
     
     def update(self):
+        rospy.loginfo("Approaching Goal")
         if self.current_obj is not None:
-            req = twoStrInPoseOutRequest()
-            req.str1 = self.ref_frame
-            req.str2 = self.current_obj
+            req = lastAngleRequest()
 
-            pose = self.getpose_client(req)
-            req2 = lastAngleRequest()
-            req2.goalpos = pose
-            angle = self.lastAngle_client(req2)
+            # req.str1 = self.ref_frame #targetframe, dont need: defined as baselink in movetogoal
+            req.goal_frameid = self.current_obj #urrent object frame
+            self.lastAngle_client(req)
             return pt.common.Status.SUCCESS
         return pt.common.Status.RUNNING
     

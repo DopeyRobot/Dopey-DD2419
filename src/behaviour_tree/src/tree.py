@@ -64,7 +64,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         frontier_exploration_behaviour = FrontierExploration()
         give_path_behaviour = give_path()
-        appraoch_goal_behaviour = approach_goal()
+        #appraoch_goal_behaviour = approach_goal()
         percentage_of_known_behaviour_1 = ReturnKnownMapPercent(P)
         stop_robot_behaviour = StopRobot(2)
         lebron_tune_behaviour = playTuneBehaviour("lebronjames")
@@ -80,7 +80,6 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         root_explore.add_child(frontier_exploration_behaviour)
         root_explore.add_child(give_path_behaviour)
         root_explore.add_child(percentage_of_known_behaviour_1)
-        
 
         OR_explore = pt.composites.Selector(
             name="?"
@@ -105,7 +104,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         stop_2_sec = StopRobot(2)
         get_closest_obj = GetClosestObjectPose()
-        go_to_pose= give_path(exploring=False)
+        go_to_pose= give_path(exploring=True)
         approach_pose = approach_goal()
         # look_at_focus = LookatCurrentFocus()
         stop_2_sec_again = StopRobot(2)
@@ -115,7 +114,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             "PICKUP", [*pickup_behavs, Reset(pickup_behavs)]
         )
         get_box_pose = GetBoxPose()
-        go_to_box = give_path(exploring=False)
+        go_to_box = give_path(exploring=True)
         approach_pose_again = approach_goal()
         # look_at_focus_again = LookatCurrentFocus()
         drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
