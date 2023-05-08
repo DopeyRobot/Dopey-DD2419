@@ -10,6 +10,7 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
 from tf2_ros import Buffer, TransformListener, TransformStamped, TransformBroadcaster
+from planning.srv import lastAngle, lastAngleRequest, lastANgleResponse
 
 class PID:
     def __init__(self, P:float = 0.0, I:float = 0.0, D:float=0.0) -> None:
@@ -52,6 +53,8 @@ class move_to_goal():
         self.twist = Twist()  
         self.odom = Odometry()
         self.ready_for_pose = Bool()
+
+        self.lastAngle_srv = rospy.Service("/lastAngle", lastAngle, self.lastAngle_cb) 
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer)

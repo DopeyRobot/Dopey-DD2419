@@ -1,0 +1,4 @@
+geometry_msgs/PoseStamped robotpos
+geometry_msgs/PoseStamped goalpos
+---
+float64 lastangle
