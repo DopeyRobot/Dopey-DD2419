@@ -156,7 +156,7 @@ class BoundingBoxNode:
 
 
         if len(self.new_names.array) > 0:
-            path = "/home/robot/dd2419_ws/src/bounding_box_detection/src/evidence"
+            path = "/home/dopey/dd2419_ws/src/bounding_box_detection/src/evidence"
             names = [s.data for s in self.new_names.array]
             instances = "_".join(names)
             full_path = path + "/" + instances + ".jpg"
