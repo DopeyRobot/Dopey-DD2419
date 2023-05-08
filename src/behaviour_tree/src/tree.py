@@ -126,31 +126,45 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         bombastic_tune_behavior = playTuneBehaviour("bombastic")
         bombastic_tune_behavior_again = playTuneBehaviour("bombastic")
 
-        main_mission_subtree.add_children(
-            [stop_2_sec, 
-             get_closest_obj, 
-             go_to_pose, 
-             bombastic_tune_behavior,
-             approach_pose,
-            #  look_at_focus, 
-             stop_2_sec_again, 
-             send_goal_to_arm, 
-             pickup_seq, 
-             get_box_pose, 
-             go_to_box, 
-             bombastic_tune_behavior_again, 
-             approach_pose_again,
-            #  look_at_focus_again, 
-             drop_seq,
-             aaaah_tune_behavior]   
+        approach_behavs = [Wait(4), approach_goal(), Wait(4)]
+        approach_seq = pt.Sequence("Approach", [*approach_behavs, Reset(approach_behavs)])
+
+        
+
+        # main_mission_subtree.add_children(
+        #     [stop_2_sec, 
+        #      get_closest_obj, 
+        #      go_to_pose, 
+        #      bombastic_tune_behavior,
+        #      approach_seq,
+        #     #  look_at_focus, 
+        #      stop_2_sec_again, 
+        #      send_goal_to_arm, 
+        #      pickup_seq, 
+        #      get_box_pose, 
+        #      go_to_box, 
+        #      bombastic_tune_behavior_again, 
+        #      approach_pose_again,
+        #     #  look_at_focus_again, 
+        #      drop_seq,
+        #      aaaah_tune_behavior]   
+        # )
+
+        ## TEST 
+        test_root = pt.composites.Sequence(
+            name="->",
         )
+        testing_services_behavs = [get_closest_obj, Wait(4), bombastic_tune_behavior, Wait(4), approach_seq]
+
+        test_root.add_children(testing_services_behavs)
 
         ## MAIN ROOT
         ROOT_node = pt.composites.Sequence(
             name="ROOT_seq",
         )
-        ROOT_node.add_child(explore_subtree)
-        ROOT_node.add_child(main_mission_subtree)
+        # ROOT_node.add_child(explore_subtree)
+        # ROOT_node.add_child(main_mission_subtree)
+        ROOT_node.add_child(test_root)
         pt.display.render_dot_tree(ROOT_node)
 
         super(BehaviourTree, self).__init__(ROOT_node)

@@ -62,7 +62,7 @@ class move_to_goal():
         self.tf_listener = TransformListener(self.tf_buffer)
         self.br = TransformBroadcaster()
 
-        self.f = 50
+        self.f = 30
         self.rate = rospy.Rate(self.f)
         self.targetframe = "base_link"
         self.currentframe = "map"
@@ -88,17 +88,17 @@ class move_to_goal():
         # robotpos = req.robotpos.pose.position
         current_ob = req.goal_frameid #get string data and make into rospy String
         req0 = twoStrInPoseOutRequest()
-        req0.str1 = self.targetframe #baselink
+        req0.str1 = String(self.targetframe) #baselink
         req0.str2 = current_ob
         object_pose = self.getframe_client(req0)
 
-        gx = object_pose.pose.position.x
-        gy = object_pose.pose.position.y
+        gx = object_pose.pose.pose.position.x
+        gy = object_pose.pose.pose.position.y
 
         # rx = robotpos.x
         # ry = robotpos.y
-        anglePID = PID(0.001, 0, 0)
-        distancePID = PID(0.001, 0, 0)
+        anglePID = PID(0.1, 0, 0)
+        distancePID = PID(0.1, 0, 0)
 
         error_ang = math.atan2(gy, gx) 
         error_dist = np.sqrt(gx**2 + gy**2)
@@ -113,9 +113,10 @@ class move_to_goal():
 
         twist_msg = Twist()
 
-        while error_ang > 0.5:
+        while np.abs(error_ang) > 0.05 or np.abs(error_dist) > 0.14:
+            print("enter while loop angle error")
             req1 = twoStrInPoseOutRequest()
-            req1.str1 = self.targetframe #baselink
+            req1.str1 = String(self.targetframe) #baselink
             req1.str2 = current_ob 
             object_pose_new = self.getframe_client(req1)
 
@@ -125,15 +126,61 @@ class move_to_goal():
             error_ang_new = math.atan2(gy, gx) 
             angle_cont = anglePID(error_ang_new)
 
+            error_dist_new = np.sqrt(gx**2 + gy**2)
+            dist_cont = distancePID(error_dist_new)
+
+            dist_angle_cont_new = dist_cont*np.exp(-np.abs(error_ang_new)*10)
+
             twist_msg.angular.z = angle_cont
+            twist_msg.linear.x = dist_angle_cont
             self.publisher_twist.publish(twist_msg) #input new twist message
 
             error_ang = error_ang_new
+            dist_angle_cont = dist_angle_cont_new
+            error_dist= error_dist_new
+            print(f"new error_ang:{error_ang}")
+            print(f"new error_dist:{error_dist}")
+
+            if np.abs(error_dist) < 0.14:
+                break
+
+            rospy.sleep(0.5)
 
 
         twist_msg.angular.z = 0
+        self.publisher_twist.publish(twist_msg)
+
+        for i in range(10):
+            rospy.sleep(0.1)
+        
+        print("left sleep")
+
+        # while np.abs(error_dist) > 0.12:
+        #     print("enter while loop distance error")
+        #     req1 = twoStrInPoseOutRequest()
+        #     req1.str1 = String(self.targetframe) #baselink
+        #     req1.str2 = current_ob 
+        #     object_pose_new = self.getframe_client(req1)
+
+        #     gx = object_pose_new.pose.pose.position.x
+        #     gy = object_pose_new.pose.pose.position.y
+
+        #     error_dist_new = np.sqrt(gx**2 + gy**2)
+        #     dist_cont = distancePID(error_dist_new)
+
+        #     twist_msg.linear.x = dist_cont
+        #     self.publisher_twist.publish(twist_msg) #input new twist message
+
+        #     error_dist = error_dist_new
+        #     print(f"new dist_error:{error_dist}")
+
+
+        twist_msg.linear.x = 0
 
         self.publisher_twist.publish(twist_msg)
+        
+
+        print("lastAngle service done")
 
         return EmptyResponse()
 

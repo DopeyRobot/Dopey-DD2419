@@ -868,7 +868,8 @@ class approach_goal(pt.behaviour.Behaviour):
         )
         self.current_obj = None
         self.ref_frame = String("base_link")
-
+    def reset(self):
+        return None
     def current_object_callback(self, msg):
         self.current_obj = msg
     
@@ -880,6 +881,7 @@ class approach_goal(pt.behaviour.Behaviour):
             # req.str1 = self.ref_frame #targetframe, dont need: defined as baselink in movetogoal
             req.goal_frameid = self.current_obj #urrent object frame
             self.lastAngle_client(req)
+            print("last angle client success")
             return pt.common.Status.SUCCESS
         return pt.common.Status.RUNNING
     
