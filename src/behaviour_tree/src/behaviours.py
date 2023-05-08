@@ -14,13 +14,11 @@ from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse
 from kinematics.srv import GripStrength, GripStrengthRequest, GripStrengthResponse
 from nav_msgs.msg import OccupancyGrid, Path
 from play_tunes.srv import playTune, playTuneRequest, playTuneResponse
+from planning.srv import lastAngle, lastAngleRequest, lastAngleResponse
 from robp_msgs.msg import DutyCycles
 from std_msgs.msg import Bool, Empty, String
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 import tf_conversions
-
-
-
 
 class give_path(pt.behaviour.Behaviour):
     def __init__(self, exploring:bool= True):
@@ -857,3 +855,33 @@ class SendGoalToArm(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         
         return pt.common.Status.RUNNING
+
+class approach_goal(pt.behaviour.Behaviour):
+    def __init__(self):
+        self.lastAngle_client = rospy.ServiceProxy("/lastAngle", lastAngle)
+        self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+
+
+        self.cur_obj_subscriber = rospy.Subscriber(
+            "/current_obj_id", String, self.current_object_callback
+        )
+        self.current_obj = None
+        self.ref_frame = String("base_link")
+
+    def current_object_callback(self, msg):
+        self.current_obj = msg
+    
+    def update(self):
+        if self.current_obj is not None:
+            req = twoStrInPoseOutRequest()
+            req.str1 = self.ref_frame
+            req.str2 = self.current_obj
+
+            pose = self.getpose_client(req)
+            req2 = lastAngleRequest()
+            req2.goalpos = pose
+            angle = self.lastAngle_client(req2)
+            return pt.common.Status.SUCCESS
+        return pt.common.Status.RUNNING
+    
+

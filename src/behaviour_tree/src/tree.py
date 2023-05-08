@@ -11,6 +11,11 @@ from behaviours import *
 from geometry_msgs.msg import PoseStamped
 from reactive_sequence import RSequence
 from tf2_ros import Buffer, TransformListener, TransformStamped
+        # #...
+        # #... add more nodes
+        # #...
+
+        ## EXPLORATION SUBTREE 
 
 
 class BehaviourTree(ptr.trees.BehaviourTree):
@@ -56,8 +61,10 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         P = 0.2 #percentage to check for complete exploration
 
+
         frontier_exploration_behaviour = FrontierExploration()
         give_path_behaviour = give_path()
+        appraoch_goal_behaviour = approach_goal()
         percentage_of_known_behaviour_1 = ReturnKnownMapPercent(P)
         stop_robot_behaviour = StopRobot(2)
         lebron_tune_behaviour = playTuneBehaviour("lebronjames")
@@ -98,7 +105,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         stop_2_sec = StopRobot(2)
         get_closest_obj = GetClosestObjectPose()
         go_to_pose= give_path(exploring=False)
-        look_at_focus = LookatCurrentFocus()
+        approach_pose = approach_goal()
+        # look_at_focus = LookatCurrentFocus()
         stop_2_sec_again = StopRobot(2)
         send_goal_to_arm = SendGoalToArm()
         pickup_behavs = [PickupToTarget(), Wait(4), MoveArmToUnfold(), Wait(4)]
@@ -107,7 +115,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         )
         get_box_pose = GetBoxPose()
         go_to_box = give_path(exploring=False)
-        look_at_focus_again = LookatCurrentFocus()
+        approach_pose_again = approach_pose
+        # look_at_focus_again = LookatCurrentFocus()
         drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
         drop_seq = pt.Sequence(
             "DROP", [*drop_behavs, Reset(drop_behavs)]
@@ -122,14 +131,16 @@ class BehaviourTree(ptr.trees.BehaviourTree):
              get_closest_obj, 
              go_to_pose, 
              bombastic_tune_behavior,
-             look_at_focus, 
+             approach_goal,
+            #  look_at_focus, 
              stop_2_sec_again, 
              send_goal_to_arm, 
              pickup_seq, 
              get_box_pose, 
              go_to_box, 
              bombastic_tune_behavior_again, 
-             look_at_focus_again, 
+             approach_pose_again
+            #  look_at_focus_again, 
              drop_seq,
              aaaah_tune_behavior]   
         )
