@@ -68,6 +68,8 @@ class move_to_goal():
         self.currentframe = "map"
         self.timeout = rospy.Duration(2)
 
+        self.lastang = None
+
 
         rospy.sleep(2)
 
@@ -95,6 +97,7 @@ class move_to_goal():
         gx = object_pose.pose.pose.position.x
         gy = object_pose.pose.pose.position.y
 
+
         # rx = robotpos.x
         # ry = robotpos.y
         anglePID = PID(0.1, 0, 0)
@@ -113,7 +116,7 @@ class move_to_goal():
 
         twist_msg = Twist()
 
-        while np.abs(error_ang) > 0.05 or np.abs(error_dist) > 0.14:
+        while np.abs(error_ang) > 0.05 or np.abs(error_dist) > 0.18:
             print("enter while loop angle error")
             req1 = twoStrInPoseOutRequest()
             req1.str1 = String(self.targetframe) #baselink
@@ -144,16 +147,17 @@ class move_to_goal():
             if np.abs(error_dist) < 0.14:
                 break
 
-            rospy.sleep(0.5)
+            # rospy.sleep(0.5)
 
 
         twist_msg.angular.z = 0
+        twist_msg.linear.x = 0
         self.publisher_twist.publish(twist_msg)
 
-        for i in range(10):
-            rospy.sleep(0.1)
+        # for i in range(10):
+        #     rospy.sleep(0.1)
         
-        print("left sleep")
+        # print("left sleep")
 
         # while np.abs(error_dist) > 0.12:
         #     print("enter while loop distance error")
@@ -175,9 +179,9 @@ class move_to_goal():
         #     print(f"new dist_error:{error_dist}")
 
 
-        twist_msg.linear.x = 0
+        # twist_msg.linear.x = 0
 
-        self.publisher_twist.publish(twist_msg)
+        # self.publisher_twist.publish(twist_msg)
         
 
         print("lastAngle service done")
@@ -185,21 +189,11 @@ class move_to_goal():
         return EmptyResponse()
 
 
-
-
-
-
     def goal_callback(self, msg):
-        # rospy.loginfo("Recived new goal")
-
-        # self.ready_for_pose.data = False #TODO
-        # self.ready_for_pose_publisher.publish(self.ready_for_pose)
         self.goal_pose = PoseStamped()
         self.goal_pose.pose = msg.pose
         self.goal_pose.header.stamp = msg.header.stamp
         self.goal_pose.header.frame_id = msg.header.frame_id
-
-        # print(self.goal_pose.pose)
 
         self.arrived2point = False
 
@@ -210,7 +204,7 @@ class move_to_goal():
         base_link_origin = PoseStamped()
         base_link_origin.header.stamp = robot_pose.header.stamp
 
-        transform_to_map = self.tf_buffer.lookup_transform("map", "base_link", robot_pose.header.stamp , rospy.Duration(1))  #TODO: what was workign befroe was reverse order of target/soruce frame
+        transform_to_map = self.tf_buffer.lookup_transform("map", "base_link", robot_pose.header.stamp , rospy.Duration(1)) 
         baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
         robot_pose.pose.position.z = baseInMapPose.pose.position.z
@@ -229,6 +223,15 @@ class move_to_goal():
         self.odom = msg
         odom_q = self.odom.pose.pose.orientation
         (_, _, self.odom_theta) = euler_from_quaternion([odom_q.w, odom_q.x, odom_q.y, odom_q.z])
+
+    # def get_err_a1(self):
+    #     ea1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
+    #     print("calcualted angle in move2goal",ea1)
+    #     if self.lastang:
+    #         if abs(ea1-self.lastang) > 0.1:
+    #             ea1 = self.lastang
+    #             print("EXLPOSION IN MOVE2GOAL")
+    #     return ea1
 
 
     def run(self):
@@ -249,8 +252,10 @@ class move_to_goal():
                 # (_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
-                error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x)
+                error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x) #self.get_err_a1()#
+                self.lastang = error_ang1
                 error_ang2 = own_theta - self.goal_theta
+                
 
                 # rospy.loginfo(f"""💀\nerror_dist = {error_dist}\nerror_first_angle{error_ang1}\nerror_second_angle{error_ang2}💀""")
                 
@@ -259,28 +264,28 @@ class move_to_goal():
                 ang2out = self.ang2PID(error_ang2)
             
                 if not self.arrived2point:
-                    
+                    print("distance from waypoint:", error_dist)
+                    print("distance thrshold:",self.threshold_dist)
                     rospy.logdebug('Adjusting ang1')
-                    rospy.logdebug(error_ang1)
+                    #rospy.logdebug(error_ang1)
                     self.twist.angular.z = ang1out
     
                     rospy.logdebug("Adjusting dist")
                     rospy.logdebug(error_dist)
                     self.twist.linear.x = distout*np.exp(-np.abs(error_ang1)*10)
                     
-                    if error_dist < self.threshold_dist and abs(error_ang1) < self.threshold_ang1:
+                    if error_dist < self.threshold_dist: #and abs(error_ang1) < self.threshold_ang1:
                         rospy.logdebug("Correct pose!")
-                        self.twist.angular.z = 0
-                        self.twist.linear.x = 0
+                        # self.twist.angular.z = 0
+                        # self.twist.linear.x = 0
                         ang1out = 0
                         distout = 0
                         self.arrived2point = True
                         
                 else:
-                        #Adjusting angle 2
                         rospy.logdebug("Done")
-                        self.twist.linear.x = 0.0
-                        self.twist.angular.z = 0.0
+                        # self.twist.linear.x = 0.0
+                        # self.twist.angular.z = 0.0
                         self.ready_for_pose.data = True
                         self.ready_for_pose_publisher.publish(self.ready_for_pose)
                         rospy.sleep(3)

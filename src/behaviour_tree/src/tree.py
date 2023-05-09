@@ -154,7 +154,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         test_root = pt.composites.Sequence(
             name="->",
         )
-        testing_services_behavs = [get_closest_obj, Wait(4), bombastic_tune_behavior, Wait(4), approach_seq]
+        stop_behav = StopRobot(4)
+        testing_services_behavs = [get_closest_obj, give_path_behaviour, bombastic_tune_behavior,stop_behav, approach_seq]
 
         test_root.add_children(testing_services_behavs)
 

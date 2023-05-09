@@ -284,7 +284,7 @@ if __name__ == "__main__":
     # buffer = Buffer(rospy.Duration(100.0))
     # if buffer.can_transform("map", "base_link", rospy.Time.now(), rospy.Duration(2)):
 
-    RRTPlanner(start=None, goal=None, num_iterations=1000, step_size=0.3)
+    RRTPlanner(start=None, goal=None, num_iterations=1000, step_size=0.2)
     # try:
     #     start = [0, 0]
     #     goal = [0, 0]

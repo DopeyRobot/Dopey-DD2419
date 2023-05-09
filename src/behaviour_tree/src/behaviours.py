@@ -51,6 +51,7 @@ class give_path(pt.behaviour.Behaviour):
         self.ready_for_pose = Bool()
         self.ready_for_path = True
         self.pose_to_send = 0
+        self.tooFar = True
         # become a behaviour
 
         # self.update()
@@ -67,28 +68,46 @@ class give_path(pt.behaviour.Behaviour):
     def reset_cb(self,msg):
         self.__init__(self.exploring)
 
+    def check_euc_dist(self):
+        dist = self.get_distance_to_goal()
+        print("dist:",dist)
+        if dist < 0.5:
+            self.tooFar = False
+            self.ready_for_pose = True
+            self.ready_for_pose_pub.publish(self.ready_for_pose)
+
+        else:
+            self.tooFar = True
+
     def update(self):
         # print(f"is exploring {self.exploring}")
         # print(self.ready_for_pose)
         # print("ready for path in give_path:", self.ready_for_path)
+        
+
         if self.path is not None:
-            
-            dist = self.get_distance_to_goal()
+            self.check_euc_dist()
+            print("tooFar:",self.tooFar)
+            print("pose_to_send:",self.pose_to_send)
+            print("len of path:",len(self.path.poses))
+            print("ready for pose:",self.ready_for_pose)
+            # dist = self.get_distance_to_goal()
 
-            if not self.exploring and  dist < self.goal_threshold:
-                self.__init__(self.exploring)  # path = None
-                self.pose_to_send = 0
-                self.ready_for_path = True
-                self.ready_for_new_path.publish(self.ready_for_path)
-                print("👉🥺👈, close enough")
-                req = playTuneRequest(String("underwater"))
-                self.playtune_service(req)
-                return pt.common.Status.SUCCESS
+            # if not self.exploring and  dist < self.goal_threshold:
+            #     self.__init__(self.exploring)  # path = None
+            #     self.pose_to_send = 0
+            #     self.ready_for_path = True
+            #     self.ready_for_new_path.publish(self.ready_for_path)
+            #     print("👉🥺👈, close enough")
+            #     req = playTuneRequest(String("underwater"))
+            #     self.playtune_service(req)
+            #     return pt.common.Status.SUCCESS
 
 
-            elif self.ready_for_pose and self.pose_to_send < len(
-                self.path.poses
-            ):  # and self.path.poses != []:
+            if self.ready_for_pose and self.pose_to_send < len(
+                self.path.poses) and self.tooFar: 
+                print("Condition 1")
+                # and self.path.poses != []:
                 # print('Ready for new pose! Sending RUNNING in tree')
                 self.ready_for_pose = False
                 self.ready_for_pose_pub.publish(self.ready_for_pose)
@@ -97,7 +116,8 @@ class give_path(pt.behaviour.Behaviour):
 
                 return pt.common.Status.RUNNING
 
-            elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
+            elif self.ready_for_pose and not self.tooFar:#nd self.pose_to_send == len(self.path.poses) :
+                print("Condition 2")
                 self.__init__(self.exploring)  # path = None
                 self.pose_to_send = 0
                 self.ready_for_path = True
@@ -106,6 +126,7 @@ class give_path(pt.behaviour.Behaviour):
                 return pt.common.Status.SUCCESS
 
             else:
+                print("Condition 3")
                 self.ready_for_path = False
                 self.ready_for_new_path.publish(self.ready_for_path)
                 # print('Moving to next pose in path array! Sending RUNNING in tree')
@@ -121,10 +142,16 @@ class give_path(pt.behaviour.Behaviour):
     
     def get_distance_to_goal(self) -> float:
         ref_frame = String("base_link")
-        req = twoStrInPoseOutRequest(ref_frame, self.current_obj_id)
-        pose = self.pose_service(req).pose
-        dist = np.sqrt((pose.pose.position.x) ** 2
-            + (pose.pose.position.y) ** 2)
+        req = twoStrInPoseOutRequest()
+        req.str1 = ref_frame
+        req.str2 = self.current_obj_id
+        print(self.current_obj_id)
+        # req = twoStrInPoseOutRequest(ref_frame, self.current_obj_id)
+        object_pose = self.pose_service(req)
+        x = object_pose.pose.pose.position.x
+        y = object_pose.pose.pose.position.y
+        dist = np.sqrt((x) ** 2
+            + (y) ** 2)
         
         if not self.exploring:
             print(f"current dist to goal = {dist}")
