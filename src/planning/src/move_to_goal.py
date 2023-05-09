@@ -149,7 +149,6 @@ class move_to_goal():
 
             # rospy.sleep(0.5)
 
-
         twist_msg.angular.z = 0
         twist_msg.linear.x = 0
         self.publisher_twist.publish(twist_msg)

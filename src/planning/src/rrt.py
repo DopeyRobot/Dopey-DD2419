@@ -149,6 +149,7 @@ class RRTPlanner:
             # Free
             return True
         elif value > 0:
+            print("Ran into obstacle")
             # Obstacle
             return False
         else:
@@ -163,7 +164,7 @@ class RRTPlanner:
                 new_node.x = new_x
                 new_node.y = new_y
             else:
-                print("Ran into obstacle")
+                # print("Ran into obstacle")
                 return None
 
         return new_node

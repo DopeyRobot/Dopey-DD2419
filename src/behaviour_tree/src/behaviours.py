@@ -9,6 +9,7 @@ import tf2_ros
 from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
 from geometry_msgs.msg import Point, PoseStamped
 from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse
+from geometry_msgs.msg import  Twist
 
 # class give_path(pt.behaviour.Behaviour):
 from kinematics.srv import GripStrength, GripStrengthRequest, GripStrengthResponse
@@ -105,47 +106,50 @@ class give_path(pt.behaviour.Behaviour):
         
 
         if self.path is not None:
-            print("tooFar:",self.tooFar)
-            print("pose_to_send:",self.pose_to_send)
-            print("len of path:",len(self.path.poses))
-            print("ready for pose:",self.ready_for_pose)
+            # print("tooFar:",self.tooFar)
+            # print("pose_to_send:",self.pose_to_send)
+            # print("len of path:",len(self.path.poses))
+            # print("ready for pose:",self.ready_for_pose)
             print("explorin:", self.exploring)
             if not self.exploring:
+                #Used when approaching a focus object
+                print("Exploring done, go to object")
                 self.check_euc_dist()
                 if self.ready_for_pose and self.pose_to_send < len(
                     self.path.poses) and self.tooFar: 
-                    print("Condition 1")
+                    # print("Condition 1")
                     self._continueMoving()
                     return pt.common.Status.RUNNING
 
                 elif self.ready_for_pose and not self.tooFar:#nd self.pose_to_send == len(self.path.poses) :
-                    print("condition 2")
+                    # print("condition 2")
                     self._reachedFinalGoal()
                     print("Reached final pose, sending SUCCESS in tree")
                     return pt.common.Status.SUCCESS
 
                 else:
-                    print("condition 3")
+                    # print("condition 3")
                     
                     self.ready_for_path = False
                     self.ready_for_new_path.publish(self.ready_for_path)
                     # print('Moving to next pose in path array! Sending RUNNING in tree')
                     return pt.common.Status.RUNNING
             elif self.exploring:
+                print("Exploring still...")
                 if self.ready_for_pose and self.pose_to_send < len(
                     self.path.poses): 
-                    print("Condition 1")
+                    # print("Condition 1")
                     self._continueMoving()
                     return pt.common.Status.RUNNING
 
                 elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
-                    print("condition 2")
+                    # print("condition 2")
                     self._reachedFinalGoal()
                     print("Reached final pose, sending SUCCESS in tree")
                     return pt.common.Status.SUCCESS
 
                 else:
-                    print("condition 3")
+                    # print("condition 3")
                     
                     self.ready_for_path = False
                     self.ready_for_new_path.publish(self.ready_for_path)
@@ -155,6 +159,12 @@ class give_path(pt.behaviour.Behaviour):
         else:
             # print("Waiting for path, none given yet! Sending RUNNING in tree")
             self.ready_for_new_path.publish(self.ready_for_path)
+        
+            twist = Twist()
+            publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            twist.linear.x = 0.0
+            twist.angular.z = 0.0
+            publisher_twist.publish(twist)
             return pt.common.Status.RUNNING
         # else:
         #     print("sending final RUNNING")
@@ -245,6 +255,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
                         < 0
                     ):
                         x = (
+
                             (j - 0.5) * self.map_data.info.resolution
                             + self.map_data.info.origin.position.x
                         )
@@ -894,7 +905,7 @@ class LookatCurrentFocus(pt.behaviour.Behaviour):
         
 class SendGoalToArm(pt.behaviour.Behaviour):
     def __init__(self):
-        super().__init__("SendGoal")
+        super().__init__("SendGoal2Arm")
         self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         self.cur_obj_subscriber = rospy.Subscriber(
             "/current_obj_id", String, self.current_object_callback
@@ -949,6 +960,11 @@ class approach_goal(pt.behaviour.Behaviour):
             req.goal_frameid = self.current_obj #urrent object frame
             self.lastAngle_client(req)
             print("last angle client success")
+            twist = Twist()
+            publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            twist.linear.x = 0.0
+            twist.angular.z = 0.0
+            publisher_twist.publish(twist)
             return pt.common.Status.SUCCESS
         return pt.common.Status.RUNNING
     

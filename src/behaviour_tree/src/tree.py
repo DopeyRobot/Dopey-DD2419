@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.9 #percentage to check for complete exploration
+        P = 0.5 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -105,7 +105,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         stop_2_sec = StopRobot(2)
         get_closest_obj = GetClosestObjectPose()
         go_to_pose= give_path(exploring=False)
-        approach_pose = approach_goal()
+        # approach_pose = approach_goal()
         # look_at_focus = LookatCurrentFocus()
         stop_2_sec_again = StopRobot(2)
         send_goal_to_arm = SendGoalToArm()
@@ -115,7 +115,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         )
         get_box_pose = GetBoxPose()
         go_to_box = give_path(exploring=False)
-        approach_pose_again = approach_goal()
+        # approach_pose_again = approach_goal()
         # look_at_focus_again = LookatCurrentFocus()
         drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
         drop_seq = pt.Sequence(
@@ -130,6 +130,9 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         approach_seq = pt.Sequence("Approach", [*approach_behavs, Reset(approach_behavs)])
         approach_behavs_again = [Wait(4), approach_goal(), Wait(4)]
         approach_seq_again = pt.Sequence("Approach", [*approach_behavs_again, Reset(approach_behavs_again)])
+
+        approach_behavs_test = approach_goal()
+        approach_behavs_test_2 = approach_goal()
         
 
         
@@ -139,7 +142,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
              get_closest_obj, 
              go_to_pose, 
              bombastic_tune_behavior,
-             approach_seq,
+             approach_behavs_test,
+            #  approach_seq,
             #  look_at_focus, 
              stop_2_sec_again, 
              send_goal_to_arm, 
@@ -147,7 +151,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
              get_box_pose, 
              go_to_box, 
              bombastic_tune_behavior_again, 
-             approach_seq_again,
+             approach_behavs_test_2,
+            #  approach_seq_again,
             #  look_at_focus_again, 
              drop_seq,
              aaaah_tune_behavior]   
