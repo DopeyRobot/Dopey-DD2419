@@ -7,7 +7,6 @@ Panels:
         - /Image2
         - /LaserScan1
         - /Pose2
-        - /Pose2/Status1
       Splitter Ratio: 0.5647059082984924
     Tree Height: 164
   - Class: rviz/Selection
@@ -83,6 +82,8 @@ Visualization Manager:
       Value: false
     - Class: rviz/TF
       Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: false
@@ -371,7 +372,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 3.895429849624634
+      Distance: 5.649044990539551
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -379,8 +380,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.11983120441436768
-        Y: -0.3268436789512634
+        X: -1.200758695602417
+        Y: 1.1137688159942627
         Z: 3.2186508178710938e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806

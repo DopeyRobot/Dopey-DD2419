@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.2 #percentage to check for complete exploration
+        P = 0.9 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -104,7 +104,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         stop_2_sec = StopRobot(2)
         get_closest_obj = GetClosestObjectPose()
-        go_to_pose= give_path(exploring=True)
+        go_to_pose= give_path(exploring=False)
         approach_pose = approach_goal()
         # look_at_focus = LookatCurrentFocus()
         stop_2_sec_again = StopRobot(2)
@@ -114,7 +114,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             "PICKUP", [*pickup_behavs, Reset(pickup_behavs)]
         )
         get_box_pose = GetBoxPose()
-        go_to_box = give_path(exploring=True)
+        go_to_box = give_path(exploring=False)
         approach_pose_again = approach_goal()
         # look_at_focus_again = LookatCurrentFocus()
         drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
@@ -128,27 +128,30 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         approach_behavs = [Wait(4), approach_goal(), Wait(4)]
         approach_seq = pt.Sequence("Approach", [*approach_behavs, Reset(approach_behavs)])
+        approach_behavs_again = [Wait(4), approach_goal(), Wait(4)]
+        approach_seq_again = pt.Sequence("Approach", [*approach_behavs_again, Reset(approach_behavs_again)])
+        
 
         
 
-        # main_mission_subtree.add_children(
-        #     [stop_2_sec, 
-        #      get_closest_obj, 
-        #      go_to_pose, 
-        #      bombastic_tune_behavior,
-        #      approach_seq,
-        #     #  look_at_focus, 
-        #      stop_2_sec_again, 
-        #      send_goal_to_arm, 
-        #      pickup_seq, 
-        #      get_box_pose, 
-        #      go_to_box, 
-        #      bombastic_tune_behavior_again, 
-        #      approach_pose_again,
-        #     #  look_at_focus_again, 
-        #      drop_seq,
-        #      aaaah_tune_behavior]   
-        # )
+        main_mission_subtree.add_children(
+            [stop_2_sec, 
+             get_closest_obj, 
+             go_to_pose, 
+             bombastic_tune_behavior,
+             approach_seq,
+            #  look_at_focus, 
+             stop_2_sec_again, 
+             send_goal_to_arm, 
+             pickup_seq, 
+             get_box_pose, 
+             go_to_box, 
+             bombastic_tune_behavior_again, 
+             approach_seq_again,
+            #  look_at_focus_again, 
+             drop_seq,
+             aaaah_tune_behavior]   
+        )
 
         ## TEST 
         test_root = pt.composites.Sequence(
@@ -163,9 +166,9 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         ROOT_node = pt.composites.Sequence(
             name="ROOT_seq",
         )
-        # ROOT_node.add_child(explore_subtree)
-        # ROOT_node.add_child(main_mission_subtree)
-        ROOT_node.add_child(test_root)
+        ROOT_node.add_child(explore_subtree)
+        ROOT_node.add_child(main_mission_subtree)
+        # ROOT_node.add_child(test_root)
         pt.display.render_dot_tree(ROOT_node)
 
         super(BehaviourTree, self).__init__(ROOT_node)

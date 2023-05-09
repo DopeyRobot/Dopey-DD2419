@@ -141,8 +141,8 @@ class move_to_goal():
             error_ang = error_ang_new
             dist_angle_cont = dist_angle_cont_new
             error_dist= error_dist_new
-            print(f"new error_ang:{error_ang}")
-            print(f"new error_dist:{error_dist}")
+            # print(f"new error_ang:{error_ang}")
+            # print(f"new error_dist:{error_dist}")
 
             if np.abs(error_dist) < 0.14:
                 break
