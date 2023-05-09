@@ -317,7 +317,7 @@ class MemoryNode:
             "/instances_in_LTM", instanceNames, self.instances_in_LTM_srv_cb
         )
         self.set_location_srv = rospy.Service(
-            "/change_location", setLocation, self.change_location_srv_cb
+            "/set_obj_location", setLocation, self.set_location_srv_cb
         )
         self.get_object_pose_srv = rospy.Service(
             "/get_object_pose", twoStrInPoseOut, self.get_object_pose_cb
@@ -374,7 +374,7 @@ class MemoryNode:
         self.add_to_short_term(class_name, position, timestamp)
         return add2ShortTermResponse(True)
     
-    def change_location_srv_cb(self, req: setLocationRequest):
+    def set_location_srv_cb(self, req: setLocationRequest):
         instance_name = req.frame_id.data
         loc = req.location.data # "map", "box", "gripper", "tray"
         if(loc in [e.value for e in Locations]):
