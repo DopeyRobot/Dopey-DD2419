@@ -33,24 +33,46 @@ class FKpublisher:
 
 
         return EmptyResponse()
+    
+    def get_end_effector_frame(self):
+        pos, R = self.solver.forwards_kinematics(JointData.from_joint_state(self.cur_joint_state))
+        t = TransformStamped()
+        t.child_frame_id = "end_effector_frame"
+        t.header.frame_id = "arm_base_link"
+        t.header.stamp = rospy.Time.now()
+        t.transform.translation.x = pos[0]
+        t.transform.translation.y = pos[1]
+        t.transform.translation.z = pos[2]
+        q = rotation_to_ros_quaternion(R)
+        t.transform.rotation.w = q[3]
+        t.transform.rotation.x = q[0]
+        t.transform.rotation.y = q[1]
+        t.transform.rotation.z = q[2]
+
+        return t
+
+    def get_arm_cam_frame(self):
+        t = TransformStamped()
+        t.child_frame_id = "usb_cam_frame"
+        t.header.frame_id = "end_effector_frame"
+        t.header.stamp = rospy.Time.now()
+        t.transform.translation.x = 0.05
+        t.transform.translation.y = 0.0
+        t.transform.translation.z = -0.10
+        t.transform.rotation.w = 1
+        t.transform.rotation.x = 0
+        t.transform.rotation.y = 0
+        t.transform.rotation.z = 0
+
+        return t
 
     def run(self):
         while not rospy.is_shutdown():
-            pos, R = self.solver.forwards_kinematics(JointData.from_joint_state(self.cur_joint_state))
-            t = TransformStamped()
-            t.child_frame_id = "end_effector_frame"
-            t.header.frame_id = "arm_base_link"
-            t.header.stamp = rospy.Time.now()
-            t.transform.translation.x = pos[0]
-            t.transform.translation.y = pos[1]
-            t.transform.translation.z = pos[2]
-            q = rotation_to_ros_quaternion(R)
-            t.transform.rotation.w = q[3]
-            t.transform.rotation.x = q[0]
-            t.transform.rotation.y = q[1]
-            t.transform.rotation.z = q[2]
-
-            self.broadcaster.sendTransform(t)
+            
+            t_end = self.get_end_effector_frame()
+            t_cam = self.get_arm_cam_frame()
+            self.broadcaster.sendTransform(t_end)
+            self.broadcaster.sendTransform(t_cam)
             
             self.rate.sleep()
 
