@@ -26,6 +26,7 @@ class PoseService:
 
         self.unfold_service = rospy.Service("unfold", Trigger, self.unfold_callback)
         self.drop_service = rospy.Service("drop", Trigger, self.drop_callback)
+        self.prepick_service = rospy.Service("prepick", Trigger, self.prepick_callback)
         self.pickup_service_right = rospy.Service(
             "pickup/right", Trigger, self.pickup_r_callback
         )
@@ -86,6 +87,10 @@ class PoseService:
         self.publish_data(RefPoses.HOME.value, include_gripper=True)
         return TriggerResponse(True, "moved to home position")
     
+    def prepick_callback(self, req: TriggerRequest) -> TriggerResponse:
+        rospy.loginfo("Moving to prepick position")
+        self.publish_data(RefPoses.PREPICK_F.value, include_gripper=True)
+        return TriggerResponse(True, "moved to prepick position")
     def unfold_callback(self, req: TriggerRequest) -> TriggerResponse:
         rospy.loginfo("Moving to unfolded position")
         self.publish_data(RefPoses.UNFOLD.value, include_gripper=True)

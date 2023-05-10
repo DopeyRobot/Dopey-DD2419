@@ -156,7 +156,7 @@ class RefPoses(Enum):
     PICKUP_R = JointData.from_list(positions=[0, -1, -0.8, -1.3, 0, -0.2])
     PREPICK_R = JointData.from_list(positions=[0 -0.2, -1.2, -1.75, 0.0, -1.5])
     PICKUP_F = JointData.from_list(positions=[1.57, -0.9, -1.15, -1.1, 0, -1.5])
-    PREPICK_F = JointData.from_list(positions=[1.57, -0.2, -1.2, -1.75, 0.0, -1.5])
+    PREPICK_F = JointData.from_list(positions=[1.57, -0.4537, -0.9075, -1.797, 0.0, -1.5])
     LOOK_TRAY = JointData.from_list(positions=[-1.57, 0.33, -1.20, -1.88, 0, -0.2])
     PICKUP_TRAY = JointData.from_list(positions=[-1.57, 0.33, -1.20, -1.88, 0, -0.2])
     OPEN_GRIPPER = JointData.from_list(positions=[0, 0, 0, 0, 0, -1.5])
