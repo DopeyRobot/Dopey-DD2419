@@ -11,6 +11,11 @@ from behaviours import *
 from geometry_msgs.msg import PoseStamped
 from reactive_sequence import RSequence
 from tf2_ros import Buffer, TransformListener, TransformStamped
+        # #...
+        # #... add more nodes
+        # #...
+
+        ## EXPLORATION SUBTREE 
 
 
 class BehaviourTree(ptr.trees.BehaviourTree):
@@ -54,17 +59,19 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.9 #percentage to check for complete exploration
+        P = 0.5 #percentage to check for complete exploration
 
-        frontier_exploration_behaviour = behaviours.FrontierExploration()
-        give_path_behaviour = behaviours.give_path()
-        percentage_of_known_behaviour_1 = behaviours.ReturnKnownMapPercent(P)
-        stop_robot_behaviour = behaviours.StopRobot(2)
-        lebron_tune_behaviour = behaviours.playTuneBehaviour("lebronjames")
 
-        gothim_tune_behaviour = behaviours.playTuneBehaviour("gothim")
+        frontier_exploration_behaviour = FrontierExploration()
+        give_path_behaviour = give_path()
+        #appraoch_goal_behaviour = approach_goal()
+        percentage_of_known_behaviour_1 = ReturnKnownMapPercent(P)
+        stop_robot_behaviour = StopRobot(2)
+        lebron_tune_behaviour = playTuneBehaviour("lebronjames")
 
-        percentage_of_known_behaviour_2 = behaviours.ReturnKnownMapPercent(P)
+        gothim_tune_behaviour = playTuneBehaviour("gothim")
+
+        percentage_of_known_behaviour_2 = ReturnKnownMapPercent(P)
         
 
         
@@ -90,48 +97,92 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         
 
         ## MAIN MISSION SUBTREE
+        main_mission_subtree = pt.composites.Sequence(
+            name="->",
+        )
 
-        # rospy.wait_for_message("pickup_goal", PoseStamped)
-        # behavs = [
-        #     PickupToTarget(),
-        #     Wait(4),
-        #     MoveArmToUnfold(),
-        #     Wait(4),
-        #     MoveArmToDrop(),
-        #     Wait(4),
-        #     OpenGripper(),
-        # ]
 
-        # pickup_behavs = pt.Sequence(
-        #     "PICKUP", [PickupToTarget(), Wait(4), MoveArmToUnfold(), Wait(4)]
-        # )
+        stop_2_sec = StopRobot(2)
+        get_closest_obj = GetClosestObjectPose()
+        go_to_pose= give_path(exploring=False)
+        # approach_pose = approach_goal()
+        # look_at_focus = LookatCurrentFocus()
+        stop_2_sec_again = StopRobot(2)
+        send_goal_to_arm = SendGoalToArm()
+        pickup_behavs = [PickupToTarget(), Wait(4), MoveArmToUnfold(), Wait(4)]
+        pickup_seq = pt.Sequence(
+            "PICKUP", [*pickup_behavs, Reset(pickup_behavs)]
+        )
+        get_box_pose = GetBoxPose()
+        go_to_box = give_path(exploring=False)
+        # approach_pose_again = approach_goal()
+        # look_at_focus_again = LookatCurrentFocus()
+        drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
+        drop_seq = pt.Sequence(
+            "DROP", [*drop_behavs, Reset(drop_behavs)]
+        )
+        aaaah_tune_behavior = playTuneBehaviour("agh")
+        # root.add_child(test)
+        bombastic_tune_behavior = playTuneBehaviour("bombastic")
+        bombastic_tune_behavior_again = playTuneBehaviour("bombastic")
 
-        # drop_behavs = pt.Sequence(
-        #     "DROP", [MoveArmToDrop(), Wait(4), OpenGripper(), Wait(4), MoveArmToHome()]
-        # )
+        # approach_behavs = [Wait(8), approach_goal(), Wait(8)]
+        # approach_seq = pt.Sequence("Approach", [*approach_behavs, Reset(approach_behavs)])
+        # approach_behavs_again = [Wait(8), approach_goal(), Wait(8)]
+        # approach_seq_again = pt.Sequence("Approach", [*approach_behavs_again, Reset(approach_behavs_again)])
 
-        # test = pt.Sequence("pickanddrop", [pickup_behavs, drop_behavs])
-        # # root.add_child(test)
-
-        # root_pickup = pt.composites.Sequence(name="Pick up object")
-        # root_drop = pt.composites.Sequence(name="Drop object")
+        approach_behavs = approach_goal()
+        approach_behavs_again = approach_goal()
+        
 
         
 
-        # pick_up_object_behaviour = behaviours.PickUpObject()
-        # drop_object_behaviour = behaviours.DropObject()
+        main_mission_subtree.add_children(
+            [stop_2_sec, 
+             get_closest_obj, 
+             go_to_pose, 
+             bombastic_tune_behavior,
+             approach_behavs,
+            #  approach_behavs_test,
+            #  approach_seq,
+            #  look_at_focus, 
+             stop_2_sec_again, 
+             send_goal_to_arm, 
+             pickup_seq, 
+             get_box_pose, 
+             go_to_box, 
+             bombastic_tune_behavior_again, 
+             approach_behavs_again,
+            #  approach_behavs_test_2,
+            #  approach_seq_again,
+            #  look_at_focus_again, 
+             drop_seq,
+             aaaah_tune_behavior]   
+        )
 
-        # root_pickup.add_child(pick_up_object_behaviour)
-        # root_pickup.add_child(give_path_behaviour)
+        ## TEST 
+        give_path_behaviour_test = give_path(exploring= False)
+        stop_2_sec_first = StopRobot(2)
 
-        # root_drop.add_child(drop_object_behaviour)
-        # root_drop.add_child(give_path_behaviour)
+        test_root = pt.composites.Sequence(
+            name="->",
+        )
+        stop_behav = StopRobot(4)
+        clear_path_behav = ClearPathStuff()
+
+        # testing_services_behavs = [clear_path_behav,stop_2_sec_first,get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior, approach_behavs, stop_2_sec, send_goal_to_arm, pickup_seq]
+        # # testing_services_behavs = [get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior,stop_behav, approach_seq]
+
+
+        # test_root.add_children(testing_services_behavs)
 
         ## MAIN ROOT
         ROOT_node = pt.composites.Sequence(
             name="ROOT_seq",
         )
         ROOT_node.add_child(explore_subtree)
+        ROOT_node.add_child(main_mission_subtree)
+        # ROOT_node.add_child(test_root)
         pt.display.render_dot_tree(ROOT_node)
 
         super(BehaviourTree, self).__init__(ROOT_node)

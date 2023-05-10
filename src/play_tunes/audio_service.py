@@ -3,7 +3,7 @@ from playsound import playsound
 import rospy
 from std_srvs.srv import Empty, EmptyResponse, EmptyRequest
 from play_tunes.srv import playTune, playTuneResponse, playTuneRequest
-AUDIO_PATH = "/home/robot/dd2419_ws/src/play_tunes/audio_files/"
+AUDIO_PATH = "/home/dopey/dd2419_ws/src/play_tunes/audio_files/"
 class AudioService:
     def __init__(self) -> None:
         self.play_tune = rospy.Service("playTune", playTune, self.play_tune_callback)
@@ -92,9 +92,12 @@ class AudioService:
         elif req == "underwater":
             playsound(AUDIO_PATH+"underwater.mp3")
             return EmptyResponse()
-        else: 
-            rospy.logerr("Invalid tune name")
+        elif req == "nogod":
             playsound(AUDIO_PATH+"noMichael.mp3")
+            return EmptyResponse()
+        else: 
+            playsound(AUDIO_PATH+"no_file.mp3")
+            rospy.logerr("Invalid tune name")
             return EmptyResponse()
 
 
