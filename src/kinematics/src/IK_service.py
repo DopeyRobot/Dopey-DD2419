@@ -12,6 +12,7 @@ from std_srvs.srv import (
     TriggerRequest,
     TriggerResponse,
 )
+from object_detection.srv import XnY, XnYRequest, XnYResponse
 from std_msgs.msg import String
 from tf2_geometry_msgs import PoseStamped
 from tf2_ros import Buffer, TransformListener
@@ -37,6 +38,7 @@ class IKService:
         self.pose_service = rospy.ServiceProxy("pose_service", JointAngles)
         self.gripper_open_service = rospy.ServiceProxy("gripper/open", Trigger)
         self.gripper_close_service = rospy.ServiceProxy("gripper/close", GripStrength)
+        self.blob_service = rospy.ServiceProxy("blob_detection", XnY)
         self.pickup_goal = PoseStamped()
         self.inverse_k_service = rospy.Service("IK_service", IKData, self.IK_callback)
         self.pickup_goal_sub = rospy.Subscriber(
@@ -126,7 +128,7 @@ class IKService:
         self.cur_joint_state = msg
 
     def move_to(self, pos, wrist_pitch, wrist_rotation):
-        sol = self.solver.analytical_IK(pos, wrist_pitch, wrist_rotation, reflect_angle=True)
+        sol = self.solver.analytical_IK(pos, wrist_pitch, wrist_rotation, reflect_angle=False)
         if sol is not None:
             rospy.loginfo(sol)
             self.pose_service(sol.to_np_array(), 800)
@@ -138,10 +140,11 @@ class IKService:
 
     def pickup_routine_callback(self, req: TriggerRequest) -> TriggerResponse:
         rospy.loginfo("pickup routine started")
-        self.pose_service(RefPoses.HOME.value.to_joint_angles_req())
-        # rospy.sleep(2)
-        # rospy.loginfo("moving to front pickup zone")
-        # self.pose_service(RefPoses.PREPICK_F.value.to_joint_angles_req())
+        self.pose_service(RefPoses.PREPICK_F.value.to_joint_angles_req())
+        rospy.sleep(3)
+        rospy.loginfo("detecting object ....")
+        xnyreq = XnYRequest()
+        xnyresp = self.blob_service(xnyreq)
         rospy.sleep(2)
         self.gripper_open_service(TriggerRequest())
         rospy.sleep(2)
