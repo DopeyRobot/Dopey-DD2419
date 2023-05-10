@@ -144,15 +144,19 @@ class PoseService:
         self.joint1_pub.publish(
             self.to_command_duration(joint_data.joint1, duration=time)
         )
+        rospy.sleep(1)
         self.joint2_pub.publish(
             self.to_command_duration(joint_data.joint2, duration=time)
         )
+        # rospy.sleep(0.5)
         self.joint3_pub.publish(
             self.to_command_duration(joint_data.joint3, duration=time)
         )
+        # rospy.sleep(0.5)
         self.joint4_pub.publish(
             self.to_command_duration(joint_data.joint4, duration=time)
         )
+        # rospy.sleep(0.5)
         self.joint5_pub.publish(
             self.to_command_duration(joint_data.joint5, duration=time)
         )
