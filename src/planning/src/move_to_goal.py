@@ -38,7 +38,7 @@ class PID:
 
 class move_to_goal():
 
-    def __init__(self):
+    def __init__(self,runInit=True):
         self.ang1PID = PID(1e-1, 0.0, 0.0)
         self.distPID = PID(3e-1, 0.0, 0.0)
         self.ang2PID = PID(1e-1, 0.0, 0.0)
@@ -56,7 +56,7 @@ class move_to_goal():
         self.odom = Odometry()
         self.ready_for_pose = Bool()
 
-        self.lastAngle_srv = rospy.Service("/lastAngle", lastAngle, self.lastAngle_cb) 
+        
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer)
@@ -72,7 +72,7 @@ class move_to_goal():
 
 
         rospy.sleep(2)
-
+        self.lastAngle_srv = None
         self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=1)
         self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
         self.goal_subscriber = rospy.Subscriber('/goal', PoseStamped, self.goal_callback) 
@@ -83,7 +83,9 @@ class move_to_goal():
         #self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
         self.arrived2point = False
-        self.run() 
+        if runInit:
+            self.run() 
+            
 
     def lastAngle_cb(self, req:lastAngleRequest):
         #angles are dealt with in base link reference frame
@@ -119,7 +121,7 @@ class move_to_goal():
         approach_bool = Bool()
         approach_bool.data = False
 
-        while np.abs(error_ang) > 0.05 or np.abs(error_dist) > 0.18:
+        while np.abs(error_ang) > 0.05 or np.abs(error_dist) > 0.10:
             print("enter while loop angle error")
             req1 = twoStrInPoseOutRequest()
             req1.str1 = String(self.targetframe) #baselink
@@ -241,11 +243,11 @@ class move_to_goal():
 
 
     def run(self):
-
+        self.lastAngle_srv = rospy.Service("/lastAngle", lastAngle, self.lastAngle_cb) 
         while not rospy.is_shutdown():
 
             if self.goal_pose:
-
+                
                 self.goal_pose.header.frame_id = self.currentframe
                 self.goal_pose.header.stamp = rospy.Time.now()
                 self.transformed_goal_pose = self.tf_buffer.transform(self.goal_pose, self.targetframe, self.timeout)
@@ -294,7 +296,8 @@ class move_to_goal():
                         # self.twist.angular.z = 0.0
                         self.ready_for_pose.data = True
                         self.ready_for_pose_publisher.publish(self.ready_for_pose)
-                        rospy.sleep(3)
+                        # rospy.sleep(3)
+                        self.__init__(runInit=False)
 
                     # if abs(error_ang2) > self.threshold_ang2:
                     #     rospy.logdebug("Ajusting ang2")

@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.5 #percentage to check for complete exploration
+        P = 0.4 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -170,11 +170,11 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         stop_behav = StopRobot(4)
         clear_path_behav = ClearPathStuff()
 
-        # testing_services_behavs = [clear_path_behav,stop_2_sec_first,get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior, approach_behavs, stop_2_sec, send_goal_to_arm, pickup_seq]
-        # # testing_services_behavs = [get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior,stop_behav, approach_seq]
+        testing_services_behavs = [stop_2_sec_first,get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior, approach_behavs, stop_2_sec, send_goal_to_arm, pickup_seq]
+        # testing_services_behavs = [get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior,stop_behav, approach_seq]
 
 
-        # test_root.add_children(testing_services_behavs)
+        test_root.add_children(testing_services_behavs)
 
         ## MAIN ROOT
         ROOT_node = pt.composites.Sequence(
