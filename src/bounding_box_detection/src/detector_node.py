@@ -114,7 +114,6 @@ class BoundingBoxNode:
         self.run()
 
     def new_names_cb(self, msg:StringArray):
-        print(msg)
         self.new_names = msg
 
 
@@ -161,7 +160,7 @@ class BoundingBoxNode:
             names = [s.data for s in self.new_names.array]
             instances = "_".join(names)
             full_path = path + "/" + instances + ".jpg"
-            self.save_pic(bb_image, full_path)
+            # self.save_pic(bb_image, full_path)
             for name in names:
                 rospy.loginfo("name")
                 self.play_tune(name)

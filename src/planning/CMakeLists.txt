@@ -9,6 +9,9 @@ project(planning)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  std_msgs
+  geometry_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -52,13 +55,14 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
+add_service_files(
+  FILES
+  lastAngle.srv
 #   Service1.srv.py  map.npy  maptest.pgm  maptest.yaml  planning.py planning_alice.py  __pycache__  rrt.py
 #robot@DD2419SSD:~/Dopey_ws/Dopey-DD2419/src/planning/src$ code . 
 #robot@DD2419SSD:~/Dopey_ws/Dopey-DD2419/src/planning/src$ 
 #   Service2.srv
-# )
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -68,10 +72,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs  # Or other packages containing msgs
+  geometry_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##

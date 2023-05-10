@@ -65,6 +65,16 @@ class IKService:
             self.pickup_goal.pose.position.y,
             self.pickup_goal.pose.position.z,
         )
+
+        if x < 0.05:
+            x = 0.05
+        if y > 0.10:
+            y = 0.10
+        if y < -0.10:
+            y = -0.10
+
+        z = -0.05
+
         psi = -np.pi
         rot = 0
 

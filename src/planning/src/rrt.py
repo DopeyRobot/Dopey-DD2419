@@ -93,6 +93,7 @@ class RRTPlanner:
     def send_goal_callback(self, msg):
         msgGoal = [msg.pose.position.x, msg.pose.position.y]
         # self.goal = [msg.pose.position.x, msg.pose.position.y]
+     
 
         if not np.allclose(np.array(self.goal,dtype=float),np.array(msgGoal,dtype=float)) or self.goal is None:#self.goal != msgGoal:
             # try:
@@ -148,6 +149,7 @@ class RRTPlanner:
             # Free
             return True
         elif value > 0:
+            print("Ran into obstacle")
             # Obstacle
             return False
         else:
@@ -162,7 +164,7 @@ class RRTPlanner:
                 new_node.x = new_x
                 new_node.y = new_y
             else:
-                print("Ran into obstacle")
+                # print("Ran into obstacle")
                 return None
 
         return new_node
@@ -277,12 +279,13 @@ class RRTPlanner:
                 self.publish_path()
                 #self.goal = None
 
+
 if __name__ == "__main__":
     rospy.init_node("rrt")
     # buffer = Buffer(rospy.Duration(100.0))
     # if buffer.can_transform("map", "base_link", rospy.Time.now(), rospy.Duration(2)):
 
-    RRTPlanner(start=None, goal=None, num_iterations=1000, step_size=0.3)
+    RRTPlanner(start=None, goal=None, num_iterations=1000, step_size=0.2)
     # try:
     #     start = [0, 0]
     #     goal = [0, 0]

@@ -8,24 +8,28 @@ import tf2_geometry_msgs
 import tf2_ros
 from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
 from geometry_msgs.msg import Point, PoseStamped
+from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse
+from geometry_msgs.msg import  Twist
 
 # class give_path(pt.behaviour.Behaviour):
 from kinematics.srv import GripStrength, GripStrengthRequest, GripStrengthResponse
 from nav_msgs.msg import OccupancyGrid, Path
 from play_tunes.srv import playTune, playTuneRequest, playTuneResponse
+from planning.srv import lastAngle, lastAngleRequest, lastAngleResponse
 from robp_msgs.msg import DutyCycles
 from std_msgs.msg import Bool, Empty, String
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 import tf_conversions
 
-
-
-
 class give_path(pt.behaviour.Behaviour):
-    def __init__(self):
+    def __init__(self, exploring:bool= True):
+        super().__init__("Give path!")
+        self.exploring = exploring
+        self.goal_threshold = 0.2
         self.name = "give_path"
         self.goal_pub = rospy.Publisher("/goal", PoseStamped, queue_size=10)
         self.path_sub = rospy.Subscriber("/path_topic", Path, self.path_callback)
+        # self.sub_goal = rospy.Subscriber("/send_goal", PoseStamped, self.send_goal_callback)
         self.ready_for_pose_sub = rospy.Subscriber(
             "/ready_for_pose", Bool, self.ready_for_path_callback
         )
@@ -35,14 +39,33 @@ class give_path(pt.behaviour.Behaviour):
         self.ready_for_new_path = rospy.Publisher(
             "/ready_for_new_path", Bool, queue_size=1, latch=True
         )
+        self.reset_sub = rospy.Subscriber(
+            "/reset_path_planning", Bool, self.reset_cb
+        )
+
+        self.pose_service = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        self.playtune_service = rospy.ServiceProxy("/playTune", playTune)
+        self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
+
+
+        self.current_obj_id_sub = rospy.Subscriber("/current_obj_id", String, self.current_obj_id_cb)
+        self.current_obj_id = String()
 
         self.path = None  # Path()
         self.ready_for_pose = Bool()
         self.ready_for_path = True
         self.pose_to_send = 0
+        self.tooFar = True
+        # self.goalPosition = None
         # become a behaviour
-        super(give_path, self).__init__("Give path!")
+
         # self.update()
+
+    # def send_goal_callback(self, msg):
+    #     self.goalPosition = [msg.pose.position.x, msg.pose.position.y]
+
+    def current_obj_id_cb(self, msg):
+        self.current_obj_id = msg
 
     def path_callback(self, msg):
         self.path = msg
@@ -50,68 +73,146 @@ class give_path(pt.behaviour.Behaviour):
     def ready_for_path_callback(self, msg):
         self.ready_for_pose = msg.data
 
-    def get_current_pose(self):
+    def reset_cb(self,msg):
+        self.__init__(self.exploring)
 
-        robot_pose = PoseStamped()
-        robot_pose.header.stamp = rospy.Time.now()
-        base_link_origin = PoseStamped()
-        base_link_origin.header.stamp = robot_pose.header.stamp
+    def check_euc_dist(self):
+        dist = self.get_distance_to_goal()
+        #print("dist:",dist)
+        if dist < 0.5:
+            self.tooFar = False
+            self.ready_for_pose = True
+            self.ready_for_pose_pub.publish(self.ready_for_pose)
 
-        transform_to_map = self.buffer.lookup_transform(
-            "base_link", "map", robot_pose.header.stamp, rospy.Duration(1)
-        )  # TODO: check order of target/source frrame
-        baseInMapPose = tf2_geometry_msgs.do_transform_pose(
-            base_link_origin, transform_to_map
-        )
+        else:
+            self.tooFar = True
+    
+    def _continueMoving(self):
+        # and self.path.poses != []:
+        # print('Ready for new pose! Sending RUNNING in tree')
+        self.ready_for_pose = False
+        self.ready_for_pose_pub.publish(self.ready_for_pose)
+        self.goal_pub.publish(self.path.poses[self.pose_to_send])
+        self.pose_to_send = self.pose_to_send + 1
+        
+    def _reachedFinalGoal(self):
+        self.__init__(self.exploring)  # path = None
+        self.pose_to_send = 0
 
-        robot_pose.pose.position.z = baseInMapPose.pose.position.z
-        robot_pose.pose.position.x = baseInMapPose.pose.position.x
-        robot_pose.pose.position.y = baseInMapPose.pose.position.y
-        robot_pose.pose.orientation.w = baseInMapPose.pose.orientation.w
-        robot_pose.pose.orientation.x = baseInMapPose.pose.orientation.x
-        robot_pose.pose.orientation.y = baseInMapPose.pose.orientation.y
-        robot_pose.pose.orientation.z = baseInMapPose.pose.orientation.z
-
-        robot_pose.header.frame_id = "map"
-
-        return robot_pose
 
     def update(self):
+        # print(f"is exploring {self.exploring}")
         # print(self.ready_for_pose)
         # print("ready for path in give_path:", self.ready_for_path)
+        
+
         if self.path is not None:
-            if self.ready_for_pose and self.pose_to_send < len(
-                self.path.poses
-            ):  # and self.path.poses != []:
-                # print('Ready for new pose! Sending RUNNING in tree')
-                self.ready_for_pose = False
-                self.ready_for_pose_pub.publish(self.ready_for_pose)
-                self.goal_pub.publish(self.path.poses[self.pose_to_send])
-                self.pose_to_send = self.pose_to_send + 1
+            # print("tooFar:",self.tooFar)
+            # print("pose_to_send:",self.pose_to_send)
+            # print("len of path:",len(self.path.poses))
+            # print("ready for pose:",self.ready_for_pose)
+            #print("explorin:", self.exploring)
+            if not self.exploring:
+                #Used when approaching a focus object
+                print("Exploring done, go to object")
+                self.check_euc_dist()
+                if self.ready_for_pose and self.pose_to_send < len(
+                    self.path.poses) and self.tooFar: 
+                    # print("Condition 1")
+                    self._continueMoving()
+                    return pt.common.Status.RUNNING
 
-                return pt.common.Status.RUNNING
+                elif self.ready_for_pose and not self.tooFar:#nd self.pose_to_send == len(self.path.poses) :
+                    # print("condition 2")
+                    self._reachedFinalGoal()
+                    print("Reached final pose in path, ready for new path")
+                    return pt.common.Status.SUCCESS
 
-            elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
-                self.__init__()  # path = None
-                self.pose_to_send = 0
-                self.ready_for_path = True
-                self.ready_for_new_path.publish(self.ready_for_path)
-                print("Reached final pose, sending SUCCESS in tree")
-                return pt.common.Status.SUCCESS
+                else:
+                    # print("condition 3")
+                    
+                    self.ready_for_path = False
+                    self.ready_for_new_path.publish(self.ready_for_path)
+                    # print('Moving to next pose in path array! Sending RUNNING in tree')
+                    return pt.common.Status.RUNNING
+            elif self.exploring:
+                print("Dopey is exploring...")
+                if self.ready_for_pose and self.pose_to_send < len(
+                    self.path.poses): 
+                    # print("Condition 1")
+                    self._continueMoving()
+                    return pt.common.Status.RUNNING
 
-            else:
-                self.ready_for_path = False
-                self.ready_for_new_path.publish(self.ready_for_path)
-                # print('Moving to next pose in path array! Sending RUNNING in tree')
-                return pt.common.Status.RUNNING
+                elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
+                    # print("condition 2")
+                    self._reachedFinalGoal()
+                    self.ready_for_path = True
+                    self.ready_for_new_path.publish(self.ready_for_path)
+                    print("Reached final pose, sending SUCCESS in tree")
+                    return pt.common.Status.SUCCESS
+
+                else:
+                    # print("condition 3")
+                    
+                    self.ready_for_path = False
+                    self.ready_for_new_path.publish(self.ready_for_path)
+                    # print('Moving to next pose in path array! Sending RUNNING in tree')
+                    return pt.common.Status.RUNNING
 
         else:
             # print("Waiting for path, none given yet! Sending RUNNING in tree")
-            self.ready_for_new_path.publish(self.ready_for_path)
+            # self.ready_for_new_path.publish(self.ready_for_path)
+        
+            # twist = Twist()
+            # publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            # twist.linear.x = 0.0
+            # twist.angular.z = 0.0
+            # publisher_twist.publish(twist)
+            # msg = DutyCycles()
+            # msg.duty_cycle_left = 0
+            # msg.duty_cycle_right = 0
+            # self.duty_pub.publish(msg)
             return pt.common.Status.RUNNING
         # else:
         #     print("sending final RUNNING")
         #     return pt.common.Status.RUNNING
+    
+    def get_distance_to_goal(self) -> float:
+        # if self.current_obj_id != String(''):
+        ref_frame = String("base_link")
+        req = twoStrInPoseOutRequest()
+        req.str1 = ref_frame
+        req.str2 = self.current_obj_id
+        print("Current obj id:", self.current_obj_id)
+        # req = twoStrInPoseOutRequest(ref_frame, self.current_obj_id)
+        object_pose = self.pose_service(req)
+        x = object_pose.pose.pose.position.x
+        y = object_pose.pose.pose.position.y
+        # elif self.goalPosition is not None: #during ierier exploration
+        #     ref_frame = String("map")
+        #     req = twoStrInPoseOutRequest()
+        #     req.str1 = ref_frame
+        #     req.str2 = String("base_link")
+        #     object_pose = self.pose_service(req)
+        #     xr = object_pose.pose.pose.position.x
+        #     yr = object_pose.pose.pose.position.y
+        #     xg = self.goalPosition[0]
+        #     yg = self.goalPosition[1]
+        #     x = xr-xg
+        #     y = yr-yg
+        # else: #We're not trackign an object and havent received a frontier goal yet
+        #     inf = 1e3
+        #     x = inf
+        #     y = inf
+
+        dist = np.sqrt((x) ** 2
+        + (y) ** 2)
+        
+        # if not self.exploring:
+        #     print(f"current dist to goal = {dist}")
+        
+        return dist
+
 
 
 class FrontierExploration(pt.behaviour.Behaviour):
@@ -161,6 +262,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
                         < 0
                     ):
                         x = (
+
                             (j - 0.5) * self.map_data.info.resolution
                             + self.map_data.info.origin.position.x
                         )
@@ -224,7 +326,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
 
             if self.ready_for_path:
                 self.publish_goal.publish(frontier_to_publish)
-                print("Sending current frontier goal, sending SUCCESS in tree")
+                print("Sending current frontier goal, looking for path")
                 # print("ready for path in explore:", self.ready_for_path)
                 # self.publish_frontier.publish(frontier_to_publish)
                 return pt.common.Status.SUCCESS
@@ -520,6 +622,12 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         rospy.Subscriber("/occupancygrid", OccupancyGrid, self.map_callback)
         # self.playTune_client = rospy.ServiceProxy("playTune", playTune)
         # rospy.wait_for_service("playTune", timeout=2)
+        self.ready_for_new_path_pub = rospy.Publisher(
+            "/ready_for_new_path", Bool, queue_size=1, latch=True
+        )
+        self.reset_pub = rospy.Publisher(
+            "/reset_path_planning", Bool
+        )
 
         self.occupancy_grid = None
         self.p = p
@@ -550,13 +658,43 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
             number_of_unexplored_elements / self.number_of_total_map_cells
         )
         percentage_of_unexplored = 1-percentage_of_unexplored
-        print(percentage_of_unexplored)
-        print(self.p)
+        # print(percentage_of_unexplored)
+        # print(self.p)
         if percentage_of_unexplored >= self.p:
             # self.playTune_client(String("gothim"))
+            # NOTE: LOOK HERE; test to clear the path lpannign before moving onto main mission
+            true = Bool()
+            true.data = True
+            self.reset_pub.publish(true)
+            self.ready_for_new_path_pub.publish(true)
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+        
+
+class ClearPathStuff(pt.behaviour.Behaviour):
+    def __init__(self):
+        self.name = "ClearPathStuff"
+        # self.playTune_client = rospy.ServiceProxy("playTune", playTune)
+        # rospy.wait_for_service("playTune", timeout=2)
+        self.ready_for_new_path_pub = rospy.Publisher(
+            "/ready_for_new_path", Bool, queue_size=1, latch=True
+        )
+        self.reset_pub = rospy.Publisher(
+            "/reset_path_planning", Bool
+        )
+
+        super(ClearPathStuff, self).__init__(
+            "Clearing Path Stuff!"
+        )
+
+
+    def update(self):
+        true = Bool()
+        true.data = True
+        self.reset_pub.publish(true)
+        self.ready_for_new_path_pub.publish(true)
+        return pt.common.Status.SUCCESS
 
 
 class StopRobot(pt.behaviour.Behaviour):
@@ -573,14 +711,19 @@ class StopRobot(pt.behaviour.Behaviour):
         if rospy.Time.now() - self.start > rospy.Duration(self.duration):
             return pt.common.Status.SUCCESS
         else:
-            msg = DutyCycles()
-            msg.duty_cycle_left = 0
-            msg.duty_cycle_right = 0
-            self.duty_pub.publish(msg)
+            twist = Twist()
+            publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            twist.linear.x = 0.0
+            twist.angular.z = 0.0
+            publisher_twist.publish(twist)
+            # msg = DutyCycles()
+            # msg.duty_cycle_left = 0
+            # msg.duty_cycle_right = 0
+            # self.duty_pub.publish(msg)
             return pt.common.Status.RUNNING
 
     def initialise(self):
-        print("Resetting start time")
+        print("Stopping robot for ",self.duration)
         self.start = rospy.Time.now()
 
 
@@ -600,6 +743,7 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
         self.publisher_focus_frame_id = rospy.Publisher(
             "/current_focus_id", String, queue_size=1, latch= True
         )
+        self.occupancy_client = rospy.ServiceProxy("/occupied_service", isOccupied)
 
         self.ready_for_path = True
 
@@ -614,23 +758,67 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
 
     def update(self):
         req = closestObjRequest()
-        req.ref_frame.data = "map"  # frame_id
-        req.desired_class.data = "no_box"  # object class ball/plushie/box
+        req.ref_frame = String("map")  # frame_id
+        req.desired_class = String("no_box")  # object class ball/plushie/box
         desPose = self.getPose_client(req)  # assume awlays a pose is given
-        if desPose.foundId.data == "poop": # no object found
+        if desPose.foundId == "poop": # no object found
             print("Poop No object found D:<")
             return pt.common.Status.FAILURE
 
         elif self.ready_for_path:
+            # desPose.pose.pose.position.x += 0.1 #NOTE: look here, offset to not crash into object
+            gen = self.spiral_points()
+            orig_desPose = desPose
+            ocReq = isOccupiedRequest(desPose.pose)
+            poseIsOccupied = self.occupancy_client(ocReq)
+            x,y = next(gen)
+            while poseIsOccupied.isOccBool and np.sqrt(x**2+y**2) < 0.2:
+                
+                desPose.pose.pose.position.x = orig_desPose.pose.pose.position.x + x
+                desPose.pose.pose.position.y = orig_desPose.pose.pose.position.y + y
+                ocReq = isOccupiedRequest(desPose.pose)
+                poseIsOccupied = self.occupancy_client(ocReq)
+                x,y = next(gen)
+
+
             self.publish_goal.publish(desPose.pose)
             print("Sending current desired pose\n")
-            self.publish_obj_id.publish(desPose.foundId.data)
-            self.publisher_focus_frame_id.publish(desPose.foundId.data)
+            self.publish_obj_id.publish(desPose.foundId)
+            self.publisher_focus_frame_id.publish(desPose.foundId)
             print("Sending current object id: " + desPose.foundId.data, "\n:) Sending SUCCESS in tree")
             return pt.common.Status.SUCCESS
 
         else:
             return pt.common.Status.RUNNING
+            
+    def spiral_points(self, arc=0.1, separation=0.1):
+        """generate points on an Archimedes' spiral
+        with `arc` giving the length of arc between two points
+        and `separation` giving the distance between consecutive 
+        turnings
+        - approximate arc length with circle arc at given distance
+        - use a spiral equation r = b * phi
+        """
+        def p2c(r, phi):
+            """polar to cartesian
+            """
+            return (r * np.cos(phi), r * np.sin(phi))
+
+        # yield a point at origin
+        yield (0, 0)
+
+        # initialize the next point in the required distance
+        r = arc
+        b = separation / (2 * np.pi)
+        # find the first phi to satisfy distance of `arc` to the second point
+        while True:
+            phi = float(r) / b
+            yield p2c(r, phi)
+            # advance the variables
+            # calculate phi that will give desired arc length at current radius
+            # (approximating with circle)
+            phi += float(arc) / r
+            r = b * phi
 
 
 class GetBoxPose(pt.behaviour.Behaviour):
@@ -644,7 +832,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
         )
 
         self.cur_obj_subscriber = rospy.Subscriber(
-            "./current__obj_id", String, self.current_object_callback
+            "/current_obj_id", String, self.current_object_callback
         )
 
         self.publisher_focus_frame_id = rospy.Publisher(
@@ -654,7 +842,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
         self.current_object = None
         self.ready_for_path = True
 
-        self.box_dict = {"ball": 1, "cube": 2, "plushie": 3}
+        self.box_dict = {"ball": 2, "cube": 2, "plushie": 2}
 
         self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         rospy.wait_for_service("/get_object_pose", timeout=2)
@@ -672,19 +860,22 @@ class GetBoxPose(pt.behaviour.Behaviour):
         self.current_object = object_type
 
     def update(self):
-        landmark_id = self.box_dict[self.current_object]
-        target_frame = "Landmark" + str(landmark_id)
-        req = twoStrInPoseOutRequest()
-        req.str1.data = "map"  # frame_id
-        req.str2.data = target_frame  # object class ball/plushie/box
-        desPose = self.getPose_client(req)  # assume awlays a pose is given
+        if self.current_object is not None:
+            landmark_id = self.box_dict[self.current_object]
+            target_frame = "Landmark" + str(landmark_id)
+            req = twoStrInPoseOutRequest()
+            req.str1.data = "map"  # frame_id
+            req.str2.data = target_frame  # object class ball/plushie/box
+            desPose = self.getPose_client(req).pose  # assume awlays a pose is given
 
-        if self.ready_for_path:
-            self.publish_goal.publish(desPose)
-            self.publisher_focus_frame_id.publish(target_frame)
-            print("Sending current desired pose, sending SUCCESS in tree")
-            return pt.common.Status.SUCCESS
+            if self.ready_for_path:
+                self.publish_goal.publish(desPose)
+                self.publisher_focus_frame_id.publish(target_frame)
+                print("Sending current desired pose, sending SUCCESS in tree")
+                return pt.common.Status.SUCCESS
 
+            else:
+                return pt.common.Status.RUNNING
         else:
             return pt.common.Status.RUNNING
 
@@ -704,6 +895,8 @@ class LookatCurrentFocus(pt.behaviour.Behaviour):
 
         self.goal_pub = rospy.Publisher("/goal", PoseStamped, queue_size=10)
 
+        
+
     def focus_cb(self, msg):
         self.targetframe = msg.data
 
@@ -720,32 +913,137 @@ class LookatCurrentFocus(pt.behaviour.Behaviour):
         #         poly_req.point_of_interest = [self.get_x_pos(x), self.get_y_pos(y)]
         #         poly_resp = self.polygon_client.call(poly_req)
             targetinbaselink_req = twoStrInPoseOutRequest()
-            targetinbaselink_req.str1 = "base_link"
-            targetinbaselink_req.str2 = self.targetframe
+            targetinbaselink_req.str1 = String("base_link")
+            targetinbaselink_req.str2 = String(self.targetframe)
             targetinbaselink_pose = self.getpose_client(targetinbaselink_req)
             baselinkinmap_req = twoStrInPoseOutRequest()
-            baselinkinmap_req.str1 = "map"
-            baselinkinmap_req.str2 = "base_link"
+            baselinkinmap_req.str1 = String("map")
+            baselinkinmap_req.str2 = String("base_link")
             baselinkinmap_pose = self.getpose_client(baselinkinmap_req)
 
-            tx = targetinbaselink_pose.pose.position.x
-            ty = targetinbaselink_pose.pose.position.y
+            tx = targetinbaselink_pose.pose.pose.position.x
+            ty = targetinbaselink_pose.pose.pose.position.y
 
             angle_correction = math.pi/2 - np.arctan2(ty, tx)
 
-            currentheading_euler = tf_conversions.transformations.euler_from_quaternion([baselinkinmap_pose.pose.orientation.x, baselinkinmap_pose.pose.orientation.y, baselinkinmap_pose.pose.orientation.z, baselinkinmap_pose.pose.orientation.w])[2]
+            currentheading_euler = tf_conversions.transformations.euler_from_quaternion([baselinkinmap_pose.pose.pose.orientation.x, baselinkinmap_pose.pose.pose.orientation.y, baselinkinmap_pose.pose.pose.orientation.z, baselinkinmap_pose.pose.pose.orientation.w])[2]
             q = tf_conversions.transformations.quaternion_from_euler(0, 0, angle_correction + currentheading_euler)
 
-            baselinkinmap_pose.orientation.x = q[0]
-            baselinkinmap_pose.orientation.y = q[1]
-            baselinkinmap_pose.orientation.z = q[2]
-            baselinkinmap_pose.orientation.w = q[3]
+            baselinkinmap_pose.pose.pose.orientation.x = q[0]
+            baselinkinmap_pose.pose.pose.orientation.y = q[1]
+            baselinkinmap_pose.pose.pose.orientation.z = q[2]
+            baselinkinmap_pose.pose.pose.orientation.w = q[3]
             self.pose_sent = True
-            self.goal_pub.publish(baselinkinmap_pose)
-            return pt.common.Status.RUNNING()
+            self.goal_pub.publish(baselinkinmap_pose.pose)
+            return pt.common.Status.RUNNING
         
         elif self.move2goalDone:
-            return pt.common.Status.SUCCESS()
+            return pt.common.Status.SUCCESS
         else:
-            return pt.common.Status.RUNNING()
+            return pt.common.Status.RUNNING
         
+class SendGoalToArm(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("SendGoal2Arm")
+        self.getpose_client= rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        self.cur_obj_subscriber = rospy.Subscriber(
+            "/current_obj_id", String, self.current_object_callback
+        )
+        self.pickup_goal_publisher = rospy.Publisher(
+            "/pickup_goal", PoseStamped, queue_size=10
+        )
+        self.current_obj = None
+        self.ref_frame = String("base_link")
+
+
+    def current_object_callback(self, msg):
+        self.current_obj = msg
+
+    def update(self):
+        if self.current_obj is not None:
+            req = twoStrInPoseOutRequest()
+            req.str1 = self.ref_frame
+            req.str2 = self.current_obj
+
+            pose = self.getpose_client(req)
+
+            self.pickup_goal_publisher.publish(pose.pose)
+
+            return pt.common.Status.SUCCESS
+        
+        return pt.common.Status.RUNNING
+
+class approach_goal(pt.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("Appraoching goal!")
+
+        self.lastAngle_client = rospy.ServiceProxy("/lastAngle", lastAngle)
+
+        self.cur_obj_subscriber = rospy.Subscriber(
+            "/current_obj_id", String, self.current_object_callback
+        )
+
+        self.ready_for_new_path = rospy.Publisher(
+            "/ready_for_new_path", Bool, queue_size=1, latch=True
+        )
+        self.current_obj = None
+        self.ref_frame = String("base_link")
+
+        self.approach_bool_sub = rospy.Subscriber(
+            "/approach_done", Bool, self.approach_bool_cb
+        )
+
+        self.approach_bool_publisher = rospy.Publisher('/approach_done', Bool, queue_size=1, latch=True)
+
+        self.approach_bool = None
+
+    def approach_bool_cb(self,msg):
+        self.approach_bool = msg.data
+
+    # def reset(self):
+    #     return None
+    
+    def current_object_callback(self, msg):
+        self.current_obj = msg
+    
+    def update(self):
+        print("Approaching Goal")
+        print("appraoch_goal:",self.approach_bool)
+        if self.current_obj is not None:
+            req = lastAngleRequest()
+
+            # req.str1 = self.ref_frame #targetframe, dont need: defined as baselink in movetogoal
+            req.goal_frameid = self.current_obj #urrent object frame
+            self.lastAngle_client(req)
+            # print("service response:",resp)
+            # while resp is None:
+                # print("inside while loop behaviour, resp:", resp)
+                # return pt.common.Status.RUNNING
+            
+            
+            # twist = Twist()
+            # publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            # twist.linear.x = 0.0
+            # twist.angular.z = 0.0
+            # publisher_twist.publish(twist)
+            # if self.approach_bool is False:
+            #     return pt.common.Status.RUNNING
+            if self.approach_bool:
+                print("Done with approaching goal")
+                ready_for_path = True
+                self.ready_for_new_path.publish(ready_for_path)
+                approach_bool_ROS = Bool()
+                approach_bool_ROS.data = False
+                self.approach_bool_publisher.publish(approach_bool_ROS)
+                # twist = Twist()
+                # publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+                # twist.linear.x = 0.0
+                # twist.angular.z = 0.0
+                # publisher_twist.publish(twist)
+                return pt.common.Status.SUCCESS
+            else:
+                return pt.common.Status.RUNNING
+            
+        return pt.common.Status.RUNNING
+    
+

@@ -26,7 +26,7 @@ class Workspace():
         self.frame_id = "map"
 
         # self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/example_workspace.tsv", sep="\t")
-        self.vertices_df = pd.read_csv("~/dd2419_ws/src/workspace/QCaveWorkspace.tsv", sep="\t")
+        self.vertices_df = pd.read_csv("/home/dopey/dd2419_ws/src/workspace/QCaveWorkspace.tsv", sep="\t")
         # self.vertices_df = pd.read_csv("src/workspace/example_workspace.tsv", sep="\t")
 
 

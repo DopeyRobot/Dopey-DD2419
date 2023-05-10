@@ -296,11 +296,11 @@ class LongTermMemory:
 class MemoryNode:
     def __init__(
         self,
-        frames_needed_for_reconition=5,
+        frames_needed_for_reconition=15,
         same_obj_threshold=0.2,
-        time_threshold=rospy.Duration(10),
+        time_threshold=rospy.Duration(5),
     ) -> None:
-        self.f = 5
+        self.f = 30
         self.db = ShortTermMemory(
             same_obj_threshold=same_obj_threshold, time_threshold=time_threshold
         )
@@ -451,6 +451,7 @@ class MemoryNode:
             return None
         
     def check_for_obj_type(self, instance_name: str, desired_class_of_obj:str) -> bool:
+
         if (desired_class_of_obj.lower() == self.lt.get_class_name(instance_name).lower() 
             or desired_class_of_obj.lower() == "all"
             or (desired_class_of_obj.lower() == "plushie" 
@@ -493,13 +494,13 @@ class MemoryNode:
                     closest_instance_pose = poseOfObj
         if closest_instance_pose is not None:
             rospy.loginfo(f"closest obstacle to base_link found is \"{name_of_closest_obj_found}\" at dist: {np.sqrt(prev_dist)}")
-            self.play_tune_srv("!")
-            return closestObjResponse(closest_instance_pose, name_of_closest_obj_found)
+            self.play_tune_srv(String("!"))
+            return closestObjResponse(closest_instance_pose, String(name_of_closest_obj_found))
         else:
             rospy.loginfo("no obstacle found on the map")
-            self.play_tune_srv("no_object_found") 
+            self.play_tune_srv(String("nogod"))
             failed_pose = PoseStamped()
-            return closestObjResponse(failed_pose, "poop") # "poop" is the name of the object if there was no object found
+            return closestObjResponse(failed_pose, String("poop")) # "poop" is the name of the object if there was no object found
         
     # def heading_fix_cb(self, req: FixHeadingRequest) -> float:
     #     ref_frame_id = req.ref_frame
