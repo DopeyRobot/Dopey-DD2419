@@ -29,51 +29,49 @@ from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 class TakePhotos:
     def __init__(self):
         # Define your image topic
-        image_topic = (
+        self.image_topic = (
             "/camera/color/image_raw"  # "/usb_cam/image_raw" for the arm camera
+        )
+        self.image_topic_arm = (
+            "/usb_cam/image_rect_color"  # "/usb_cam/image_raw" for the arm camera
         )
         # Set up your subscriber and define its callback
         self.bridge = CvBridge()
 
-        rospy.Subscriber(image_topic, Image, self.image_callback)
         self.take_pic_service = rospy.Service(
             "take_pic", takePic, self.take_pic_callback
         )
+        self.take_pic_service_arm = rospy.Service(
+            "take_pic_arm", takePic, self.take_pic_arm_callback
+        )
         # Spin until ctrl + c
-        self.image = None
-        self.counter = 0
-        self.f = 10
-        self.rate = rospy.Rate(self.f)
-
-    def image_callback(self, msg):
-        try:
-            # Convert your ROS Image message to OpenCV2
-            self.image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        except:
-            print("err")
-
-    def run(self):
-        while not rospy.is_shutdown():
-            try:
-                input()
-                cv2.imwrite(
-                    f'./src/take_photos/photos/dp_img{datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f%")}.jpeg',
-                    self.image,
-                )
-                print("pic taken")
-            except Exception as e:
-                print(e)
-                print(self.image)
-                print("no pic")
-            self.rate.sleep()
-
+       
     def take_pic_callback(self, req:takePicRequest):
         path = req.path.data
         try:
+            msg = rospy.wait_for_message(self.image_topic, Image, timeout=2)
+            # Convert your ROS Image message to OpenCV2
+            image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
             # Convert your ROS Image message to OpenCV2
             cv2.imwrite(
                 path,
-                self.image,
+                image,
+            )
+            print("pic taken")
+        except Exception as e:
+            print("no pic")
+        return EmptyResponse()
+    
+    def take_pic_arm_callback(self, req:takePicRequest):
+        path = req.path.data
+        try:
+            msg = rospy.wait_for_message(self.image_topic_arm, Image, timeout=2)
+            # Convert your ROS Image message to OpenCV2
+            image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            # Convert your ROS Image message to OpenCV2
+            cv2.imwrite(
+                path,
+                image,
             )
             print("pic taken")
         except Exception as e:
