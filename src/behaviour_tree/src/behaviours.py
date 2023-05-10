@@ -45,6 +45,8 @@ class give_path(pt.behaviour.Behaviour):
 
         self.pose_service = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         self.playtune_service = rospy.ServiceProxy("/playTune", playTune)
+        self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
+
 
         self.current_obj_id_sub = rospy.Subscriber("/current_obj_id", String, self.current_obj_id_cb)
         self.current_obj_id = String()
@@ -76,7 +78,7 @@ class give_path(pt.behaviour.Behaviour):
 
     def check_euc_dist(self):
         dist = self.get_distance_to_goal()
-        print("dist:",dist)
+        #print("dist:",dist)
         if dist < 0.5:
             self.tooFar = False
             self.ready_for_pose = True
@@ -96,8 +98,7 @@ class give_path(pt.behaviour.Behaviour):
     def _reachedFinalGoal(self):
         self.__init__(self.exploring)  # path = None
         self.pose_to_send = 0
-        self.ready_for_path = True
-        self.ready_for_new_path.publish(self.ready_for_path)
+
 
     def update(self):
         # print(f"is exploring {self.exploring}")
@@ -110,7 +111,7 @@ class give_path(pt.behaviour.Behaviour):
             # print("pose_to_send:",self.pose_to_send)
             # print("len of path:",len(self.path.poses))
             # print("ready for pose:",self.ready_for_pose)
-            print("explorin:", self.exploring)
+            #print("explorin:", self.exploring)
             if not self.exploring:
                 #Used when approaching a focus object
                 print("Exploring done, go to object")
@@ -124,7 +125,7 @@ class give_path(pt.behaviour.Behaviour):
                 elif self.ready_for_pose and not self.tooFar:#nd self.pose_to_send == len(self.path.poses) :
                     # print("condition 2")
                     self._reachedFinalGoal()
-                    print("Reached final pose, sending SUCCESS in tree")
+                    print("Reached final pose in path, ready for new path")
                     return pt.common.Status.SUCCESS
 
                 else:
@@ -135,7 +136,7 @@ class give_path(pt.behaviour.Behaviour):
                     # print('Moving to next pose in path array! Sending RUNNING in tree')
                     return pt.common.Status.RUNNING
             elif self.exploring:
-                print("Exploring still...")
+                print("Dopey is exploring...")
                 if self.ready_for_pose and self.pose_to_send < len(
                     self.path.poses): 
                     # print("Condition 1")
@@ -145,6 +146,8 @@ class give_path(pt.behaviour.Behaviour):
                 elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
                     # print("condition 2")
                     self._reachedFinalGoal()
+                    self.ready_for_path = True
+                    self.ready_for_new_path.publish(self.ready_for_path)
                     print("Reached final pose, sending SUCCESS in tree")
                     return pt.common.Status.SUCCESS
 
@@ -158,13 +161,17 @@ class give_path(pt.behaviour.Behaviour):
 
         else:
             # print("Waiting for path, none given yet! Sending RUNNING in tree")
-            self.ready_for_new_path.publish(self.ready_for_path)
+            # self.ready_for_new_path.publish(self.ready_for_path)
         
-            twist = Twist()
-            publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
-            twist.linear.x = 0.0
-            twist.angular.z = 0.0
-            publisher_twist.publish(twist)
+            # twist = Twist()
+            # publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            # twist.linear.x = 0.0
+            # twist.angular.z = 0.0
+            # publisher_twist.publish(twist)
+            # msg = DutyCycles()
+            # msg.duty_cycle_left = 0
+            # msg.duty_cycle_right = 0
+            # self.duty_pub.publish(msg)
             return pt.common.Status.RUNNING
         # else:
         #     print("sending final RUNNING")
@@ -176,12 +183,12 @@ class give_path(pt.behaviour.Behaviour):
         req = twoStrInPoseOutRequest()
         req.str1 = ref_frame
         req.str2 = self.current_obj_id
-        print("current obj id:", self.current_obj_id)
+        print("Current obj id:", self.current_obj_id)
         # req = twoStrInPoseOutRequest(ref_frame, self.current_obj_id)
         object_pose = self.pose_service(req)
         x = object_pose.pose.pose.position.x
         y = object_pose.pose.pose.position.y
-        # elif self.goalPosition is not None: #during frontier exploration
+        # elif self.goalPosition is not None: #during ierier exploration
         #     ref_frame = String("map")
         #     req = twoStrInPoseOutRequest()
         #     req.str1 = ref_frame
@@ -319,7 +326,7 @@ class FrontierExploration(pt.behaviour.Behaviour):
 
             if self.ready_for_path:
                 self.publish_goal.publish(frontier_to_publish)
-                print("Sending current frontier goal, sending SUCCESS in tree")
+                print("Sending current frontier goal, looking for path")
                 # print("ready for path in explore:", self.ready_for_path)
                 # self.publish_frontier.publish(frontier_to_publish)
                 return pt.common.Status.SUCCESS
@@ -663,6 +670,31 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
             return pt.common.Status.SUCCESS
         else:
             return pt.common.Status.FAILURE
+        
+
+class ClearPathStuff(pt.behaviour.Behaviour):
+    def __init__(self):
+        self.name = "ClearPathStuff"
+        # self.playTune_client = rospy.ServiceProxy("playTune", playTune)
+        # rospy.wait_for_service("playTune", timeout=2)
+        self.ready_for_new_path_pub = rospy.Publisher(
+            "/ready_for_new_path", Bool, queue_size=1, latch=True
+        )
+        self.reset_pub = rospy.Publisher(
+            "/reset_path_planning", Bool
+        )
+
+        super(ClearPathStuff, self).__init__(
+            "Clearing Path Stuff!"
+        )
+
+
+    def update(self):
+        true = Bool()
+        true.data = True
+        self.reset_pub.publish(true)
+        self.ready_for_new_path_pub.publish(true)
+        return pt.common.Status.SUCCESS
 
 
 class StopRobot(pt.behaviour.Behaviour):
@@ -679,14 +711,19 @@ class StopRobot(pt.behaviour.Behaviour):
         if rospy.Time.now() - self.start > rospy.Duration(self.duration):
             return pt.common.Status.SUCCESS
         else:
-            msg = DutyCycles()
-            msg.duty_cycle_left = 0
-            msg.duty_cycle_right = 0
-            self.duty_pub.publish(msg)
+            twist = Twist()
+            publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            twist.linear.x = 0.0
+            twist.angular.z = 0.0
+            publisher_twist.publish(twist)
+            # msg = DutyCycles()
+            # msg.duty_cycle_left = 0
+            # msg.duty_cycle_right = 0
+            # self.duty_pub.publish(msg)
             return pt.common.Status.RUNNING
 
     def initialise(self):
-        print("Resetting start time")
+        print("Stopping robot for ",self.duration)
         self.start = rospy.Time.now()
 
 
@@ -858,6 +895,8 @@ class LookatCurrentFocus(pt.behaviour.Behaviour):
 
         self.goal_pub = rospy.Publisher("/goal", PoseStamped, queue_size=10)
 
+        
+
     def focus_cb(self, msg):
         self.targetframe = msg.data
 
@@ -940,32 +979,71 @@ class approach_goal(pt.behaviour.Behaviour):
 
         self.lastAngle_client = rospy.ServiceProxy("/lastAngle", lastAngle)
 
-
         self.cur_obj_subscriber = rospy.Subscriber(
             "/current_obj_id", String, self.current_object_callback
         )
+
+        self.ready_for_new_path = rospy.Publisher(
+            "/ready_for_new_path", Bool, queue_size=1, latch=True
+        )
         self.current_obj = None
         self.ref_frame = String("base_link")
-    def reset(self):
-        return None
+
+        self.approach_bool_sub = rospy.Subscriber(
+            "/approach_done", Bool, self.approach_bool_cb
+        )
+
+        self.approach_bool_publisher = rospy.Publisher('/approach_done', Bool, queue_size=1, latch=True)
+
+        self.approach_bool = None
+
+    def approach_bool_cb(self,msg):
+        self.approach_bool = msg.data
+
+    # def reset(self):
+    #     return None
+    
     def current_object_callback(self, msg):
         self.current_obj = msg
     
     def update(self):
-        rospy.loginfo("Approaching Goal")
+        print("Approaching Goal")
+        print("appraoch_goal:",self.approach_bool)
         if self.current_obj is not None:
             req = lastAngleRequest()
 
             # req.str1 = self.ref_frame #targetframe, dont need: defined as baselink in movetogoal
             req.goal_frameid = self.current_obj #urrent object frame
             self.lastAngle_client(req)
-            print("last angle client success")
-            twist = Twist()
-            publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
-            twist.linear.x = 0.0
-            twist.angular.z = 0.0
-            publisher_twist.publish(twist)
-            return pt.common.Status.SUCCESS
+            # print("service response:",resp)
+            # while resp is None:
+                # print("inside while loop behaviour, resp:", resp)
+                # return pt.common.Status.RUNNING
+            
+            
+            # twist = Twist()
+            # publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            # twist.linear.x = 0.0
+            # twist.angular.z = 0.0
+            # publisher_twist.publish(twist)
+            # if self.approach_bool is False:
+            #     return pt.common.Status.RUNNING
+            if self.approach_bool:
+                print("Done with approaching goal")
+                ready_for_path = True
+                self.ready_for_new_path.publish(ready_for_path)
+                approach_bool_ROS = Bool()
+                approach_bool_ROS.data = False
+                self.approach_bool_publisher.publish(approach_bool_ROS)
+                # twist = Twist()
+                # publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+                # twist.linear.x = 0.0
+                # twist.angular.z = 0.0
+                # publisher_twist.publish(twist)
+                return pt.common.Status.SUCCESS
+            else:
+                return pt.common.Status.RUNNING
+            
         return pt.common.Status.RUNNING
     
 

@@ -126,13 +126,13 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         bombastic_tune_behavior = playTuneBehaviour("bombastic")
         bombastic_tune_behavior_again = playTuneBehaviour("bombastic")
 
-        approach_behavs = [Wait(4), approach_goal(), Wait(4)]
-        approach_seq = pt.Sequence("Approach", [*approach_behavs, Reset(approach_behavs)])
-        approach_behavs_again = [Wait(4), approach_goal(), Wait(4)]
-        approach_seq_again = pt.Sequence("Approach", [*approach_behavs_again, Reset(approach_behavs_again)])
+        # approach_behavs = [Wait(8), approach_goal(), Wait(8)]
+        # approach_seq = pt.Sequence("Approach", [*approach_behavs, Reset(approach_behavs)])
+        # approach_behavs_again = [Wait(8), approach_goal(), Wait(8)]
+        # approach_seq_again = pt.Sequence("Approach", [*approach_behavs_again, Reset(approach_behavs_again)])
 
-        approach_behavs_test = approach_goal()
-        approach_behavs_test_2 = approach_goal()
+        approach_behavs = approach_goal()
+        approach_behavs_again = approach_goal()
         
 
         
@@ -142,7 +142,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
              get_closest_obj, 
              go_to_pose, 
              bombastic_tune_behavior,
-             approach_behavs_test,
+             approach_behavs,
+            #  approach_behavs_test,
             #  approach_seq,
             #  look_at_focus, 
              stop_2_sec_again, 
@@ -151,7 +152,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
              get_box_pose, 
              go_to_box, 
              bombastic_tune_behavior_again, 
-             approach_behavs_test_2,
+             approach_behavs_again,
+            #  approach_behavs_test_2,
             #  approach_seq_again,
             #  look_at_focus_again, 
              drop_seq,
@@ -159,13 +161,20 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         )
 
         ## TEST 
+        give_path_behaviour_test = give_path(exploring= False)
+        stop_2_sec_first = StopRobot(2)
+
         test_root = pt.composites.Sequence(
             name="->",
         )
         stop_behav = StopRobot(4)
-        testing_services_behavs = [get_closest_obj, give_path_behaviour, bombastic_tune_behavior,stop_behav, approach_seq]
+        clear_path_behav = ClearPathStuff()
 
-        test_root.add_children(testing_services_behavs)
+        # testing_services_behavs = [clear_path_behav,stop_2_sec_first,get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior, approach_behavs, stop_2_sec, send_goal_to_arm, pickup_seq]
+        # # testing_services_behavs = [get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior,stop_behav, approach_seq]
+
+
+        # test_root.add_children(testing_services_behavs)
 
         ## MAIN ROOT
         ROOT_node = pt.composites.Sequence(
@@ -191,7 +200,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             ascii_tree = pt.display.ascii_tree(
                 self.root, snapshot_information=snapshot_visitor
             )
-            # print(ascii_tree)
+            print(ascii_tree)
 
 
 if __name__ == "__main__":

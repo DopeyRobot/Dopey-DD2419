@@ -12,7 +12,7 @@ class CartesianController:
         self.encoder_sub = rospy.Subscriber(
             "/motor/encoders", Encoders, self.encoder_callback
         )
-        self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.twist_callback)
+        self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.twist_callback,queue_size=1)
 
         self.sub_odom_state = rospy.Subscriber(
             "/odometry/curr_vel_state", TwistStamped, self.odom_state_callback)
@@ -52,11 +52,22 @@ class CartesianController:
         msg.duty_cycle_left = 0
         msg.duty_cycle_right = 0
         self.duty_pub.publish(msg)
+        self.last_stamp = rospy.Time.now()-rospy.Duration(1)
 
         self.run()
 
     def run(self):
         while not rospy.is_shutdown():
+            if rospy.Time.now()-self.last_stamp > rospy.Duration(0.5):
+                # print("twist is old, set 0")
+                self.twist.angular.z = 0
+                self.twist.linear.x = 0
+                msg = DutyCycles()
+                msg.duty_cycle_left = 0
+                msg.duty_cycle_right = 0
+                self.duty_pub.publish(msg)
+                self.rate.sleep()
+                continue
             desired_w = -self.twist.angular.z
             desired_v = self.twist.linear.x
 
@@ -140,6 +151,7 @@ class CartesianController:
             rospy.loginfo("Twist callback")
 
         self.twist = data
+        self.last_stamp = rospy.Time.now()
 
         if self.verbose:
             rospy.loginfo("Twist received: {}".format(self.twist.twist.linear.x))

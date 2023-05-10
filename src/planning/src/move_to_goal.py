@@ -73,11 +73,12 @@ class move_to_goal():
 
         rospy.sleep(2)
 
-        self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+        self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=1)
         self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
         self.goal_subscriber = rospy.Subscriber('/goal', PoseStamped, self.goal_callback) 
         self.odom_subscriber = rospy.Subscriber('/odometry', Odometry, self.odom_callback) 
         self.getframe_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        self.approach_bool_publisher = rospy.Publisher('/approach_done', Bool, queue_size=1, latch=True)
         #self.ready_for_pose.data = True # Maybe not needed?
         #self.ready_for_pose_publisher.publish(self.ready_for_pose)
 
@@ -115,6 +116,8 @@ class move_to_goal():
         # heading_angle = math.pi - error_ang
 
         twist_msg = Twist()
+        approach_bool = Bool()
+        approach_bool.data = False
 
         while np.abs(error_ang) > 0.05 or np.abs(error_dist) > 0.18:
             print("enter while loop angle error")
@@ -136,6 +139,7 @@ class move_to_goal():
 
             twist_msg.angular.z = angle_cont
             twist_msg.linear.x = dist_angle_cont
+            print("1")
             self.publisher_twist.publish(twist_msg) #input new twist message
 
             error_ang = error_ang_new
@@ -143,15 +147,18 @@ class move_to_goal():
             error_dist= error_dist_new
             # print(f"new error_ang:{error_ang}")
             # print(f"new error_dist:{error_dist}")
-
+            self.approach_bool_publisher.publish(approach_bool)
             if np.abs(error_dist) < 0.14:
                 break
 
-            # rospy.sleep(0.5)
 
+            # rospy.sleep(0.5)
+        approach_bool.data = True
         twist_msg.angular.z = 0
         twist_msg.linear.x = 0
+        print("2")
         self.publisher_twist.publish(twist_msg)
+        self.approach_bool_publisher.publish(approach_bool)
 
         # for i in range(10):
         #     rospy.sleep(0.1)
@@ -303,7 +310,7 @@ class move_to_goal():
                     #     self.ready_for_pose_publisher.publish(self.ready_for_pose)
                     #     rospy.sleep(3)
 
-
+                print("3")
                 self.publisher_twist.publish(self.twist)
             self.rate.sleep()
 
