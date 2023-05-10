@@ -57,27 +57,152 @@ class armcamDetection:
         print("publishing image")
         return self.bridge.cv2_to_imgmsg(image2, encoding="passthrough")
     
+    def draw_ellipse(self, image, ellipse) -> Image:
+        ellipse_color = (0, 255, 140)
+        image2 = image.copy()
+        cv.ellipse(image2, ellipse, ellipse_color, 2)
+        cv.circle(image2, (int(ellipse[0][0]), int(ellipse[0][1])), 4, ellipse_color, -1)
+
+    
     def blob_detection_cb(self, req: XnYRequest) -> XnYResponse:
         image = self.get_image()
-        (cx,cy,x,y,h,w) = self.detect_biggest_blob(image)
-        
-        # project the blob to 3d (camera frame)
-        xyz_proj =self.project_blob(cx,cy)
-        # convert to base_link frame
-        pickUpPose = self.convert_to_base_link(xyz_proj)
-        # publish as pickup goal
-        self.publish_pickup_goal(pickUpPose)
-        # remove object from map
-        # instance_name = rospy.wait_for_message(self.current_obj, String)
-        # print(instance_name)
-        # self.set_obj_location_caller(String(instance_name), String("gripper"))
-        # publish image with bounding box
-        self.cam_image_publisher.publish(self.draw_bounding_box(image,cx,cy, x, y, h, w))
+        # TODO: CHOOSE THE PREFERRED MODE
+        ellipse_mode = False
+        rectanlge_mode = True
+        # RECTANGLE MODE:
+        if rectanlge_mode:
+            (cx,cy,x,y,h,w) = self.detect_biggest_blob(image)
+            # project the blob to 3d (camera frame)
+            xyz_proj = self.project_blob(cx,cy)
+            # convert to base_link frame
+            pickUpPose = self.convert_to_base_link(xyz_proj)
+            # publish as pickup goal
+            self.publish_pickup_goal(pickUpPose)
+            # remove object from map
+            # instance_name = rospy.wait_for_message(self.current_obj, String)
+            # print(instance_name)
+            # self.set_obj_location_caller(String(instance_name), String("gripper"))
+            # publish image with bounding box
+            self.cam_image_publisher.publish(self.draw_bounding_box(image,cx,cy, x, y, h, w))
+        # ELLIPSE ALTERNATIVE:
+        elif ellipse_mode:
+            
+            (ellipse,cx,cy, short_axis, long_axis, angle) = self.find_biggest_blob_ellipse(image)
+            xyz_proj =self.project_blob(cx,cy)
+            # convert to base_link frame
+            pickUpPose = self.convert_to_base_link(xyz_proj)
+            # publish as pickup goal
+            self.publish_pickup_goal(pickUpPose)
+            # remove object from map
+            # instance_name = rospy.wait_for_message(self.current_obj, String)
+            # print(instance_name)
+            # self.set_obj_location_caller(String(instance_name), String("gripper"))
+            # publish image with ellipse
+            self.cam_image_publisher.publish(self.draw_ellipse(image, ellipse))
+            # if it is an ellipse then theses are the returned values
+            x = short_axis
+            y = long_axis
+            h = angle
+            w = 0
 
         if x == -1 or y == -1:
             return XnYResponse(-1,-1,-1,-1,-1,-1, Bool(False)) #TODO: check Types!! 
         return XnYResponse(cx,cy,x,y,h,w, Bool(True))
     
+    def find_biggest_blob_ellipse(self, img) -> Tuple[int, int, int, int]:
+        lower = np.array([67, 71, 70])
+        upper = np.array([190, 190, 188])
+        mask = cv.inRange(img, lower, upper)
+        masked = cv.bitwise_and(img, img, mask=mask)
+        # result = img - masked
+        
+        #Thresholding
+        _,thresholded = cv.threshold(masked, 80, 255, cv.THRESH_BINARY)
+        thresholded = cv.cvtColor(thresholded, cv.COLOR_BGR2GRAY)
+        _,thresholded = cv.threshold(thresholded, 122, 255, cv.THRESH_BINARY)
+
+        cut_img = thresholded
+        cut_img = cut_img[:-100, :]
+        # plt.imshow(cut_img)
+        # plt.title("cut_img")
+        # plt.show()
+
+        white = np.ones(img.shape[:2], dtype=np.uint8)*255
+        white[:-100,:] = cut_img
+        img_repasted = white
+        # plt.imshow(img_repasted)
+        # plt.title("img_repasted")
+        # plt.show()
+
+        #Morphological operations
+        closed = cv.morphologyEx(img_repasted, cv.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=3)
+        open = cv.morphologyEx(closed, cv.MORPH_OPEN, np.ones((4,4), np.uint8), iterations=5)
+        final_img = open
+        final_img = cv.bitwise_not(final_img)
+     
+
+        ##############################################
+        # FIND THE LARGEST CONTOUR AND FIT AN ELLIPSE#
+        ##############################################
+        plt.imshow(final_img)
+        plt.title("final_img")
+        plt.show()
+        canny_output = cv.Canny(final_img, 100, 200)
+        plt.imshow(canny_output)
+        plt.title("canny_output")
+        plt.show()
+            
+        contours, _ = cv.findContours(canny_output, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        max_contour_area = -1
+        max_contour = -1
+        (cX_final,cY_final,short_axis_final,long_axis_final,angle_final) = (-1,-1,-1,-1,-1)
+            # Find the rotated rectangles and ellipses for each contour
+        minEllipse = [None]*len(contours)
+        print("countours found: "+str(len(contours)))
+        minEllipse = [None]*len(contours)
+        for i, c in enumerate(contours):
+            if c.shape[0] > 5:
+                minEllipse[i] = cv.fitEllipse(c)
+                area = cv.contourArea(c)
+                center = minEllipse[i][0]
+                cX = center[0]
+                cY = center[1]
+                print("area = "+str(area))
+                if area > max_contour_area:
+                        max_contour_area = area
+                        max_contour = i
+                        
+                        size = minEllipse[i][1]
+                        short_axis = min(size)
+                        long_axis = max(size)
+                        angle = minEllipse[i][2]
+                        (cX_final,cY_final,short_axis_final,long_axis_final,angle_final) = (cX,cY,long_axis,short_axis,angle)
+        # Draw contours + rotated rects + ellipses
+
+        drawing = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
+        ellipse_color = (255,0,255)
+
+        for i, c in enumerate(contours):
+            # contour
+            cv.drawContours(drawing, contours, i, ellipse_color)
+            # ellipse
+            if c.shape[0] > 5:
+                cv.ellipse(drawing, minEllipse[i], ellipse_color, 2)
+                cv.circle(drawing, (int(cX), int(cY)), 4, ellipse_color, -1)
+        plt.imshow(drawing)
+        plt.title("drawing")
+        plt.show()
+
+        max_contour_img = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
+        cv.drawContours(max_contour_img, contours, max_contour, ellipse_color)
+        cv.ellipse(max_contour_img, minEllipse[max_contour], ellipse_color, 2)
+        cv.circle(max_contour_img, (int(cX_final), int(cY_final)), 4, ellipse_color, -1)
+        plt.imshow(max_contour_img)
+        plt.title("max_contour_img")
+        plt.show()
+        ellipse = minEllipse[max_contour]
+        return (ellipse, cX_final,cY_final,short_axis_final,long_axis_final,angle_final)
+
     def detect_biggest_blob(self, img) -> Tuple[int, int, int, int]:
 
         lower = np.array([67, 71, 70])
