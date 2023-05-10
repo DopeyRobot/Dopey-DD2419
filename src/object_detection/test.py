@@ -4,10 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 img = cv.imread(
-    "C:/KTH/Robotics Project course/Dopey-DD2419/src/object_detection/src/test_images/cubes.jpg",
+    "/home/dopey/dd2419_ws/src/object_detection/src/test_images/blue_cube.jpg",
     cv.IMREAD_COLOR,
 )
 # Color Filter
+print(img)
 lower = np.array([67, 71, 70])
 upper = np.array([190, 190, 188])
 mask = cv.inRange(img, lower, upper)
@@ -101,7 +102,10 @@ for i in range(1, numLabels):
     componentMask = (labels == i).astype("uint8") * 255
     # show our output image and connected component mask
 
-    cv.imshow("Output", output)
-    cv.imshow("Connected Component", componentMask)
-cv.waitKey(0)
+    plt.imshow(output)
+    plt.title("output")
+    plt.show()
+    plt.imshow(componentMask)
+    plt.title("components")
+    plt.show()
 

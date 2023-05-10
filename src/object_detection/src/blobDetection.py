@@ -9,13 +9,13 @@ from bounding_box_detection.srv import setLocation, setLocationRequest
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
 from tf2_geometry_msgs import PoseStamped
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
 
 class armcamDetection:
     def __init__(self) -> None:
         self.blob_service: rospy.Service = rospy.Service("/blob_detection", XnY, self.blob_detection_cb)
-        self.arm_cam_topic = "/usb_cam/image_raw"
+        self.arm_cam_topic = "/usb_cam/image_rect_color"
         self.arm_cam_info_topic = "/usb_cam/camera_info"
         self.arm_cam_frame = "usb_cam_frame"
         self.pickup_goal_topic = "/pickup_goal"
@@ -38,43 +38,45 @@ class armcamDetection:
         """
         camera_info = rospy.wait_for_message(self.arm_cam_info_topic, CameraInfo)
         K = np.array(camera_info.K).reshape(3, 3)
-        world_z = 150
+        world_z = 210
         fx = K[0, 0]
         fy = K[1, 1]
         world_x = (x - K[0, 2]) * world_z / fx
         world_y = (y - K[1, 2]) * world_z / fy
 
-        return np.array([world_x / 1000, world_y / 1000, world_z / 1000])
+        return np.array([-world_y / 1000, world_x / 1000, world_z / 1000])
 
     def get_image(self) -> np.ndarray:
         msg = rospy.wait_for_message(self.arm_cam_topic, Image)
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         return image
-    def draw_bounding_box(self, image, x, y, h, w) -> Image:
+    def draw_bounding_box(self, image,cx,cy, x, y, h, w) -> Image:
         image2 = image.copy()
-        cv.rectangle(image2, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv.rectangle(image2, (x, y), (x + w, y + h), (0, 255, 140), 3)
+        cv.circle(image2, (int(cx), int(cy)), 4, (0, 255, 140), -1)
+        print("publishing image")
         return self.bridge.cv2_to_imgmsg(image2, encoding="passthrough")
     
     def blob_detection_cb(self, req: XnYRequest) -> XnYResponse:
         image = self.get_image()
-        (x,y,h,w) = self.detect_biggest_blob(image)
+        (cx,cy,x,y,h,w) = self.detect_biggest_blob(image)
         
         # project the blob to 3d (camera frame)
-        xyz_proj =self.project_blob(x,y)
+        xyz_proj =self.project_blob(cx,cy)
         # convert to base_link frame
         pickUpPose = self.convert_to_base_link(xyz_proj)
         # publish as pickup goal
         self.publish_pickup_goal(pickUpPose)
         # remove object from map
-        instance_name = rospy.wait_for_message(self.current_obj, String)
-        print(instance_name)
-        self.set_obj_location_caller(String(instance_name), String("gripper"))
+        # instance_name = rospy.wait_for_message(self.current_obj, String)
+        # print(instance_name)
+        # self.set_obj_location_caller(String(instance_name), String("gripper"))
         # publish image with bounding box
-        self.cam_image_publisher.publish(self.draw_bounding_box(image, x, y, h, w))
+        self.cam_image_publisher.publish(self.draw_bounding_box(image,cx,cy, x, y, h, w))
 
         if x == -1 or y == -1:
-            return XnYResponse(-1,-1,-1,-1, False) #TODO: check Types!! 
-        return XnYResponse(x,y,h,w, True)
+            return XnYResponse(-1,-1,-1,-1,-1,-1, Bool(False)) #TODO: check Types!! 
+        return XnYResponse(cx,cy,x,y,h,w, Bool(True))
     
     def detect_biggest_blob(self, img) -> Tuple[int, int, int, int]:
 
@@ -109,20 +111,20 @@ class armcamDetection:
 
         #Morphological operations
         closed = cv.morphologyEx(thresholded, cv.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=2)
-        plt.imshow(closed)
-        plt.title("Closed")
-        plt.show()
+        # plt.imshow(closed)
+        # plt.title("Closed")
+        # plt.show()
         open = cv.morphologyEx(closed, cv.MORPH_OPEN, np.ones((5,5), np.uint8), iterations=5)
 
         #Cut the bottom of the image and make it white
         cut_img = open
-        cut_img = cut_img[:-100, :]
+        cut_img = cut_img[:-50, :]
         # plt.imshow(cut_img)
         # plt.title("cut_img")
         # plt.show()
 
         white = np.ones(img.shape[:2], dtype=np.uint8)*255
-        white[:-100,:] = cut_img
+        white[:-50,:] = cut_img
         final_img = white
         # plt.imshow(final_img)
         # plt.title("Final")
@@ -137,7 +139,7 @@ class armcamDetection:
         # print(centroids)
         max_blob_area = -1
         max_blob = -1
-        (xFinal,yFinal,hFinal,wFinal) = (-1,-1,-1,-1)
+        (CxFinal,CyFinal,xFinal,yFinal,hFinal,wFinal) = (-1,-1,-1,-1,-1,-1)
         # loop over the number of unique connected component labels
         for i in range(1, numLabels):
             # if this is the first component then we examine the
@@ -160,27 +162,31 @@ class armcamDetection:
             h = stats[i, cv.CC_STAT_HEIGHT]
             area = stats[i, cv.CC_STAT_AREA]
             (cX, cY) = centroids[i]
-            if max_blob_area > area:
+            if area > max_blob_area:
                 max_blob_area = area
                 max_blob = i
-                (xFinal,yFinal,hFinal,wFinal) = (cX,cY,h,w)
+                (CxFinal,CyFinal,xFinal,yFinal,hFinal,wFinal) = (cX,cY,x,y,h,w)
             output = final_img
-        #     cv.rectangle(output, (x, y), (x + w, y + h), (140, 140, 140), 3)
-        #     cv.circle(output, (int(cX), int(cY)), 4, (140, 140, 140), -1)
-        #     # connected component ID
-        #     componentMask = (labels == i).astype("uint8") * 255
-        #     # show our output image and connected component mask
+            # cv.rectangle(output, (x, y), (x + w, y + h), (140, 140, 140), 3)
+            # cv.circle(output, (int(cX), int(cY)), 4, (140, 140, 140), -1)
+            # # connected component ID
+            # componentMask = (labels == i).astype("uint8") * 255
+            # # show our output image and connected component mask
 
-        #     cv.imshow("Output", output)
-        #     cv.imshow("Connected Component", componentMask)
-        # cv.waitKey(0)
-        return (xFinal,yFinal,hFinal,wFinal)
+            # plt.imshow(output)
+            # plt.title("output")
+            # plt.show()
+            # plt.imshow(componentMask)
+            # plt.title("components")
+            # plt.show()
+        return (CxFinal,CyFinal,xFinal,yFinal,hFinal,wFinal)
     
     def convert_to_base_link(self, projected_pose:np.ndarray)->PoseStamped:
         """
         Publish a transform from the camera frame to the map frame
         """
         pose = PoseStamped()
+        print(projected_pose)
         pose.header.frame_id = self.arm_cam_frame
         pose.header.stamp = rospy.Time.now()
         pose.pose.position.x = projected_pose[0]
@@ -193,13 +199,14 @@ class armcamDetection:
         pose.pose.orientation.w = 0.5
 
         transformed_pose = self.buffer.transform(
-            pose, "base_link", rospy.Duration(1.0)
-        )
+            pose, "base_link", rospy.Duration(1.0))
+
+        print(transformed_pose)
         # NOTE: Only for visualization in RViz   
         transformed = TransformStamped()
-        transformed.header.frame_id = "arm_cam_debug"
+        transformed.header.frame_id = "base_link"
         transformed.header.stamp = rospy.Time.now()
-        transformed.child_frame_id = "base_link"
+        transformed.child_frame_id = "arm_cam_debug"
         transformed.transform.translation.x = transformed_pose.pose.position.x
         transformed.transform.translation.y = transformed_pose.pose.position.y
         transformed.transform.translation.z = transformed_pose.pose.position.z
