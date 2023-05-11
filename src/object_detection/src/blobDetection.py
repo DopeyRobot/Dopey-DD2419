@@ -62,13 +62,14 @@ class armcamDetection:
         image2 = image.copy()
         cv.ellipse(image2, ellipse, ellipse_color, 2)
         cv.circle(image2, (int(ellipse[0][0]), int(ellipse[0][1])), 4, ellipse_color, -1)
+        return self.bridge.cv2_to_imgmsg(image2, encoding="passthrough")
 
     
     def blob_detection_cb(self, req: XnYRequest) -> XnYResponse:
         image = self.get_image()
         # TODO: CHOOSE THE PREFERRED MODE
-        ellipse_mode = False
-        rectanlge_mode = True
+        ellipse_mode = True
+        rectanlge_mode = False
         # RECTANGLE MODE:
         if rectanlge_mode:
             (cx,cy,x,y,h,w) = self.detect_biggest_blob(image)
@@ -110,6 +111,8 @@ class armcamDetection:
         return XnYResponse(cx,cy,x,y,h,w, Bool(True))
     
     def find_biggest_blob_ellipse(self, img) -> Tuple[int, int, int, int]:
+        # plt.imshow(img)
+        # plt.show()
         lower = np.array([67, 71, 70])
         upper = np.array([190, 190, 188])
         mask = cv.inRange(img, lower, upper)
@@ -122,35 +125,41 @@ class armcamDetection:
         _,thresholded = cv.threshold(thresholded, 122, 255, cv.THRESH_BINARY)
 
         cut_img = thresholded
-        cut_img = cut_img[:-100, :]
         # plt.imshow(cut_img)
         # plt.title("cut_img")
         # plt.show()
 
-        white = np.ones(img.shape[:2], dtype=np.uint8)*255
-        white[:-100,:] = cut_img
-        img_repasted = white
+        points = np.array([[0, 479], [0, 370], [479, 425], [540,479]])
+ 
+        # Use fillPoly() function and give input as
+        # image, end points,color of polygon
+        # Here color of polygon will blue
+        cv.fillPoly(cut_img, pts=[points], color=(
+            255
+        ))
+        img_repasted = cut_img
         # plt.imshow(img_repasted)
         # plt.title("img_repasted")
         # plt.show()
 
         #Morphological operations
         closed = cv.morphologyEx(img_repasted, cv.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=3)
+        # plt.imshow(closed)
+        # plt.title("Closed")
+        # plt.show()
         open = cv.morphologyEx(closed, cv.MORPH_OPEN, np.ones((4,4), np.uint8), iterations=5)
         final_img = open
         final_img = cv.bitwise_not(final_img)
-     
-
         ##############################################
         # FIND THE LARGEST CONTOUR AND FIT AN ELLIPSE#
         ##############################################
-        plt.imshow(final_img)
-        plt.title("final_img")
-        plt.show()
+        # plt.imshow(final_img)
+        # plt.title("final_img")
+        # plt.show()
         canny_output = cv.Canny(final_img, 100, 200)
-        plt.imshow(canny_output)
-        plt.title("canny_output")
-        plt.show()
+        # plt.imshow(canny_output)
+        # plt.title("canny_output")
+        # plt.show()
             
         contours, _ = cv.findContours(canny_output, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         max_contour_area = -1
@@ -163,18 +172,20 @@ class armcamDetection:
         for i, c in enumerate(contours):
             if c.shape[0] > 5:
                 minEllipse[i] = cv.fitEllipse(c)
-                area = cv.contourArea(c)
                 center = minEllipse[i][0]
                 cX = center[0]
                 cY = center[1]
+                size = minEllipse[i][1]
+                short_axis = min(size)
+                long_axis = max(size)
+                area = np.pi*short_axis*long_axis
+
                 print("area = "+str(area))
                 if area > max_contour_area:
                         max_contour_area = area
                         max_contour = i
                         
-                        size = minEllipse[i][1]
-                        short_axis = min(size)
-                        long_axis = max(size)
+
                         angle = minEllipse[i][2]
                         (cX_final,cY_final,short_axis_final,long_axis_final,angle_final) = (cX,cY,long_axis,short_axis,angle)
         # Draw contours + rotated rects + ellipses
@@ -189,17 +200,15 @@ class armcamDetection:
             if c.shape[0] > 5:
                 cv.ellipse(drawing, minEllipse[i], ellipse_color, 2)
                 cv.circle(drawing, (int(cX), int(cY)), 4, ellipse_color, -1)
-        plt.imshow(drawing)
-        plt.title("drawing")
-        plt.show()
+
 
         max_contour_img = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
         cv.drawContours(max_contour_img, contours, max_contour, ellipse_color)
         cv.ellipse(max_contour_img, minEllipse[max_contour], ellipse_color, 2)
         cv.circle(max_contour_img, (int(cX_final), int(cY_final)), 4, ellipse_color, -1)
-        plt.imshow(max_contour_img)
-        plt.title("max_contour_img")
-        plt.show()
+        # plt.imshow(max_contour_img)
+        # plt.title("max_contour_img")
+        # plt.show()
         ellipse = minEllipse[max_contour]
         return (ellipse, cX_final,cY_final,short_axis_final,long_axis_final,angle_final)
 

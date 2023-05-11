@@ -50,6 +50,7 @@ class IKService:
         )
 
         self.angle_increment = 0.1
+        self.rot = 0
 
         while len(self.cur_joint_state.position) < 5:
             rospy.sleep(0.1)
@@ -75,10 +76,10 @@ class IKService:
         if y < -0.10:
             y = -0.10
 
-        z = -0.05
+        z = -0.06
 
         psi = -np.pi
-        rot = 0
+        rot = self.rot
 
         req = IKData()
         req.x = x
@@ -145,6 +146,10 @@ class IKService:
         rospy.loginfo("detecting object ....")
         xnyreq = XnYRequest()
         xnyresp = self.blob_service(xnyreq)
+        angle = xnyresp.h
+        print(angle)
+        angle= np.deg2rad(angle)
+        self.rot=angle
         rospy.sleep(2)
         self.gripper_open_service(TriggerRequest())
         rospy.sleep(2)

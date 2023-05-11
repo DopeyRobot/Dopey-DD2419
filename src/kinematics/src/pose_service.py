@@ -144,6 +144,7 @@ class PoseService:
         self.joint1_pub.publish(
             self.to_command_duration(joint_data.joint1, duration=time)
         )
+
         rospy.sleep(1)
         self.joint2_pub.publish(
             self.to_command_duration(joint_data.joint2, duration=time)
@@ -158,7 +159,7 @@ class PoseService:
         )
         # rospy.sleep(0.5)
         self.joint5_pub.publish(
-            self.to_command_duration(joint_data.joint5, duration=time)
+            self.to_command_duration(joint_data.joint5, duration=300)
         )
 
         if include_gripper:
