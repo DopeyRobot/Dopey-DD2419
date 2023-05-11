@@ -39,9 +39,9 @@ class give_path(pt.behaviour.Behaviour):
         self.ready_for_new_path = rospy.Publisher(
             "/ready_for_new_path", Bool, queue_size=1, latch=True
         )
-        self.reset_sub = rospy.Subscriber(
-            "/reset_path_planning", Bool, self.reset_cb
-        )
+        # self.reset_sub = rospy.Subscriber(
+        #     "/reset_path_planning", Bool, self.reset_cb
+        # )
 
         self.pose_service = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         self.playtune_service = rospy.ServiceProxy("/playTune", playTune)
@@ -73,8 +73,8 @@ class give_path(pt.behaviour.Behaviour):
     def ready_for_path_callback(self, msg):
         self.ready_for_pose = msg.data
 
-    def reset_cb(self,msg):
-        self.__init__(self.exploring)
+    # def reset_cb(self,msg):
+    #     self.__init__(self.exploring)
 
     def check_euc_dist(self):
         dist = self.get_distance_to_goal()
@@ -126,6 +126,8 @@ class give_path(pt.behaviour.Behaviour):
                     # print("condition 2")
                     self._reachedFinalGoal()
                     print("Reached final pose in path, ready for new path")
+                    self.__init__(self.exploring)
+                    
                     return pt.common.Status.SUCCESS
 
                 else:
@@ -149,6 +151,8 @@ class give_path(pt.behaviour.Behaviour):
                     self.ready_for_path = True
                     self.ready_for_new_path.publish(self.ready_for_path)
                     print("Reached final pose, sending SUCCESS in tree")
+                    self.__init__(self.exploring)
+                    
                     return pt.common.Status.SUCCESS
 
                 else:
@@ -625,9 +629,9 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         self.ready_for_new_path_pub = rospy.Publisher(
             "/ready_for_new_path", Bool, queue_size=1, latch=True
         )
-        self.reset_pub = rospy.Publisher(
-            "/reset_path_planning", Bool
-        )
+        # self.reset_pub = rospy.Publisher(
+        #     "/reset_path_planning", Bool
+        # )
 
         self.occupancy_grid = None
         self.p = p
@@ -665,7 +669,7 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
             # NOTE: LOOK HERE; test to clear the path lpannign before moving onto main mission
             true = Bool()
             true.data = True
-            self.reset_pub.publish(true)
+            # self.reset_pub.publish(true)
             self.ready_for_new_path_pub.publish(true)
             return pt.common.Status.SUCCESS
         else:
@@ -786,6 +790,7 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
             self.publish_obj_id.publish(desPose.foundId)
             self.publisher_focus_frame_id.publish(desPose.foundId)
             print("Sending current object id: " + desPose.foundId.data, "\n:) Sending SUCCESS in tree")
+            self.__init__()
             return pt.common.Status.SUCCESS
 
         else:
