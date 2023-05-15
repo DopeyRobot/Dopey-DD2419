@@ -54,7 +54,7 @@ class LongTermInstance:
     location:Locations
 
     def __str__(self) -> str:
-        return f"name: {self.instance_name} \nposition: {self.position}, \nlast_time_seen: {self.last_time_seen} \n\n"
+        return f"name: {self.instance_name} \nposition: {self.position}, \nlast_time_seen: {self.last_time_seen} \n location:{self.location.value}\n"
 
 
 # @dataclass
@@ -214,7 +214,7 @@ class LongTermMemory:
             if closest_instance_in_lt_memory is not None:
                 self.locations[
                     closest_instance_in_lt_memory
-                ] = "map"  # !!!FOR NOW ONLY OBJECTS IN MAP ARE STORED IN THE LONG TERM MEMORY!!!
+                ] = Locations.MAP  # !!!FOR NOW ONLY OBJECTS IN MAP ARE STORED IN THE LONG TERM MEMORY!!!
                 self.positions[closest_instance_in_lt_memory] = (position + self.positions[closest_instance_in_lt_memory])/2
                 self.last_time_seen[closest_instance_in_lt_memory] = timestamp
                 return None
@@ -226,7 +226,7 @@ class LongTermMemory:
         )  # create a new instance name
         self.instances_in_memory.append(instance_name)
         self.positions[instance_name] = position
-        self.locations[instance_name] = "map"
+        self.locations[instance_name] = Locations.MAP
         self.last_time_seen[instance_name] = timestamp
         self.class_counter[
             class_name
@@ -377,10 +377,10 @@ class MemoryNode:
     def set_location_srv_cb(self, req: setLocationRequest):
         instance_name = req.frame_id.data
         loc = req.location.data # "map", "box", "gripper", "tray"
-        print("change location request to "+str(loc))
+        # print("change location request to "+str(loc))
         if(loc in [e.value for e in Locations]):
-            self.lt.locations[instance_name] = loc
-            rospy.loginfo("Location of " + instance_name + " changed to " + loc.name)
+            self.lt.locations[instance_name] = Locations(loc)
+            rospy.loginfo("Location of " + instance_name + " changed to " + loc)
         else:
             rospy.loginfo("Location name not recognized, try with map, box, tray, or gripper")
         return EmptyResponse()
@@ -420,6 +420,7 @@ class MemoryNode:
     def publish_long_term_memory(self):
         for instance_name in self.lt.instances_in_memory:
             instance = self.lt.get_instance(instance_name)
+            # print(instance)
             if instance.location == Locations.MAP:
                 self.publish_to_tf(
                     instance_name,
