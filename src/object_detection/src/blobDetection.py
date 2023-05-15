@@ -79,10 +79,7 @@ class armcamDetection:
             pickUpPose = self.convert_to_base_link(xyz_proj)
             # publish as pickup goal
             self.publish_pickup_goal(pickUpPose)
-            # remove object from map
-            # instance_name = rospy.wait_for_message(self.current_obj, String)
-            # print(instance_name)
-            # self.set_obj_location_caller(String(instance_name), String("gripper"))
+
             # publish image with bounding box
             self.cam_image_publisher.publish(self.draw_bounding_box(image,cx,cy, x, y, h, w))
         # ELLIPSE ALTERNATIVE:
@@ -94,18 +91,18 @@ class armcamDetection:
             pickUpPose = self.convert_to_base_link(xyz_proj)
             # publish as pickup goal
             self.publish_pickup_goal(pickUpPose)
-            # remove object from map
-            # instance_name = rospy.wait_for_message(self.current_obj, String)
-            # print(instance_name)
-            # self.set_obj_location_caller(String(instance_name), String("gripper"))
+            
             # publish image with ellipse
             self.cam_image_publisher.publish(self.draw_ellipse(image, ellipse))
             # if it is an ellipse then theses are the returned values
             x = short_axis
             y = long_axis
             h = angle
-            w = 0
-
+            w = 0           
+        # remove object from map
+        instance_name = rospy.wait_for_message(self.current_obj, String)
+        print(instance_name)
+        self.set_obj_location_caller(instance_name, String("gripper"))
         if x == -1 or y == -1:
             return XnYResponse(-1,-1,-1,-1,-1,-1, Bool(False)) #TODO: check Types!! 
         return XnYResponse(cx,cy,x,y,h,w, Bool(True))

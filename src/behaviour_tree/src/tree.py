@@ -189,9 +189,9 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         ROOT_node = pt.composites.Sequence(
             name="ROOT_seq",
         )
-        ROOT_node.add_child(explore_subtree)
-        ROOT_node.add_child(main_mission_subtree)
-        # ROOT_node.add_child(test_root)
+        # ROOT_node.add_child(explore_subtree)
+        # ROOT_node.add_child(main_mission_subtree)
+        ROOT_node.add_child(test_root)
         pt.display.render_dot_tree(ROOT_node)
 
         super(BehaviourTree, self).__init__(ROOT_node)
