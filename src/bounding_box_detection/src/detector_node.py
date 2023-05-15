@@ -154,7 +154,7 @@ class BoundingBoxNode:
             add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())
             self.short_term_mem_proxy(add_req)
 
-
+        rospy.loginfo("length of the new names: " len(self.new_names.array))
         if len(self.new_names.array) > 0:
             path = "/home/dopey/dd2419_ws/src/bounding_box_detection/src/evidence"
             names = [s.data for s in self.new_names.array]
@@ -162,7 +162,7 @@ class BoundingBoxNode:
             full_path = path + "/" + instances + ".jpg"
             # self.save_pic(bb_image, full_path)
             for name in names:
-                rospy.loginfo("name")
+                rospy.loginfo("NOW playing tune for name" + name )
                 self.play_tune(name)
 
     def depth_callback(self, msg):

@@ -377,12 +377,13 @@ class MemoryNode:
     def set_location_srv_cb(self, req: setLocationRequest):
         instance_name = req.frame_id.data
         loc = req.location.data # "map", "box", "gripper", "tray"
+        print("change location request to "+str(loc))
         if(loc in [e.value for e in Locations]):
             self.lt.locations[instance_name] = loc
             rospy.loginfo("Location of " + instance_name + " changed to " + loc.name)
         else:
             rospy.loginfo("Location name not recognized, try with map, box, tray, or gripper")
-        return setLocationResponse(EmptyResponse())
+        return EmptyResponse()
 
     def add_to_short_term(
         self, class_name: str, position: np.array, timestamp: rospy.Time
@@ -419,10 +420,11 @@ class MemoryNode:
     def publish_long_term_memory(self):
         for instance_name in self.lt.instances_in_memory:
             instance = self.lt.get_instance(instance_name)
-            self.publish_to_tf(
-                instance_name,
-                instance.position
-                )
+            if instance.location == Locations.MAP:
+                self.publish_to_tf(
+                    instance_name,
+                    instance.position
+                    )
             
     # returns the pose of an object in the desired frame
     def get_object_pose_cb(self,req: twoStrInPoseOutRequest) -> PoseStamped:
@@ -485,7 +487,7 @@ class MemoryNode:
         dist = float("inf")
         prev_dist = float("inf")
         for instance_name in self.lt.instances_in_memory:
-            if self.check_for_obj_type(instance_name, desired_class_of_obj) and self.lt.get_instance(instance_name).location.lower() == "map":
+            if self.check_for_obj_type(instance_name, desired_class_of_obj) and self.lt.get_instance(instance_name).location == Locations.MAP:
                 poseOfObj = self.get_object_pose(ref_frame_id, instance_name)
                 dist = self.get_distance(poseOfRobot,poseOfObj)
                 if dist < prev_dist and self.obj_inside_map(instance_name):

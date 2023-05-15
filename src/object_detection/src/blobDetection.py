@@ -80,9 +80,9 @@ class armcamDetection:
             # publish as pickup goal
             self.publish_pickup_goal(pickUpPose)
             # remove object from map
-            # instance_name = rospy.wait_for_message(self.current_obj, String)
+            instance_name = rospy.wait_for_message(self.current_obj, String)
             # print(instance_name)
-            # self.set_obj_location_caller(String(instance_name), String("gripper"))
+            self.set_obj_location_caller(String(instance_name), String("gripper"))
             # publish image with bounding box
             self.cam_image_publisher.publish(self.draw_bounding_box(image,cx,cy, x, y, h, w))
         # ELLIPSE ALTERNATIVE:
@@ -95,9 +95,9 @@ class armcamDetection:
             # publish as pickup goal
             self.publish_pickup_goal(pickUpPose)
             # remove object from map
-            # instance_name = rospy.wait_for_message(self.current_obj, String)
+            instance_name = rospy.wait_for_message(self.current_obj, String)
             # print(instance_name)
-            # self.set_obj_location_caller(String(instance_name), String("gripper"))
+            self.set_obj_location_caller(String(instance_name), String("gripper"))
             # publish image with ellipse
             self.cam_image_publisher.publish(self.draw_ellipse(image, ellipse))
             # if it is an ellipse then theses are the returned values
