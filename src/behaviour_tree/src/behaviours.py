@@ -632,15 +632,20 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         # self.reset_pub = rospy.Publisher(
         #     "/reset_path_planning", Bool
         # )
-
+        self.subcribe_ready_for_path = rospy.Subscriber(
+            "/ready_for_new_path", Bool, self.ready_for_path_callback
+        )
         self.occupancy_grid = None
         self.p = p
         self.number_of_total_map_cells = None
         self.collectedFirstMap = False
+        self.ready_for_path = True
 
         super(ReturnKnownMapPercent, self).__init__(
             "Explored space > " + str(self.p * 100) + "%"
         )
+    def ready_for_path_callback(self, msg):
+        self.ready_for_path = msg.data
 
     def map_callback(self, msg):
         self.map_data = msg
@@ -664,7 +669,7 @@ class ReturnKnownMapPercent(pt.behaviour.Behaviour):
         percentage_of_unexplored = 1-percentage_of_unexplored
         # print(percentage_of_unexplored)
         # print(self.p)
-        if percentage_of_unexplored >= self.p:
+        if percentage_of_unexplored >= self.p and self.ready_for_path:
             # self.playTune_client(String("gothim"))
             # NOTE: LOOK HERE; test to clear the path lpannign before moving onto main mission
             true = Bool()
@@ -844,6 +849,10 @@ class GetBoxPose(pt.behaviour.Behaviour):
             "/current_focus_id", String, queue_size=1, latch= True
         )
 
+        self.publish_obj_id = rospy.Publisher(
+            "/current_obj_id", String, queue_size=1, latch=True
+        )
+
         self.current_object = None
         self.ready_for_path = True
 
@@ -867,14 +876,17 @@ class GetBoxPose(pt.behaviour.Behaviour):
     def update(self):
         if self.current_object is not None:
             landmark_id = self.box_dict[self.current_object]
-            target_frame = "Landmark" + str(landmark_id)
+            target_frame = "landmark" + str(landmark_id)
             req = twoStrInPoseOutRequest()
-            req.str1.data = "map"  # frame_id
+            req.str1.data = ("map")  # frame_id
             req.str2.data = target_frame  # object class ball/plushie/box
             desPose = self.getPose_client(req).pose  # assume awlays a pose is given
 
             if self.ready_for_path:
+                print("landmark_id:",landmark_id)
+                print("desPose:",desPose)
                 self.publish_goal.publish(desPose)
+                self.publish_obj_id.publish(target_frame)
                 self.publisher_focus_frame_id.publish(target_frame)
                 print("Sending current desired pose, sending SUCCESS in tree")
                 return pt.common.Status.SUCCESS

@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.4 #percentage to check for complete exploration
+        P = 0.7 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -170,7 +170,16 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         stop_behav = StopRobot(4)
         clear_path_behav = ClearPathStuff()
 
-        testing_services_behavs = [stop_2_sec_first,get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior, approach_behavs, stop_2_sec, send_goal_to_arm, pickup_seq]
+        testing_services_behavs = [stop_2_sec_first,get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior, approach_behavs, stop_2_sec, send_goal_to_arm, pickup_seq,
+                                    get_box_pose, 
+                                    go_to_box, 
+                                    bombastic_tune_behavior_again, 
+                                    approach_behavs_again,
+                                    #  approach_behavs_test_2,
+                                    #  approach_seq_again,
+                                    #  look_at_focus_again, 
+                                    drop_seq,
+                                    aaaah_tune_behavior]
         # testing_services_behavs = [get_closest_obj, give_path_behaviour_test, bombastic_tune_behavior,stop_behav, approach_seq]
 
 
@@ -180,9 +189,9 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         ROOT_node = pt.composites.Sequence(
             name="ROOT_seq",
         )
-        ROOT_node.add_child(explore_subtree)
-        ROOT_node.add_child(main_mission_subtree)
-        # ROOT_node.add_child(test_root)
+        # ROOT_node.add_child(explore_subtree)
+        # ROOT_node.add_child(main_mission_subtree)
+        ROOT_node.add_child(test_root)
         pt.display.render_dot_tree(ROOT_node)
 
         super(BehaviourTree, self).__init__(ROOT_node)
@@ -200,7 +209,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             ascii_tree = pt.display.ascii_tree(
                 self.root, snapshot_information=snapshot_visitor
             )
-            print(ascii_tree)
+            # print(ascii_tree)
 
 
 if __name__ == "__main__":
