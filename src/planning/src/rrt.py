@@ -18,9 +18,9 @@ class RRTNode:
         self.parent = parent
 
         self.buffer = Buffer(rospy.Duration(100.0))
-        rospy.sleep(0.5)
+        rospy.sleep(1.0)
         self.listener = TransformListener(self.buffer)
-        rospy.sleep(0.5)
+        rospy.sleep(1.0)
 
     def set_parent(self, parent: "RRTNode"):
         self.parent = parent

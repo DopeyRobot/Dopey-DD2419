@@ -856,7 +856,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
         self.current_object = None
         self.ready_for_path = True
 
-        self.box_dict = {"ball": 2, "cube": 2, "plushie": 2}
+        self.box_dict = {"ball": 2, "cube": 3, "plushie": 4}
 
         self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         rospy.wait_for_service("/get_object_pose", timeout=2)
