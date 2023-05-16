@@ -92,18 +92,20 @@ class ShortTermMemory:
 
     def check_position(self, position):
         keys = []
-        for key, value in self.average_position.items():
+        average_position = self.average_position.copy()
+        for key, value in average_position.items():
             if np.linalg.norm(position - value) < self.same_obj_threshold:
                 keys.append(key)
         keys = sorted(
-            keys, key=lambda x: np.linalg.norm(position - self.average_position[x])
+            keys, key=lambda x: np.linalg.norm(position - average_position[x])
         )
         return keys
 
     def check_time(self, timestamp):
         """Deletes all instances that have not been seen for more than time_threshold"""
         keys = []
-        for key, value in self.last_time_seen.items():
+        last_time_seen = self.last_time_seen.copy()
+        for key, value in last_time_seen.items():
             if timestamp - value > self.time_threshold:
                 keys.append(key)
 
@@ -189,10 +191,11 @@ class LongTermMemory:
         """Checks if there is an instance in the long term memory that is close enough
         to the position we want to add and returns the name of the closest one"""
         keys = []
-        for key, value in self.positions.items():
+        positions = self.positions.copy()
+        for key, value in positions.items():
             if np.linalg.norm(position - value) < self.same_obj_threshold:
                 keys.append(key)
-        keys = sorted(keys, key=lambda x: np.linalg.norm(position - self.positions[x]))
+        keys = sorted(keys, key=lambda x: np.linalg.norm(position - positions[x]))
 
         if len(keys) != 0:
             return keys[0]
@@ -236,19 +239,23 @@ class LongTermMemory:
     def checkForObjectsToRemember(self, timestamp, db: ShortTermMemory):
         """Checks if there are objects in the ShortTermMemory that have been detected more than N times and adds them to the LongTermMemory"""
         new_names = []
-        for db_instance, counter in db.instances_detected_counter.items():
+        instances_dict = db.instances_detected_counter.copy()
+        for db_instance, counter in instances_dict.items():
             if counter > self.min_frames_needed:
-                if self.too_crowded(db_instance, db):
+                try:
+                    if self.too_crowded(db_instance, db):
+                        continue
+                    new_name = self._updateMemory(
+                        timestamp,
+                        db,
+                        self.get_class_name(db_instance),
+                        db_instance,
+                        db.get_instance_position(db_instance),
+                    )
+                    if new_name is not None:
+                        new_names.append(new_name)
+                except:
                     continue
-                new_name = self._updateMemory(
-                    timestamp,
-                    db,
-                    self.get_class_name(db_instance),
-                    db_instance,
-                    db.get_instance_position(db_instance),
-                )
-                if new_name is not None:
-                    new_names.append(new_name)
         return new_names
 
     def too_crowded(self, db_instance, db:ShortTermMemory):
@@ -418,7 +425,8 @@ class MemoryNode:
             print("sending transform to tf failed")
 
     def publish_long_term_memory(self):
-        for instance_name in self.lt.instances_in_memory:
+        instances = self.lt.instances_in_memory.copy()
+        for instance_name in instances:
             instance = self.lt.get_instance(instance_name)
             # print(instance)
             if instance.location == Locations.MAP:
@@ -437,7 +445,7 @@ class MemoryNode:
         pose = PoseStamped()
         try:
             transform = self.buffer.lookup_transform(ref_frame_id, object_frame_id, rospy.Time(0) )
-            pose.header.frame_id = transform.header.frame_id
+            pose.header.frame_id = transform.header.frame_id #maybe ref_frame_id instead
             pose.pose.position.x = transform.transform.translation.x
             pose.pose.position.y = transform.transform.translation.y
             pose.pose.position.z = transform.transform.translation.z
