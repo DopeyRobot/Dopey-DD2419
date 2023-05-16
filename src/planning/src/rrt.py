@@ -10,6 +10,9 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Path
 from typing import List, Tuple
+from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
+from std_msgs.msg import Bool, Empty, String
+
 
 class RRTNode:
     def __init__(self, x=None, y=None, parent=None) -> None:
@@ -17,10 +20,13 @@ class RRTNode:
         self.y = y
         self.parent = parent
 
-        self.buffer = Buffer(rospy.Duration(100.0))
-        rospy.sleep(2.0)
-        self.listener = TransformListener(self.buffer)
-        rospy.sleep(2.0)
+        # self.buffer = Buffer(rospy.Duration(100.0))
+        # #rospy.sleep(5.0)
+        # self.listener = TransformListener(self.buffer)
+        #rospy.sleep(2.0)
+
+        self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        rospy.wait_for_service("/get_object_pose", timeout=10)
 
     def set_parent(self, parent: "RRTNode"):
         self.parent = parent
@@ -29,16 +35,21 @@ class RRTNode:
         return self.parent
     
     def get_start(self):    
-        
-        base_link_origin = PoseStamped()
-        base_link_origin.header.stamp = rospy.Time.now()
-        if self.buffer.can_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1)):
-            transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1))  
-            baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
+        req = twoStrInPoseOutRequest()
+        req.str1 = String("map")  # frame_id
+        req.str2 = String("base_link")  # object class ball/plushie/box
+        desPose = self.getPose_client(req).pose 
+        # print(desPose)
+        return desPose
+        # base_link_origin = PoseStamped()
+        # base_link_origin.header.stamp = rospy.Time.now()
+        #if self.buffer.can_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1)):
+            # transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1))  
+            # baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
-            return baseInMapPose
-        else:
-            return None
+        #     return baseInMapPose
+        # else:
+        #     return None
 
 class RRTPlanner:
     def __init__(self, start=None, goal=None, num_iterations=100, step_size=2, n_steps=1,runInit=True):
@@ -61,6 +72,11 @@ class RRTPlanner:
         self.sub_map = rospy.Subscriber('/occupancygrid', OccupancyGrid, self.get_map_callback)
         self.rate = rospy.Rate(1)
 
+        self.cur_obj_subscriber = rospy.Subscriber(
+            "/current_obj_id", String, self.current_object_callback
+        )
+
+
         self.path_msg = Path()
         self.path_msg.header.stamp = rospy.Time.now()
         self.path_msg.header.frame_id = "map"
@@ -77,12 +93,20 @@ class RRTPlanner:
         self.RRT: List[RRTNode] = [self.start]
 
         self.ready4path = False
-
+        self.moving2landmark = False
+        self.genLastNode = False
 
         # self.goalReceivedTicker = 0
         # self.goalProcessedTicker = 0
         if runInit:
             self.run()
+
+    def current_object_callback(self, msg):
+        if "landmark" in msg.data:
+            self.moving2landmark = True
+        else:
+            self.moving2landmark = False
+
 
     def get_map_callback(self, msg):
         if msg is None:
@@ -145,16 +169,19 @@ class RRTPlanner:
         row = int((y - self.map_data.info.origin.position.y) / self.map_data.info.resolution)
 
         value = self.occupancy_grid[row][col]
-        if value == 0:
-            # Free
+        if self.genLastNode and self.moving2landmark:
             return True
-        elif value > 0:
-            print("Ran into obstacle")
-            # Obstacle
-            return False
         else:
-            return True
-            # For now, its unknown..
+            if value == 0:
+                # Free
+                return True
+            elif value > 0:
+                print("Ran into obstacle")
+                # Obstacle
+                return False
+            else:
+                return False#True
+                # For now, its unknown..
 
     def RRT_step(self, nearest_node: RRTNode, target_x, target_y):
         new_node = RRTNode(nearest_node.x, nearest_node.y, nearest_node)
@@ -186,6 +213,16 @@ class RRTPlanner:
                     goal_node = RRTNode(self.goal[0], self.goal[1], new_node)
                     self.RRT.append(goal_node)
                     break
+                elif (
+                    np.linalg.norm(
+                        np.array([new_node.x, new_node.y]) - np.array(self.goal)
+                    )
+                    <= self.step_size*2
+                ):
+                    self.genLastNode = True
+                else:
+                    self.genLastNode = False
+
 
     def generate_path(self):
         current_node = self.RRT[-1]

@@ -1105,8 +1105,8 @@ class GetHomePose(pt.behaviour.Behaviour):
         landmark_id = 1
         target_frame = "landmark" + str(landmark_id)
         req = twoStrInPoseOutRequest()
-        req.str1.data = ("map")  # frame_id
-        req.str2.data = target_frame  # object class ball/plushie/box
+        req.str1 = String("map")  # frame_id
+        req.str2 = String(target_frame)  # object class ball/plushie/box
         desPose = self.getPose_client(req).pose  # assume awlays a pose is given
         print("check1")
         if self.ready_for_path:
@@ -1156,3 +1156,31 @@ class CheckDuration(pt.behaviour.Behaviour):
                 # print("check4")
                 return pt.common.Status.SUCCESS
                 
+class ReverseRobot(pt.behaviour.Behaviour):
+    def __init__(self, duration):
+        self.name = "ReverseRobot"
+        self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
+        self.duration = duration
+
+        super(ReverseRobot, self).__init__("Reverse Robot for " + str(int(duration)) + " sec")
+
+        self.start = rospy.Time.now()
+
+    def update(self):
+        if rospy.Time.now() - self.start > rospy.Duration(self.duration):
+            return pt.common.Status.SUCCESS
+        else:
+            twist = Twist()
+            publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+            twist.linear.x = -1.0
+            twist.angular.z = 0.0
+            publisher_twist.publish(twist)
+            # msg = DutyCycles()
+            # msg.duty_cycle_left = 0
+            # msg.duty_cycle_right = 0
+            # self.duty_pub.publish(msg)
+            return pt.common.Status.RUNNING
+
+    def initialise(self):
+        print("Reversing robot for ",self.duration)
+        self.start = rospy.Time.now()

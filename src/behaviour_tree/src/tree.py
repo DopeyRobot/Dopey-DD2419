@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.3 #percentage to check for complete exploration
+        P = 0.5 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -98,13 +98,14 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         returnHomeDuration = 60*6 #sec
         durationBehav = CheckDuration(returnHomeDuration)
         getHomeBehav = GetHomePose()
-        goHomeBehav = give_path()
+        goHomeBehav = give_path(exploring=False)
         goingHomeTuneBehav = playTuneBehaviour("underwater")
+        approachHome = approach_goal()
         goHomeSeq = pt.composites.Sequence(
             name="->",
         )
 
-        goHomeSeq.add_children([goingHomeTuneBehav,getHomeBehav,goHomeBehav])
+        goHomeSeq.add_children([goingHomeTuneBehav,getHomeBehav,goHomeBehav,approachHome])
 
         goHomeFallback = pt.composites.Selector(
             name="?"
@@ -162,8 +163,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         approach_behavs = approach_goal()
         approach_behavs_again = approach_goal()
         
-
-        
+        reversebehav = ReverseRobot(2)
+        reversebehav_again = ReverseRobot(2)        
 
         main_mission_subtree.add_children(
             [stop_2_sec, 
@@ -176,7 +177,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             #  look_at_focus, 
              stop_2_sec_again, 
              send_goal_to_arm, 
-             pickup_seq, 
+             pickup_seq,
+             reversebehav, 
              get_box_pose, 
              go_to_box, 
              bombastic_tune_behavior_again, 
@@ -185,6 +187,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             #  approach_seq_again,
             #  look_at_focus_again, 
              drop_seq,
+             reversebehav_again,
              aaaah_tune_behavior]   
         )
 

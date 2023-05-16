@@ -253,23 +253,23 @@ class move_to_goal():
                 self.transformed_goal_pose = self.tf_buffer.transform(self.goal_pose, self.targetframe, self.timeout)
 
                 goal_q = self.goal_pose.pose.orientation
-                own_q = self.get_current_pose().pose.orientation
+                # own_q = self.get_current_pose().pose.orientation
                 # (_, _, self.goal_theta) = euler_from_quaternion([goal_q.w, goal_q.x, goal_q.y, goal_q.z])
                 (_, _, self.goal_theta) = euler_from_quaternion([goal_q.w, goal_q.x, goal_q.y, goal_q.z])
-                (_, _, own_theta) = euler_from_quaternion([own_q.w, own_q.x, own_q.y, own_q.z])
+                # (_, _, own_theta) = euler_from_quaternion([own_q.w, own_q.x, own_q.y, own_q.z])
                 # (_, _, self.goal_theta) = tf_conversions.transformations.euler_from_quaternion([rot_q.w, rot_q.x, rot_q.y, rot_q.z])
 
                 error_dist = math.sqrt(self.transformed_goal_pose.pose.position.x**2 + self.transformed_goal_pose.pose.position.y**2)
                 error_ang1 = math.atan2(self.transformed_goal_pose.pose.position.y, self.transformed_goal_pose.pose.position.x) #self.get_err_a1()#
                 self.lastang = error_ang1
-                error_ang2 = own_theta - self.goal_theta
+                # error_ang2 = own_theta - self.goal_theta
                 
 
                 # rospy.loginfo(f"""💀\nerror_dist = {error_dist}\nerror_first_angle{error_ang1}\nerror_second_angle{error_ang2}💀""")
                 
                 ang1out = self.ang1PID(error_ang1)
                 distout = self.distPID(error_dist)
-                ang2out = self.ang2PID(error_ang2)
+                # ang2out = self.ang2PID(error_ang2)
             
                 if not self.arrived2point:
                     print("distance from waypoint:", error_dist)

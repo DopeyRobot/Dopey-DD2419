@@ -299,7 +299,7 @@ class Occupancygrid:
         # inflate the occupied grid first
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
         self.grid_occupied[self.occupancy_grid==1]=1
-        self.grid_c_space = np.array(cv2.dilate(self.grid_occupied, kernel, iterations = 1), dtype=np.uint8)
+        self.grid_c_space = np.array(cv2.dilate(self.grid_occupied, kernel, iterations = 4), dtype=np.uint8)
         
         self.grid = np.ones((self.x_cells, self.y_cells))*self.uknownspace_value
         self.grid[self.grid_unknown.astype(np.bool8)] = self.uknownspace_value
