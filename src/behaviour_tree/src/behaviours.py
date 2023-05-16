@@ -623,6 +623,9 @@ class playTuneBehaviour(pt.behaviour.Behaviour):
         self.playTune_client(String(self.tune_name))
         return pt.common.Status.SUCCESS
     
+    def reset(self):
+        return None
+    
 
 
 
