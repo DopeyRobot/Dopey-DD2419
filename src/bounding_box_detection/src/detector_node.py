@@ -115,6 +115,17 @@ class BoundingBoxNode:
 
     def new_names_cb(self, msg:StringArray):
         self.new_names = msg
+        if len(self.new_names.array) > 0:
+            bb_image = self.show_bbs_in_image(self.bbs, self.array_image)
+            print("NEW NAMES")
+            path = "/home/dopey/dd2419_ws/src/bounding_box_detection/src/evidence"
+            names = [s.data for s in self.new_names.array]
+            instances = "_".join(names)
+            full_path = path + "/" + instances + ".jpg"
+            # self.save_pic(bb_image, full_path)
+            for name in names:
+                rospy.loginfo("NOW playing tune for name" + name )
+                self.play_tune(name)
 
 
     def take_pic(self, path):
@@ -143,7 +154,6 @@ class BoundingBoxNode:
             bbs, confidence_threshold=0.80, diff_class_thresh=0.75
         )
         # add bbs to image and publish
-        bb_image = self.show_bbs_in_image(self.bbs, self.array_image)
 
         for bb in self.bbs:
             class_name = String(self.get_class_name(bb, self.array_image))
@@ -154,16 +164,6 @@ class BoundingBoxNode:
             add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())
             self.short_term_mem_proxy(add_req)
 
-        if len(self.new_names.array) > 0:
-            rospy.loginfo("NOW saving image an playing tune")
-            path = "/home/dopey/dd2419_ws/src/bounding_box_detection/src/evidence"
-            names = [s.data for s in self.new_names.array]
-            instances = "_".join(names)
-            full_path = path + "/" + instances + ".jpg"
-            # self.save_pic(bb_image, full_path)
-            for name in names:
-                rospy.loginfo("NOW playing tune for name" + name )
-                self.play_tune(name)
 
     def depth_callback(self, msg):
         self.ros_depth = msg
