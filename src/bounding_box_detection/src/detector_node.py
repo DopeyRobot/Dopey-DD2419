@@ -114,7 +114,6 @@ class BoundingBoxNode:
         self.run()
 
     def new_names_cb(self, msg:StringArray):
-        print("new names cb")
         self.new_names = msg
         if len(self.new_names.array) > 0:
             bb_image = self.show_bbs_in_image(self.bbs, self.array_image)
@@ -164,8 +163,6 @@ class BoundingBoxNode:
             position = self.convert_to_map(position)
             add_req = add2ShortTermRequest(class_name, position, rospy.Time.now())
             self.short_term_mem_proxy(add_req)
-
-        # rospy.loginfo("length of the new names: " + str(len(self.new_names.array)))
 
 
     def depth_callback(self, msg):
