@@ -56,6 +56,8 @@ class give_path(pt.behaviour.Behaviour):
         self.ready_for_path = True
         self.pose_to_send = 0
         self.tooFar = True
+        self.T0 = None
+        self.explorationTime = 120
         # self.goalPosition = None
         # become a behaviour
 
@@ -138,14 +140,16 @@ class give_path(pt.behaviour.Behaviour):
                     # print('Moving to next pose in path array! Sending RUNNING in tree')
                     return pt.common.Status.RUNNING
             elif self.exploring:
-                print("Dopey is exploring...")
+                # print("Dopey is exploring...")
                 if self.ready_for_pose and self.pose_to_send < len(
                     self.path.poses): 
                     # print("Condition 1")
                     self._continueMoving()
+                    if self.T0 is None:
+                        self.T0 = rospy.Time.now()
                     return pt.common.Status.RUNNING
 
-                elif self.ready_for_pose and self.pose_to_send == len(self.path.poses):
+                elif (self.ready_for_pose and self.pose_to_send == len(self.path.poses)) or rospy.Time.now()-self.T0 >= rospy.Duration(self.explorationTime):
                     # print("condition 2")
                     self._reachedFinalGoal()
                     self.ready_for_path = True
@@ -310,8 +314,10 @@ class FrontierExploration(pt.behaviour.Behaviour):
 
         # closest frontier cell
         if len(distances) != 0:
-            min_distance_idx = np.argmin(distances)
-            closest_frontier = frontier_cells[min_distance_idx]
+            # min_distance_idx = np.argmin(distances)
+            # closest_frontier = frontier_cells[min_distance_idx]
+            closest_frontier = frontier_cells[np.random.randint(0,len(distances))]
+
 
             return closest_frontier
         else:
@@ -1063,4 +1069,90 @@ class approach_goal(pt.behaviour.Behaviour):
             
         return pt.common.Status.RUNNING
     
+class GetHomePose(pt.behaviour.Behaviour):
+    def __init__(self):
+        rospy.loginfo("Init gethomepose")
+        self.name = "send home pose"
+        self.publish_goal = rospy.Publisher(
+            "/send_goal", PoseStamped, queue_size=1, latch=True
+        )
+        self.subcribe_ready_for_path = rospy.Subscriber(
+            "/ready_for_new_path", Bool, self.ready_for_path_callback
+        )
 
+
+        self.publisher_focus_frame_id = rospy.Publisher(
+            "/current_focus_id", String, queue_size=1, latch= True
+        )
+
+        self.publish_obj_id = rospy.Publisher(
+            "/current_obj_id", String, queue_size=1, latch=True
+        )
+
+        self.current_object = None
+        self.ready_for_path = True
+
+        self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
+        rospy.wait_for_service("/get_object_pose", timeout=2)
+
+        # become a behaviour
+        super(GetHomePose, self).__init__("Get home pose")
+
+    def ready_for_path_callback(self, msg):
+        self.ready_for_path = msg.data
+
+    def update(self):
+        landmark_id = 1
+        target_frame = "landmark" + str(landmark_id)
+        req = twoStrInPoseOutRequest()
+        req.str1.data = ("map")  # frame_id
+        req.str2.data = target_frame  # object class ball/plushie/box
+        desPose = self.getPose_client(req).pose  # assume awlays a pose is given
+        print("check1")
+        if self.ready_for_path:
+            # print("landmark_id:",landmark_id)
+            # print("desPose:",desPose)
+            self.publish_goal.publish(desPose)
+            self.publish_obj_id.publish(target_frame)
+            self.publisher_focus_frame_id.publish(target_frame)
+            print("Sending home pose, sending SUCCESS in tree")
+            return pt.common.Status.SUCCESS
+
+        else:
+            print("check2")
+
+            return pt.common.Status.RUNNING
+        
+class CheckDuration(pt.behaviour.Behaviour):
+    def __init__(self,duration):
+        self.name = "send home pose"
+
+        self.T0 = None
+        self.goHomeInterval = duration
+        # become a behaviour
+        super(CheckDuration, self).__init__("Duration < " + str(int(duration)) + " sec ")
+
+    def ready_for_path_callback(self, msg):
+        self.ready_for_path = msg.data
+
+    def update(self):
+        # print("check1")
+        
+        if self.T0 is None:
+            # print("check2")
+            self.T0 = rospy.Time.now()
+            return pt.common.Status.SUCCESS
+        else:
+            # print("landmark_id:",landmark_id)
+            # print("desPose:",desPose)
+            print(self.T0)
+            print(rospy.Time.now()-self.T0)
+            print(rospy.Time.now()-self.T0 >= rospy.Duration(self.goHomeInterval))
+            if rospy.Time.now()-self.T0 >= rospy.Duration(self.goHomeInterval):
+                self.__init__(self.goHomeInterval)
+                # print("check3")
+                return pt.common.Status.FAILURE
+            else: 
+                # print("check4")
+                return pt.common.Status.SUCCESS
+                

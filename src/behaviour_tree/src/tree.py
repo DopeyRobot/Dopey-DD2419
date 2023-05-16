@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.9 #percentage to check for complete exploration
+        P = 0.3 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -88,13 +88,41 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         OR_explore.add_child(percentage_of_known_behaviour_2)
         OR_explore.add_child(root_explore)
 
+        explore_subsubtree = pt.composites.Sequence(
+            name="->",
+        )
+        explore_subsubtree.add_child(OR_explore)
+        explore_subsubtree.add_child(gothim_tune_behaviour)
+
+        #Return home
+        returnHomeDuration = 60*6 #sec
+        durationBehav = CheckDuration(returnHomeDuration)
+        getHomeBehav = GetHomePose()
+        goHomeBehav = give_path()
+        goingHomeTuneBehav = playTuneBehaviour("underwater")
+        goHomeSeq = pt.composites.Sequence(
+            name="->",
+        )
+
+        goHomeSeq.add_children([goingHomeTuneBehav,getHomeBehav,goHomeBehav])
+
+        goHomeFallback = pt.composites.Selector(
+            name="?"
+        )
+
+        goHomeFallback.add_child(durationBehav)
+        goHomeFallback.add_child(goHomeSeq)
+
         explore_subtree = pt.composites.Sequence(
             name="->",
         )
-        explore_subtree.add_child(OR_explore)
-        explore_subtree.add_child(gothim_tune_behaviour)
 
-        
+        explore_subtree.add_child(goHomeFallback)
+        explore_subtree.add_child(explore_subsubtree)
+
+        # explore_subtree = exploreSeq
+
+
 
         ## MAIN MISSION SUBTREE
         main_mission_subtree = pt.composites.Sequence(
@@ -189,9 +217,9 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         ROOT_node = pt.composites.Sequence(
             name="ROOT_seq",
         )
-        # ROOT_node.add_child(explore_subtree)
-        # ROOT_node.add_child(main_mission_subtree)
-        ROOT_node.add_child(test_root)
+        ROOT_node.add_child(explore_subtree)
+        ROOT_node.add_child(main_mission_subtree)
+        # ROOT_node.add_child(test_root)
         pt.display.render_dot_tree(ROOT_node)
 
         super(BehaviourTree, self).__init__(ROOT_node)
@@ -209,7 +237,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             ascii_tree = pt.display.ascii_tree(
                 self.root, snapshot_information=snapshot_visitor
             )
-            # print(ascii_tree)
+            print(ascii_tree)
 
 
 if __name__ == "__main__":
