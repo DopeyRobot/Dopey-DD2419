@@ -95,6 +95,9 @@ class AudioService:
         elif req == "nogod":
             playsound(AUDIO_PATH+"noMichael.mp3")
             return EmptyResponse()
+        elif req == "grape":
+            playsound(AUDIO_PATH+"wow_grape.mp3")
+            return EmptyResponse()
         else: 
             playsound(AUDIO_PATH+"no_file.mp3")
             rospy.logerr("Invalid tune name")
