@@ -60,6 +60,10 @@ class give_path(pt.behaviour.Behaviour):
         self.explorationTime = 180
         # self.goalPosition = None
         # become a behaviour
+        rospy.sleep(2) #NOTE
+        self.ready_for_pose_pub.publish(self.ready_for_pose)
+        self.ready_for_new_path.publish(self.ready_for_path)
+
 
         # self.update()
 

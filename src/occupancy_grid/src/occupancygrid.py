@@ -37,7 +37,14 @@ from bounding_box_detection.srv import (
 
 # from std_srvs.srv import Empty
 from std_msgs.msg import Empty
-from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse
+from occupancy_grid.srv import (
+    isOccupied,
+    isOccupiedRequest,
+    isOccupiedResponse,
+    processPose,
+    processPoseRequest,
+    processPoseResponse,
+)
 import cv2
 
 
@@ -82,6 +89,9 @@ class Occupancygrid:
         self.get_pose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         self.occpied_srv = rospy.Service(
             "/occupied_service", isOccupied, self.is_occupied_callback
+        )
+        self.process_pose_srv = rospy.Service(
+            "/process_pose", processPose, self.process_pose_callback
         )
         self.polygon_client = rospy.ServiceProxy("/polygon_service", PolyCheck)
         self.occupancy_client = rospy.ServiceProxy("/occupancy_service", OccupancyCheck)
@@ -169,6 +179,34 @@ class Occupancygrid:
             self.y_low + step * j + step / 2
         )  # added step/2 so that the coordinate is in the middle of the cells
         return y_pos
+
+    def process_pose_callback(self, req):
+        poseIn = req.poseIn
+        base_link_pose = self.get_pose_client(
+            twoStrInPoseOutRequest(String("map"), String("base_link"))
+        ).pose
+        robot_x = base_link_pose.pose.position.x
+        robot_y = base_link_pose.pose.position.y
+        x = poseIn.pose.position.x
+        y = poseIn.pose.position.y
+        i = self.get_i_index(x)
+        j = self.get_j_index(y)
+        robot_i = self.get_i_index(robot_x)
+        robot_j = self.get_j_index(robot_y)
+
+        traversed = self.raytrace((i, j), (robot_i, robot_j))
+        res_i, res_j = i, j
+        for t_i, t_j in traversed:
+            if not self.grid_occupied[t_i, t_j]:
+                res_i, res_j = t_i, t_j
+                break
+        poseOut = PoseStamped()
+        poseOut.pose.position.x = self.get_x_pos(res_i)
+        poseOut.pose.position.y = self.get_y_pos(res_j)
+        poseOut.pose.orientation = poseIn.pose.orientation
+        poseOut.header.frame_id = "map"
+        poseOut.header.stamp = rospy.Time.now()
+        return processPoseResponse(poseOut)
 
     def incrementer(self, x, y, direction):
         # x and y are the current position of the robot in discrete values
@@ -341,7 +379,7 @@ class Occupancygrid:
         header = Header()
         header.frame_id = "map"
         header.stamp = rospy.Time.now()
-        self.set_objects_as_occupied()
+        # self.set_objects_as_occupied()#NOTE
         self.inflate_map()
         occupancygrid_data.header = header
         occupancygrid_data.data = list(self.grid.T.reshape(-1).astype(np.int8))

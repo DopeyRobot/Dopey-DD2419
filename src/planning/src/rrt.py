@@ -72,9 +72,9 @@ class RRTPlanner:
         self.sub_map = rospy.Subscriber('/occupancygrid', OccupancyGrid, self.get_map_callback)
         self.rate = rospy.Rate(1)
 
-        self.cur_obj_subscriber = rospy.Subscriber(
-            "/current_obj_id", String, self.current_object_callback
-        )
+        # self.cur_obj_subscriber = rospy.Subscriber(
+        #     "/current_obj_id", String, self.current_object_callback
+        # )
 
 
         self.path_msg = Path()
@@ -93,19 +93,20 @@ class RRTPlanner:
         self.RRT: List[RRTNode] = [self.start]
 
         self.ready4path = False
-        self.moving2landmark = False
-        self.genLastNode = False
+        # self.moving2landmark = False
+        # self.genLastNode = False
 
         # self.goalReceivedTicker = 0
         # self.goalProcessedTicker = 0
         if runInit:
             self.run()
 
-    def current_object_callback(self, msg):
-        if "landmark" in msg.data:
-            self.moving2landmark = True
-        else:
-            self.moving2landmark = False
+    # def current_object_callback(self, msg):
+    #     # if "landmark" in msg.data:
+    #     #     self.moving2landmark = True
+    #     # else:
+    #     #     self.moving2landmark = False
+    #     self.moving2landmark = True
 
 
     def get_map_callback(self, msg):
@@ -169,19 +170,19 @@ class RRTPlanner:
         row = int((y - self.map_data.info.origin.position.y) / self.map_data.info.resolution)
 
         value = self.occupancy_grid[row][col]
-        if self.genLastNode and self.moving2landmark:
+        # if self.genLastNode and self.moving2landmark:
+        #     return True
+        # else:
+        if value == 0:
+            # Free
             return True
+        elif value > 0:
+            print("Ran into obstacle")
+            # Obstacle
+            return False
         else:
-            if value == 0:
-                # Free
-                return True
-            elif value > 0:
-                print("Ran into obstacle")
-                # Obstacle
-                return False
-            else:
-                return False#True
-                # For now, its unknown..
+            return False#True
+            # For now, its unknown..
 
     def RRT_step(self, nearest_node: RRTNode, target_x, target_y):
         new_node = RRTNode(nearest_node.x, nearest_node.y, nearest_node)
@@ -213,15 +214,15 @@ class RRTPlanner:
                     goal_node = RRTNode(self.goal[0], self.goal[1], new_node)
                     self.RRT.append(goal_node)
                     break
-                elif (
-                    np.linalg.norm(
-                        np.array([new_node.x, new_node.y]) - np.array(self.goal)
-                    )
-                    <= self.step_size*2
-                ):
-                    self.genLastNode = True
-                else:
-                    self.genLastNode = False
+                # elif (
+                #     np.linalg.norm(
+                #         np.array([new_node.x, new_node.y]) - np.array(self.goal)
+                #     )
+                #     <= self.step_size*5
+                # ):
+                #     self.genLastNode = True
+                # else:
+                #     self.genLastNode = False
 
 
     def generate_path(self):
