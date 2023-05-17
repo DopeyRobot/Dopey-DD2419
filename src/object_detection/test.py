@@ -5,25 +5,29 @@ import matplotlib.pyplot as plt
 
 img = cv.imread(
     #"/home/dopey/dd2419_ws/src/object_detection/src/test_images/blue_cube.jpg", # Robot Computer
-    "C:/KTH/Robotics Project course/Dopey-DD2419/src/object_detection/src/test_images/ball_r.jpg", # RC Computer
+    "C:/KTH/Robotics Project course/Dopey-DD2419/src/object_detection/src/test_images/slush.jpg", # RC Computer
     cv.IMREAD_COLOR,
 )
-# Color Filter
-print(img)
-lower = np.array([67, 71, 70])
-upper = np.array([190, 190, 188])
-mask = cv.inRange(img, lower, upper)
-masked = cv.bitwise_and(img, img, mask=mask)
-result = img - masked
 plt.imshow(img)
 plt.title("Original")
 plt.show()
-# plt.imshow(mask)
-# plt.title("Mask")
-# plt.show()
-# plt.imshow(masked)
-# plt.title("Masked")
-# plt.show()
+# Color Filter
+############BACKGROUND COLORS FILTER############
+# lower = np.array([67, 71, 70])
+# upper = np.array([190, 190, 188])
+lower = np.array([75, 74, 76])
+upper = np.array([185, 185, 185])
+
+mask = cv.inRange(img, lower, upper)
+masked = cv.bitwise_and(img, img, mask=mask)
+result = img - masked
+
+plt.imshow(mask)
+plt.title("Mask")
+plt.show()
+plt.imshow(masked)
+plt.title("Masked")
+plt.show()
 # plt.imshow(result)
 # plt.title("Result = Original - Masked")
 # plt.show()
@@ -33,38 +37,38 @@ _,thresholded = cv.threshold(masked, 80, 255, cv.THRESH_BINARY)
 thresholded = cv.cvtColor(thresholded, cv.COLOR_BGR2GRAY)
 _,thresholded = cv.threshold(thresholded, 122, 255, cv.THRESH_BINARY)
 
-# print(np.unique(thresholded))
-# print(thresholded.shape)
-# plt.imshow(thresholded)
-# plt.title("Thresholded")
-# plt.show()
-cut_img = thresholded
-cut_img = cut_img[:-100, :]
-# plt.imshow(cut_img)
-# plt.title("cut_img")
-# plt.show()
-
-white = np.ones(img.shape[:2], dtype=np.uint8)*255
-white[:-100,:] = cut_img
-img_repasted = white
-plt.imshow(img_repasted)
-plt.title("img_repasted")
+print(np.unique(thresholded))
+print(thresholded.shape)
+plt.imshow(thresholded)
+plt.title("Thresholded")
 plt.show()
+# Use fillPoly() function and give input as
+# image, end points, color of polygon
+# Here color of polygon will be white
+cut_img = thresholded.copy()
+points = np.array([[0, 479], [0, 330], [450, 410], [540,479]])
+cv.fillPoly(cut_img, pts=[points], color=(
+    255
+))
+plt.imshow(cut_img)
+plt.title("cut_img")
+plt.show()
+
 #!!!!!!!!!!!!!!!!!!!!!!!!!! NOTE: MAYBE BETTER TO OPEN FIRST CLOSE SECOND !!!!!!! CHECK IT!!!!!!!!!!!!!
 close_first_open_second=False
 if close_first_open_second:
-    img_repasted = cv.bitwise_not(img_repasted)
-
+    cut_img = cv.bitwise_not(cut_img)
 
 #Morphological operations
-closed = cv.morphologyEx(img_repasted, cv.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=3)
+closed = cv.morphologyEx(cut_img, cv.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=3)
 plt.imshow(closed)
 plt.title("Closed")
 plt.show()
-open = cv.morphologyEx(closed, cv.MORPH_OPEN, np.ones((4,4), np.uint8), iterations=5)
+open = cv.morphologyEx(closed, cv.MORPH_OPEN, np.ones((4,4), np.uint8), iterations=3)
 plt.imshow(open)
 plt.title("Closed and Opened")
 plt.show()
+
 #Cut the bottom of the image and make it white
 final_img = open
 if not close_first_open_second:
@@ -133,13 +137,13 @@ plt.show()
 ##############################################
 # FIND THE LARGEST CONTOUR AND FIT AN ELLIPSE#
 ##############################################
-plt.imshow(final_img)
-plt.title("final_img")
-plt.show()
+# plt.imshow(final_img)
+# plt.title("final_img")
+# plt.show()
 canny_output = cv.Canny(final_img, 100, 200)
-plt.imshow(canny_output)
-plt.title("canny_output")
-plt.show()
+# plt.imshow(canny_output)
+# plt.title("canny_output")
+# plt.show()
     
 contours, _ = cv.findContours(canny_output, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 max_contour_area = -1
@@ -148,24 +152,22 @@ max_contour = -1
     # Find the rotated rectangles and ellipses for each contour
 minEllipse = [None]*len(contours)
 print("countours found: "+str(len(contours)))
-minRect = [None]*len(contours)
 minEllipse = [None]*len(contours)
 for i, c in enumerate(contours):
-    minRect[i] = cv.minAreaRect(c)
     if c.shape[0] > 5:
         minEllipse[i] = cv.fitEllipse(c)
-        area = cv.contourArea(c)
         center = minEllipse[i][0]
         cX = center[0]
         cY = center[1]
+        size = minEllipse[i][1]
+        short_axis = min(size)
+        long_axis = max(size)
+        area = np.pi*short_axis*long_axis
+
         print("area = "+str(area))
         if area > max_contour_area:
                 max_contour_area = area
                 max_contour = i
-                
-                size = minEllipse[i][1]
-                short_axis = min(size)
-                long_axis = max(size)
                 angle = minEllipse[i][2]
                 (cX_final,cY_final,short_axis_final,long_axis_final,angle_final) = (cX,cY,long_axis,short_axis,angle)
 # Draw contours + rotated rects + ellipses
@@ -179,14 +181,8 @@ for i, c in enumerate(contours):
     # ellipse
     if c.shape[0] > 5:
         cv.ellipse(drawing, minEllipse[i], ellipse_color, 2)
-    # rotated rectangle
-    box = cv.boxPoints(minRect[i])
-    box = np.intp(box) #np.intp: Integer used for indexing (same as C ssize_t; normally either int32 or int64)
-    cv.drawContours(drawing, [box], 0, ellipse_color)
-    cv.circle(drawing, (int(cX), int(cY)), 4, ellipse_color, -1)
-plt.imshow(drawing)
-plt.title("drawing")
-plt.show()
+        cv.circle(drawing, (int(cX), int(cY)), 4, ellipse_color, -1)
+
 
 max_contour_img = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
 cv.drawContours(max_contour_img, contours, max_contour, ellipse_color)
