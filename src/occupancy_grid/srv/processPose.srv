@@ -1,0 +1,3 @@
+geometry_msgs/PoseStamped poseIn
+---
+geometry_msgs/PoseStamped poseOut
