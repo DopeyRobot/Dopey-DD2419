@@ -59,8 +59,10 @@ class RRTPlanner:
         self.start = None
         self.goal = None #goal
 
-        self.map_data = None
-        self.occupancy_grid = None
+        # self.map_data = None
+        # self.occupancy_grid = None
+        self.map_data = rospy.wait_for_message("/occupancygrid", OccupancyGrid, timeout=30)
+        self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
 
         self.num_iterations = num_iterations
         self.step_size = step_size

@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.5 #percentage to check for complete exploration
+        P = 0.7 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -163,8 +163,8 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         approach_behavs = approach_goal()
         approach_behavs_again = approach_goal()
         
-        reversebehav = ReverseRobot(2)
-        reversebehav_again = ReverseRobot(2)        
+        reversebehav = ReverseRobot(4)
+        reversebehav_again = ReverseRobot(4)        
 
         main_mission_subtree.add_children(
             [stop_2_sec, 

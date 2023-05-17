@@ -111,7 +111,7 @@ class Occupancygrid:
         self.x_low = OC.vertices_list[0]
         self.x_high = OC.vertices_list[1]
         self.y_low = OC.vertices_list[2]
-        self.x_high = OC.vertices_list[3]
+        self.y_high = OC.vertices_list[3]
 
         self.x_cells = self.occupancy_metadata.width
         self.y_cells = self.occupancy_metadata.height
@@ -197,12 +197,13 @@ class Occupancygrid:
         traversed = self.raytrace((i, j), (robot_i, robot_j))
         res_i, res_j = i, j
         for t_i, t_j in traversed:
-            if not self.grid_occupied[t_i, t_j]:
+            if self.grid[t_i, t_j] == self.freespace_value:
                 res_i, res_j = t_i, t_j
                 break
         poseOut = PoseStamped()
         poseOut.pose.position.x = self.get_x_pos(res_i)
         poseOut.pose.position.y = self.get_y_pos(res_j)
+        print(f"")
         poseOut.pose.orientation = poseIn.pose.orientation
         poseOut.header.frame_id = "map"
         poseOut.header.stamp = rospy.Time.now()

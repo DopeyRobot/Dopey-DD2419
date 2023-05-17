@@ -60,9 +60,9 @@ class give_path(pt.behaviour.Behaviour):
         self.explorationTime = 180
         # self.goalPosition = None
         # become a behaviour
-        rospy.sleep(2) #NOTE
-        self.ready_for_pose_pub.publish(self.ready_for_pose)
-        self.ready_for_new_path.publish(self.ready_for_path)
+        # rospy.sleep(2) #NOTE
+        # self.ready_for_pose_pub.publish(self.ready_for_pose)
+        # self.ready_for_new_path.publish(self.ready_for_path)
 
 
         # self.update()
@@ -917,7 +917,7 @@ class GetBoxPose(pt.behaviour.Behaviour):
             if self.ready_for_path:
                 print("landmark_id:",landmark_id)
                 print("desPose:",desPose)
-                req=processPoseRequest(desPose.pose)
+                req=processPoseRequest(desPose)
                 resp = self.processPose_client(req)
                 self.publish_goal.publish(resp.poseOut)
                 # self.publish_goal.publish(desPose)
