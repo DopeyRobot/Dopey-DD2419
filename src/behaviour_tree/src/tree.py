@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.85 #percentage to check for complete exploration
+        P = 0.5 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -94,36 +94,36 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         explore_subsubtree.add_child(OR_explore)
         explore_subsubtree.add_child(gothim_tune_behaviour)
 
-        #Return home
-        returnHomeDuration = 60*6 #sec
-        durationBehav = CheckDuration(returnHomeDuration)
-        getHomeBehav = GetHomePose()
-        goHomeBehav = give_path(exploring=False)
-        goingHomeTuneBehav = playTuneBehaviour("underwater")
-        approachHome = approach_goal()
-        goHomeSeq = pt.composites.Sequence(
-            name="->",
-        )
+        # #Return home
+        # returnHomeDuration = 60*6 #sec
+        # durationBehav = CheckDuration(returnHomeDuration)
+        # getHomeBehav = GetHomePose()
+        # goHomeBehav = give_path(exploring=False)
+        # goingHomeTuneBehav = playTuneBehaviour("underwater")
+        # approachHome = approach_goal()
+        # goHomeSeq = pt.composites.Sequence(
+        #     name="->",
+        # )
 
-        goHomeSeq.add_children([goingHomeTuneBehav,getHomeBehav,goHomeBehav,approachHome])
+        # goHomeSeq.add_children([goingHomeTuneBehav,getHomeBehav,goHomeBehav,approachHome])
 
-        goHomeFallback = pt.composites.Selector(
-            name="?"
-        )
+        # goHomeFallback = pt.composites.Selector(
+        #     name="?"
+        # )
 
-        goHomeFallback.add_child(durationBehav)
-        goHomeFallback.add_child(goHomeSeq)
+        # goHomeFallback.add_child(durationBehav)
+        # goHomeFallback.add_child(goHomeSeq)
 
-        explore_subtree = pt.composites.Sequence(
-            name="->",
-        )
+        # explore_subtree = pt.composites.Sequence(
+        #     name="->",
+        # )
 
-        explore_subtree.add_child(goHomeFallback)
-        explore_subtree.add_child(explore_subsubtree)
+        # explore_subtree.add_child(goHomeFallback)
+        # explore_subtree.add_child(explore_subsubtree)
 
         # explore_subtree = exploreSeq
 
-
+        explore_subtree = explore_subsubtree
 
         ## MAIN MISSION SUBTREE
         main_mission_subtree = pt.composites.Sequence(

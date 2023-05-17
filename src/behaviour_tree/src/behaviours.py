@@ -57,7 +57,7 @@ class give_path(pt.behaviour.Behaviour):
         self.pose_to_send = 0
         self.tooFar = True
         self.T0 = None
-        self.explorationTime = 120
+        self.explorationTime = 180
         # self.goalPosition = None
         # become a behaviour
 
@@ -877,8 +877,18 @@ class GetBoxPose(pt.behaviour.Behaviour):
         self.ready_for_path = msg.data
 
     def current_object_callback(self, msg):
-        object_type = msg.data.split("_")[0]
-        if object_type != "cube" and object_type != "ball":
+        # object_type = msg.data.split("_")[0]
+        # print(object_type)
+        # if object_type != "cube" and object_type != "ball":
+        #     object_type = "plushie"
+        string = msg.data.lower()
+        if "cube" in string:
+            object_type = "cube"
+        elif "ball" in string:
+            object_type = "ball"
+        elif "landmark" in string:
+            object_type = "landmark"
+        else:
             object_type = "plushie"
         self.current_object = object_type
 
@@ -1109,7 +1119,7 @@ class GetHomePose(pt.behaviour.Behaviour):
         target_frame = "landmark" + str(landmark_id)
         req = twoStrInPoseOutRequest()
         req.str1 = String("map")  # frame_id
-        req.str2 = String(target_frame)  # object class ball/plushie/box
+        req.str2 = String("map")#String(target_frame)  # object class ball/plushie/box
         desPose = self.getPose_client(req).pose  # assume awlays a pose is given
         print("check1")
         if self.ready_for_path:
