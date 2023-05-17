@@ -59,7 +59,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             name="->",
         )
 
-        P = 0.5 #percentage to check for complete exploration
+        P = 0.85 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
