@@ -194,6 +194,7 @@ class EkfSLAM:
         self.sigma_bar_t = (np.eye(KH.shape[0]) - KH) @ self.sigma_bar_t
         if arucoID == self.anchorID: #TODO CHANGE 0: zero variance of landmark 1
             self.sigma_bar_t = np.zeros(self.sigma_bar_t.shape)
+            # self.mu_bar_t = np.zeros(self.mu_bar_t.shape) #NOTE
         # pdb.set_trace()
 
     def _inflate_matrices(self):

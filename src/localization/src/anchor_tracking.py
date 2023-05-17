@@ -31,7 +31,7 @@ class AnchorTracking:
         self.verbose = verbose
         # self.odom = OdometryCustom()
 
-        self.rate = rospy.Rate(20)
+        self.rate = rospy.Rate(1)
         #Anchor stuff
         self.anchor = None #In aruco_frame TF
         self.first_anchor = None
@@ -111,7 +111,7 @@ class AnchorTracking:
                         self.brStatic.sendTransform(t)
                         self.latest_stamp = t.header.stamp
                         self.latest_t = t
-                        self.Anchor_placed = True
+                        self.Anchor_placed = True#False#True
 
 
     def _inverse_transform(self, transform):
