@@ -95,7 +95,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         explore_subsubtree.add_child(gothim_tune_behaviour)
 
         # #Return home
-        # returnHomeDuration = 60*6 #sec
+        # returnHomeDuration = 60*3 #sec
         # durationBehav = CheckDuration(returnHomeDuration)
         # getHomeBehav = GetHomePose()
         # goHomeBehav = give_path(exploring=False)
@@ -146,7 +146,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         go_to_box = give_path(exploring=False)
         # approach_pose_again = approach_goal()
         # look_at_focus_again = LookatCurrentFocus()
-        drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), playTuneBehaviour("justSiu"), Wait(4), MoveArmToHome()]
+        drop_behavs= [MoveArmToDrop(), Wait(4), OpenGripper(), playTuneBehaviour("siu"), Wait(4), MoveArmToHome()]
         drop_seq = pt.Sequence(
             "DROP", [*drop_behavs, Reset(drop_behavs)]
         )

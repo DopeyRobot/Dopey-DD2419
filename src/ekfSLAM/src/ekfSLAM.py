@@ -159,6 +159,8 @@ class EkfSLAM:
         # q = pose.pose.orientation
         # yaw = tf_conversions.transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])[2]
         self.mu_bar_t[-3:,:] = np.array([[pose.pose.position.x],[pose.pose.position.y],[0]])
+        if arucoID  == self.anchorID: #NOTE
+            self.sigma_bar_t[-3:,-3:] = np.zeros(self.sigma_bar_t[-3:,-3:].shape)
         #self.sigma_bar_t[-3:,-3:] = self.sigma_bar_t[:3,:3] #Inherit covariance from robot pose when seen
         # pdb.set_trace()
 

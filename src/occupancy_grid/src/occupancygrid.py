@@ -341,7 +341,7 @@ class Occupancygrid:
         header = Header()
         header.frame_id = "map"
         header.stamp = rospy.Time.now()
-        self.set_objects_as_occupied()
+        # self.set_objects_as_occupied()#NOTE
         self.inflate_map()
         occupancygrid_data.header = header
         occupancygrid_data.data = list(self.grid.T.reshape(-1).astype(np.int8))
