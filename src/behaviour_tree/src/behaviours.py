@@ -8,7 +8,7 @@ import tf2_geometry_msgs
 import tf2_ros
 from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
 from geometry_msgs.msg import Point, PoseStamped
-from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse
+from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse, processPoseRequest, processPoseResponse, processPose
 from geometry_msgs.msg import  Twist
 
 # class give_path(pt.behaviour.Behaviour):
@@ -771,6 +771,8 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
 
         self.getPose_client = rospy.ServiceProxy("/get_closest_obj", closestObj)
         rospy.wait_for_service("/get_closest_obj", timeout=2)
+        self.processPose_client = rospy.ServiceProxy("/process_pose", processPose)
+        rospy.wait_for_service("/get_closest_obj", timeout=2)
 
         # become a behaviour
         super(GetClosestObjectPose, self).__init__("Get pick up pose")
@@ -789,21 +791,26 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
 
         elif self.ready_for_path:
             # desPose.pose.pose.position.x += 0.1 #NOTE: look here, offset to not crash into object
-            gen = self.spiral_points()
-            orig_desPose = desPose
-            ocReq = isOccupiedRequest(desPose.pose)
-            poseIsOccupied = self.occupancy_client(ocReq)
-            x,y = next(gen)
-            while poseIsOccupied.isOccBool and np.sqrt(x**2+y**2) < 0.2:
+            # gen = self.spiral_points()
+            # orig_desPose = desPose
+            # ocReq = isOccupiedRequest(desPose.pose)
+            # poseIsOccupied = self.occupancy_client(ocReq)
+            # x,y = next(gen)
+            # while poseIsOccupied.isOccBool and np.sqrt(x**2+y**2) < 0.2:
                 
-                desPose.pose.pose.position.x = orig_desPose.pose.pose.position.x + x
-                desPose.pose.pose.position.y = orig_desPose.pose.pose.position.y + y
-                ocReq = isOccupiedRequest(desPose.pose)
-                poseIsOccupied = self.occupancy_client(ocReq)
-                x,y = next(gen)
+            #     desPose.pose.pose.position.x = orig_desPose.pose.pose.position.x + x
+            #     desPose.pose.pose.position.y = orig_desPose.pose.pose.position.y + y
+            #     ocReq = isOccupiedRequest(desPose.pose)
+            #     poseIsOccupied = self.occupancy_client(ocReq)
+            #     x,y = next(gen)
+
+            req=processPoseRequest(desPose.pose)
+            resp = self.processPose_client(req)
 
 
-            self.publish_goal.publish(desPose.pose)
+
+            self.publish_goal.publish(resp.poseOut)
+            # self.publish_goal.publish(desPose)
             print("Sending current desired pose\n")
             self.publish_obj_id.publish(desPose.foundId)
             self.publisher_focus_frame_id.publish(desPose.foundId)
@@ -873,6 +880,8 @@ class GetBoxPose(pt.behaviour.Behaviour):
 
         self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         rospy.wait_for_service("/get_object_pose", timeout=2)
+        self.processPose_client = rospy.ServiceProxy("/process_pose", processPose)
+        rospy.wait_for_service("/get_closest_obj", timeout=2)
 
         # become a behaviour
         super(GetBoxPose, self).__init__("Get drop off pose")
@@ -908,7 +917,10 @@ class GetBoxPose(pt.behaviour.Behaviour):
             if self.ready_for_path:
                 print("landmark_id:",landmark_id)
                 print("desPose:",desPose)
-                self.publish_goal.publish(desPose)
+                req=processPoseRequest(desPose.pose)
+                resp = self.processPose_client(req)
+                self.publish_goal.publish(resp.poseOut)
+                # self.publish_goal.publish(desPose)
                 self.publish_obj_id.publish(target_frame)
                 self.publisher_focus_frame_id.publish(target_frame)
                 print("Sending current desired pose, sending SUCCESS in tree")
