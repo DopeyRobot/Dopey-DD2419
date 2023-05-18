@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from tf2_geometry_msgs import PoseStamped
 from std_msgs.msg import String, Bool
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
-
+PLOT = False
 class armcamDetection:
     def __init__(self) -> None:
         self.blob_service: rospy.Service = rospy.Service("/blob_detection", XnY, self.blob_detection_cb)
@@ -31,10 +31,11 @@ class armcamDetection:
             self.image_topic, Image, queue_size=10
         )
 
-    def plotimg(image, title: str = "Default title = DiquePique"):
-        plt.imshow(image)
-        plt.title(title)
-        plt.show()
+    def plotimg(self, image, title: str = "Default title = DiquePique"):
+        if PLOT
+            plt.imshow(image)
+            plt.title(title)
+            plt.show()
 
     def project_blob(self, x, y) -> np.ndarray:
         """
@@ -114,8 +115,10 @@ class armcamDetection:
     
     def find_biggest_blob_ellipse(self, img) -> Tuple[int, int, int, int]:
         self.plotimg(img, "original")
-        lower = np.array([75, 74, 76])
-        upper = np.array([185, 185, 185])
+        lower = np.array([67, 71, 70])
+        upper = np.array([190, 190, 188])
+        #lower = np.array([75, 74, 76])
+        #upper = np.array([185, 185, 185])
         mask = cv.inRange(img, lower, upper)
         masked = cv.bitwise_and(img, img, mask=mask)
         # result = img - masked
