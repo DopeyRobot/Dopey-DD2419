@@ -125,8 +125,11 @@ class armcamDetection:
         
         #Thresholding
         _,thresholded = cv.threshold(masked, 80, 255, cv.THRESH_BINARY)
+        self.plotimg(thresholded, "thresholded")
         thresholded = cv.cvtColor(thresholded, cv.COLOR_BGR2GRAY)
+        self.plotimg(thresholded, "thresholdedBGR2Gray")
         _,thresholded = cv.threshold(thresholded, 122, 255, cv.THRESH_BINARY)
+        self.plotimg(thresholded, "thresholdedBinary")
 
         # Use fillPoly() function and give input as
         # image, end points, color of polygon
@@ -136,20 +139,23 @@ class armcamDetection:
         cv.fillPoly(cut_img, pts=[points], color=(
             255
         ))
+        self.plotimg(cut_img, "cut_img")
         
         #Morphological operations
         closed = cv.morphologyEx(cut_img, cv.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=3)
-        # plt.imshow(closed)
-        # plt.title("Closed")
-        # plt.show()
+        self.plotimg(closed, "closed")
+
         open = cv.morphologyEx(closed, cv.MORPH_OPEN, np.ones((4,4), np.uint8), iterations=3)
+        self.plotimg(open, "open and closed")
         final_img = open
         final_img = cv.bitwise_not(final_img)
+        self.plotimg(final_img, "final_img")
         ##############################################
         # FIND THE LARGEST CONTOUR AND FIT AN ELLIPSE#
         ##############################################
      
         canny_output = cv.Canny(final_img, 100, 200)
+        self.plotimg(canny_output, "canny_output")
             
         contours, _ = cv.findContours(canny_output, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         max_contour_area = -1
@@ -170,7 +176,7 @@ class armcamDetection:
                 long_axis = max(size)
                 area = np.pi*short_axis*long_axis
 
-                #print("area = "+str(area))
+                print("area = "+str(area))
                 if area > max_contour_area:
                         max_contour_area = area
                         max_contour = i
@@ -193,9 +199,8 @@ class armcamDetection:
         cv.drawContours(max_contour_img, contours, max_contour, ellipse_color)
         cv.ellipse(max_contour_img, minEllipse[max_contour], ellipse_color, 2)
         cv.circle(max_contour_img, (int(cX_final), int(cY_final)), 4, ellipse_color, -1)
-        # plt.imshow(max_contour_img)
-        # plt.title("max_contour_img")
-        # plt.show()
+        self.plotimg(max_contour_img, "max_contour_img")
+        
         ellipse = minEllipse[max_contour]
         return (ellipse, cX_final,cY_final,short_axis_final,long_axis_final,angle_final)
 
