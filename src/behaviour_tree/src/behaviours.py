@@ -15,7 +15,7 @@ from geometry_msgs.msg import  Twist
 from kinematics.srv import GripStrength, GripStrengthRequest, GripStrengthResponse
 from nav_msgs.msg import OccupancyGrid, Path
 from play_tunes.srv import playTune, playTuneRequest, playTuneResponse
-from planning.srv import lastAngle, lastAngleRequest, lastAngleResponse
+from planning.srv import lastAngle, lastAngleRequest, lastAngleResponse, lastAngle, lastAngleLandmarkRequest, lastAngleLandmarkResponse
 from robp_msgs.msg import DutyCycles
 from std_msgs.msg import Bool, Empty, String
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
@@ -1046,6 +1046,10 @@ class approach_goal(pt.behaviour.Behaviour):
         super().__init__("Appraoching goal!")
 
         self.lastAngle_client = rospy.ServiceProxy("/lastAngle", lastAngle)
+        self.lastAngleLandmark_client = rospy.ServiceProxy("/lastAngleLandmark", lastAngleLandmark)
+        
+        self.lastAngleLandmark_srv = rospy.Service("/lastAngleLandmark", lastAngleLandmark, self.lastAngleLandmark_cb)
+
 
         self.cur_obj_subscriber = rospy.Subscriber(
             "/current_obj_id", String, self.current_object_callback
@@ -1079,8 +1083,15 @@ class approach_goal(pt.behaviour.Behaviour):
         print("appraoch_goal:",self.current_obj) #self.current_obj is a rospy string
         if self.current_obj is not None:
             if "landmark" in self.current_obj.data.lower():
-                req = lastAngleRequest()
+                # create a pose stamped in landmark frame which is 10 in x direction
+                # transform pose into base link frame
+                # call service that will take pose as a 
+
+                req = lastAngleLandmarkRequest()
                 req.goal_frameid = self.current_obj
+                req.x = 10
+                req.y = 0
+                self.lastAngleLandmark_client(req)
 
             req = lastAngleRequest()
 

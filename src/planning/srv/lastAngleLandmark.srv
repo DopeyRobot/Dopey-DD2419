@@ -1,0 +1,6 @@
+# geometry_msgs/PoseStamped robotpos
+float64 x
+float64 y
+std_msgs/String goal_frameid
+---
+std_msgs/Empty resp

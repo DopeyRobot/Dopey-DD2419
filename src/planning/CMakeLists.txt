@@ -58,6 +58,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   lastAngle.srv
+  lastAngleLandmark.srv
 #   Service1.srv.py  map.npy  maptest.pgm  maptest.yaml  planning.py planning_alice.py  __pycache__  rrt.py
 #robot@DD2419SSD:~/Dopey_ws/Dopey-DD2419/src/planning/src$ code . 
 #robot@DD2419SSD:~/Dopey_ws/Dopey-DD2419/src/planning/src$ 
