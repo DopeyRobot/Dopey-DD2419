@@ -62,6 +62,7 @@ add_service_files(
   setLocation.srv
   twoStrInPoseOut.srv
   closestObj.srv
+  emptyInIntOut.srv
   #stringInPoseOut.srv
 )
 

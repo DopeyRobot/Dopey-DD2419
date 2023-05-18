@@ -23,6 +23,9 @@ from bounding_box_detection.srv import (
     closestObj,
     closestObjRequest,
     closestObjResponse,
+    emptyInIntOut,
+    emptyInIntOutRequest,
+    emptyInIntOutResponse,
 )
 from workspace.srv import PolyCheck, PolyCheckRequest
 from play_tunes.srv import playTune, playTuneRequest
@@ -183,6 +186,7 @@ class LongTermMemory:
         self.class_counter = (
             Counter()
         )  # keeps track of how many times a new element of every class has been detected
+        self.LTM_updates_counter = 0
         self.instances_in_memory = []
         self.locations = {}  # is the instance in the Map, Tray, Grip, Box?
         self.last_time_seen = {}
@@ -259,15 +263,17 @@ class LongTermMemory:
                 try:
                     if self.too_crowded(db_instance, db):
                         continue
-                    new_name = self._updateMemory(
+                    else: 
+                        self.LTM_updates_counter += 1 # Counts how many times the LongTermMemory has been updated
+                        new_name = self._updateMemory(
                         timestamp,
                         db,
                         self.get_class_name(db_instance),
                         db_instance,
                         db.get_instance_position(db_instance),
-                    )
-                    if new_name is not None:
-                        new_names.append(new_name)
+                        )
+                        if new_name is not None:
+                            new_names.append(new_name)
                 except:
                     continue
         return new_names
@@ -341,6 +347,7 @@ class MemoryNode:
             instanceNames,
             self.instances_in_LTM_in_map_srv_cb,
         )
+        self.LTM_updates_srv = rospy.Service("/LTM_update_counter", emptyInIntOut, self.LTM_updates_srv_cb)
 
         self.set_location_srv = rospy.Service(
             "/set_obj_location", setLocation, self.set_location_srv_cb
@@ -390,6 +397,11 @@ class MemoryNode:
         resp = instanceNamesResponse(resp_list)
         # print(resp)
         return resp
+    
+    def LTM_updates_srv_cb(self, req: emptyInIntOut):
+        resp = emptyInIntOutResponse(self.lt.LTM_updates_counter)
+        return resp
+
 
     def instances_in_LTM_in_map_srv_cb(self, req: instanceNamesRequest):
         resp_list = []
