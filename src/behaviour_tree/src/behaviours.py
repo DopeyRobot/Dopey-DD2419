@@ -1076,12 +1076,16 @@ class approach_goal(pt.behaviour.Behaviour):
     
     def update(self):
         print("Approaching Goal")
-        print("appraoch_goal:",self.current_obj)
+        print("appraoch_goal:",self.current_obj) #self.current_obj is a rospy string
         if self.current_obj is not None:
+            if "landmark" in self.current_obj.data.lower():
+                req = lastAngleRequest()
+                req.goal_frameid = self.current_obj
+
             req = lastAngleRequest()
 
             # req.str1 = self.ref_frame #targetframe, dont need: defined as baselink in movetogoal
-            req.goal_frameid = self.current_obj #urrent object frame
+            req.goal_frameid = self.current_obj #current object frame
             self.lastAngle_client(req)
             # print("service response:",resp)
             # while resp is None:
