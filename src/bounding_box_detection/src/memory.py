@@ -347,7 +347,7 @@ class MemoryNode:
             instanceNames,
             self.instances_in_LTM_in_map_srv_cb,
         )
-        self.LTM_updates_srv = rospy.Service("/LTM_update_counter", emptyInIntOut, self.LTM_updates_srv_cb)
+        self.LTM_updates_srv = rospy.Service("/LTM_updates_counter", emptyInIntOut, self.LTM_updates_srv_cb)
 
         self.set_location_srv = rospy.Service(
             "/set_obj_location", setLocation, self.set_location_srv_cb
