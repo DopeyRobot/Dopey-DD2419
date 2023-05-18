@@ -11,7 +11,7 @@ from std_msgs.msg import Bool, String
 from std_srvs.srv import EmptyResponse
 from tf.transformations import euler_from_quaternion
 from tf2_ros import Buffer, TransformListener, TransformStamped, TransformBroadcaster
-from planning.srv import lastAngle, lastAngleRequest, lastAngleResponse
+from planning.srv import lastAngle, lastAngleRequest, lastAngleResponse, lastAngleLandmark, lastAngleLandmarkRequest, lastAngleLandmarkResponse
 from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
 
 class PID:
@@ -73,6 +73,7 @@ class move_to_goal():
 
         rospy.sleep(2)
         self.lastAngle_srv = None
+        self.lastAngleLandmark_srv = None
         self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=1)
         self.ready_for_pose_publisher = rospy.Publisher('/ready_for_pose', Bool, queue_size=1, latch=True)
         self.goal_subscriber = rospy.Subscriber('/goal', PoseStamped, self.goal_callback) 
@@ -85,13 +86,86 @@ class move_to_goal():
         self.arrived2point = False
         if runInit:
             self.run() 
+    def giveLandmarkTransformedPose(self, x, y, frame):
+        landmark_pose = tf2_geometry_msgs.PoseStamped()
+        landmark_pose.pose.position.x = x
+        landmark_pose.pose.position.y = y
+        landmark_pose.header.frame_id = frame #normal string type
+        landmark_pose.header.stamp = rospy.Time.now()
+
+        #transform offsetted point in landmark frame into baselink frame
+        transformed_landmark_pose =self.tf_buffer.transform(landmark_pose, self.targetframe, self.timeout)
+        gx = transformed_landmark_pose.pose.position.x 
+        gy = transformed_landmark_pose.pose.position.y
+        
+        return gx, gy
             
+    def lastAngleLandmark_cb(self, req:lastAngleLandmarkRequest):
+        #define position in landmark frame
+        print("lastAngleLandmark service start")
+        x = req.x
+        y = req.y
+        current_ob = req.goal_frameid #rospy String
+        gx, gy = self.giveLandmarTransformedPose(x, y, current_ob.data) #current_ob.data is python string
+
+        anglePID = PID(0.1, 0, 0)
+        distancePID = PID(0.1, 0, 0)
+
+        error_ang = math.atan2(gy, gx) 
+        error_dist = np.sqrt(gx**2 + gy**2)
+        
+        dist_cont = distancePID(error_dist)
+        angle_cont = anglePID(error_ang)
+
+        dist_angle_cont = dist_cont*np.exp(-np.abs(error_ang)*10)
+        
+        # error_dist = distout*Pcont_dist #alternative to the exponential 
+        # heading_angle = math.pi - error_ang
+
+        twist_msg = Twist()
+        approach_bool = Bool()
+        approach_bool.data = False
+
+        while np.abs(error_ang) > 0.05 or np.abs(error_dist) > 0.10:
+            [gx, gy] = self.giveLandmarTransformedPose(x, y, current_ob.data)
+
+            error_ang_new = math.atan2(gy, gx) 
+            angle_cont = anglePID(error_ang_new)
+
+            error_dist_new = np.sqrt(gx**2 + gy**2)
+            dist_cont = distancePID(error_dist_new)
+
+            dist_angle_cont_new = dist_cont*np.exp(-np.abs(error_ang_new)*10)
+
+            twist_msg.angular.z = angle_cont
+            twist_msg.linear.x = dist_angle_cont
+            self.publisher_twist.publish(twist_msg) #input new twist message
+
+            error_ang = error_ang_new
+            dist_angle_cont = dist_angle_cont_new
+            error_dist= error_dist_new
+            self.approach_bool_publisher.publish(approach_bool)
+            if np.abs(error_dist) < 0.14:
+                break
+
+
+        approach_bool.data = True
+        twist_msg.angular.z = 0
+        twist_msg.linear.x = 0
+        self.publisher_twist.publish(twist_msg)
+        self.approach_bool_publisher.publish(approach_bool)
+
+        
+        print("lastAngleLandmark service done")
+
+        return EmptyResponse()
 
     def lastAngle_cb(self, req:lastAngleRequest):
+        print("lastAngleLandmark service start")
         #angles are dealt with in base link reference frame
         
         # robotpos = req.robotpos.pose.position
-        current_ob = req.goal_frameid #get string data and make into rospy String
+        current_ob = req.goal_frameid #rospy String
         req0 = twoStrInPoseOutRequest()
         req0.str1 = String(self.targetframe) #baselink
         req0.str2 = current_ob
@@ -122,7 +196,7 @@ class move_to_goal():
         approach_bool.data = False
 
         while np.abs(error_ang) > 0.05 or np.abs(error_dist) > 0.10:
-            print("enter while loop angle error")
+            # print("enter while loop angle error")
             req1 = twoStrInPoseOutRequest()
             req1.str1 = String(self.targetframe) #baselink
             req1.str2 = current_ob 
@@ -141,7 +215,7 @@ class move_to_goal():
 
             twist_msg.angular.z = angle_cont
             twist_msg.linear.x = dist_angle_cont
-            print("1")
+            # print("1")
             self.publisher_twist.publish(twist_msg) #input new twist message
 
             error_ang = error_ang_new
@@ -158,9 +232,9 @@ class move_to_goal():
         approach_bool.data = True
         twist_msg.angular.z = 0
         twist_msg.linear.x = 0
-        print("2")
+        # print("2")
         self.publisher_twist.publish(twist_msg)
-        self.approach_bool_publisher.publish(approach_bool)
+        self.approach_bool_publisher.publish(approach_bool) #should return true when done approaching
 
         # for i in range(10):
         #     rospy.sleep(0.1)
@@ -244,6 +318,7 @@ class move_to_goal():
 
     def run(self):
         self.lastAngle_srv = rospy.Service("/lastAngle", lastAngle, self.lastAngle_cb) 
+        self.lastAngleLandmark_srv = rospy.Service("/lastAngleLandmark", lastAngleLandmark, self.lastAngleLandmark_cb)
         while not rospy.is_shutdown():
 
             if self.goal_pose:

@@ -1083,15 +1083,16 @@ class approach_goal(pt.behaviour.Behaviour):
         print("appraoch_goal:",self.current_obj) #self.current_obj is a rospy string
         if self.current_obj is not None:
             if "landmark" in self.current_obj.data.lower():
-                # create a pose stamped in landmark frame which is 10 in x direction
-                # transform pose into base link frame
-                # call service that will take pose as a 
+                print("Landmark Detected, Start Appraoch")
+                # approach to fixed offset position to landmark first
 
                 req = lastAngleLandmarkRequest()
-                req.goal_frameid = self.current_obj
+                req.goal_frameid = self.current_obj.data #python string
                 req.x = 10
                 req.y = 0
                 self.lastAngleLandmark_client(req)
+                print("Landmark Approach Done")
+
 
             req = lastAngleRequest()
 
