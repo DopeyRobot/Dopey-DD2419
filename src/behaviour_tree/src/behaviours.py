@@ -1060,7 +1060,7 @@ class approach_goal(pt.behaviour.Behaviour):
     
     def update(self):
         print("Approaching Goal")
-        print("appraoch_goal:",self.approach_bool)
+        print("appraoch_goal:",self.current_obj)
         if self.current_obj is not None:
             req = lastAngleRequest()
 
@@ -1213,3 +1213,15 @@ class ReverseRobot(pt.behaviour.Behaviour):
     def initialise(self):
         print("Reversing robot for ",self.duration)
         self.start = rospy.Time.now()
+
+
+# class Check4Updates(pt.behaviour.Behaviour):
+#     def __init__(self):
+
+#     def current_object_cb(self, msg):
+#         self.current_object = msg
+
+#     def update(self):
+
+#         return pt.common.Status.SUCCESS
+        
