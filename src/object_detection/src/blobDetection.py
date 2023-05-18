@@ -31,6 +31,11 @@ class armcamDetection:
             self.image_topic, Image, queue_size=10
         )
 
+    def plotimg(image, title: str = "Default title = DiquePique"):
+        plt.imshow(image)
+        plt.title(title)
+        plt.show()
+
     def project_blob(self, x, y) -> np.ndarray:
         """
         returns the projected 3d postion of the center of a bounding box in world coordinates
@@ -108,13 +113,15 @@ class armcamDetection:
         return XnYResponse(cx,cy,x,y,h,w, Bool(True))
     
     def find_biggest_blob_ellipse(self, img) -> Tuple[int, int, int, int]:
-        # plt.imshow(img)
-        # plt.show()
+        self.plotimg(img, "original")
         lower = np.array([75, 74, 76])
         upper = np.array([185, 185, 185])
         mask = cv.inRange(img, lower, upper)
         masked = cv.bitwise_and(img, img, mask=mask)
         # result = img - masked
+
+        self.plotimg(mask,"mask")
+        self.plotimg(masked, "masked")
         
         #Thresholding
         _,thresholded = cv.threshold(masked, 80, 255, cv.THRESH_BINARY)

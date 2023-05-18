@@ -6,7 +6,7 @@ import py_trees as pt
 import rospy
 import tf2_geometry_msgs
 import tf2_ros
-from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest
+from bounding_box_detection.srv import twoStrInPoseOut, twoStrInPoseOutRequest, closestObj, closestObjRequest, emptyInIntOutResponse, emptyInIntOut
 from geometry_msgs.msg import Point, PoseStamped
 from occupancy_grid.srv import isOccupied, isOccupiedRequest, isOccupiedResponse, processPoseRequest, processPoseResponse, processPose
 from geometry_msgs.msg import  Twist
@@ -19,6 +19,7 @@ from planning.srv import lastAngle, lastAngleRequest, lastAngleResponse
 from robp_msgs.msg import DutyCycles
 from std_msgs.msg import Bool, Empty, String
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
+
 import tf_conversions
 
 class give_path(pt.behaviour.Behaviour):
@@ -47,6 +48,9 @@ class give_path(pt.behaviour.Behaviour):
         self.playtune_service = rospy.ServiceProxy("/playTune", playTune)
         self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
 
+        self.longTermMemCounter_client = rospy.ServiceProxy("/LTM_updates_counter", emptyInIntOut)
+        self.current_LTM_updates=0
+        self.prev_step_LTM_updates = 0
 
         self.current_obj_id_sub = rospy.Subscriber("/current_obj_id", String, self.current_obj_id_cb)
         self.current_obj_id = String()
@@ -126,7 +130,19 @@ class give_path(pt.behaviour.Behaviour):
                     self.path.poses) and self.tooFar: 
                     # print("Condition 1")
                     self._continueMoving()
-                    return pt.common.Status.RUNNING
+
+                    self.current_LTM_updates = self.longTermMemCounter_client(Empty()).resp
+            
+                    if self.current_LTM_updates > self.prev_step_LTM_updates:
+                        print("prev_updates =", self.prev_step_LTM_updates)
+                        print("current_LTM_updates=", self.current_LTM_updates)
+                        self.prev_step_LTM_updates = self.current_LTM_updates
+                        self.ready_for_path = True
+                        self.ready_for_new_path.publish(self.ready_for_path)
+                        return pt.common.Status.FAILURE
+                    else:
+
+                        return pt.common.Status.RUNNING
 
                 elif self.ready_for_pose and not self.tooFar:#nd self.pose_to_send == len(self.path.poses) :
                     # print("condition 2")
