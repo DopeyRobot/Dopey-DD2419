@@ -171,6 +171,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
              get_closest_obj, 
              go_to_pose, 
              bombastic_tune_behavior,
+             get_closest_obj, 
              approach_behavs,
             #  approach_behavs_test,
             #  approach_seq,

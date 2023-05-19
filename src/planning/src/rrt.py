@@ -20,11 +20,6 @@ class RRTNode:
         self.y = y
         self.parent = parent
 
-        # self.buffer = Buffer(rospy.Duration(100.0))
-        # #rospy.sleep(5.0)
-        # self.listener = TransformListener(self.buffer)
-        #rospy.sleep(2.0)
-
         self.getPose_client = rospy.ServiceProxy("/get_object_pose", twoStrInPoseOut)
         rospy.wait_for_service("/get_object_pose", timeout=10)
 
@@ -39,28 +34,15 @@ class RRTNode:
         req.str1 = String("map")  # frame_id
         req.str2 = String("base_link")  # object class ball/plushie/box
         desPose = self.getPose_client(req).pose 
-        # print(desPose)
-        return desPose
-        # base_link_origin = PoseStamped()
-        # base_link_origin.header.stamp = rospy.Time.now()
-        #if self.buffer.can_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1)):
-            # transform_to_map = self.buffer.lookup_transform("map", "base_link", base_link_origin.header.stamp, rospy.Duration(1))  
-            # baseInMapPose = tf2_geometry_msgs.do_transform_pose(base_link_origin, transform_to_map)
 
-        #     return baseInMapPose
-        # else:
-        #     return None
+        return desPose
 
 class RRTPlanner:
     def __init__(self, start=None, goal=None, num_iterations=100, step_size=2, n_steps=1,runInit=True):
         
-        
-        # print("clearing variables")
         self.start = None
-        self.goal = None #goal
+        self.goal = None 
 
-        # self.map_data = None
-        # self.occupancy_grid = None
         self.map_data = rospy.wait_for_message("/occupancygrid", OccupancyGrid, timeout=30)
         self.occupancy_grid = np.asarray(self.map_data.data, dtype=np.int8).reshape(self.map_data.info.height, self.map_data.info.width)
 
@@ -78,11 +60,6 @@ class RRTPlanner:
 
         self.rate = rospy.Rate(1)
 
-        # self.cur_obj_subscriber = rospy.Subscriber(
-        #     "/current_obj_id", String, self.current_object_callback
-        # )
-
-
         self.path_msg = Path()
         self.path_msg.header.stamp = rospy.Time.now()
         self.path_msg.header.frame_id = "map"
@@ -99,21 +76,10 @@ class RRTPlanner:
         self.RRT: List[RRTNode] = [self.start]
 
         self.ready4path = False
-        # self.moving2landmark = False
-        # self.genLastNode = False
+        self.ready_for_path = True
 
-        # self.goalReceivedTicker = 0
-        # self.goalProcessedTicker = 0
         if runInit:
             self.run()
-
-    # def current_object_callback(self, msg):
-    #     # if "landmark" in msg.data:
-    #     #     self.moving2landmark = True
-    #     # else:
-    #     #     self.moving2landmark = False
-    #     self.moving2landmark = True
-
 
     def get_map_callback(self, msg):
         if msg is None:
@@ -123,17 +89,12 @@ class RRTPlanner:
 
     def send_goal_callback(self, msg):
         msgGoal = [msg.pose.position.x, msg.pose.position.y]
-        # self.goal = [msg.pose.position.x, msg.pose.position.y]
-
-
-        if not np.allclose(np.array(self.goal,dtype=float),np.array(msgGoal,dtype=float)) or self.goal is None:#self.goal != msgGoal:
-            # try:
-            print("new goal")
+ 
+        if not np.allclose(np.array(self.goal,dtype=float),np.array(msgGoal,dtype=float)) or self.goal is None:
+        
             self.goal = msgGoal
             self.ready4path = True
-            # self.goalReceivedTicker += 1
-            # except:
-            #     print("error")
+
 
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
@@ -308,7 +269,7 @@ class RRTPlanner:
             #print(self.goal)
             # print("R: ",self.goalReceivedTicker)
             # print("P: ", self.goalProcessedTicker)
-            if self.ready4path and self.ready_for_path: #self.goal is not None and self.goalReceivedTicker != self.goalProcessedTicker and self.ready4path:
+            if self.ready4path: #self.goal is not None and self.goalReceivedTicker != self.goalProcessedTicker and self.ready4path:
                 
                 self.__init__(num_iterations=self.num_iterations,step_size=self.step_size,runInit=False)
                 #TODO: after successfully arriving atfirst goal, the secodn goal always has teh first noed in the origin of odom and not base_link. Fix this. 

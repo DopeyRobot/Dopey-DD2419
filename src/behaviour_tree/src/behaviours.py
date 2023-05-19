@@ -106,7 +106,8 @@ class give_path(pt.behaviour.Behaviour):
         self.pose_to_send = self.pose_to_send + 1
         
     def _reachedFinalGoal(self):
-        self.__init__(self.exploring)  # path = None
+        #self.__init__(self.exploring)
+        self.path = None  # path = None
         self.pose_to_send = 0
 
 
@@ -131,23 +132,23 @@ class give_path(pt.behaviour.Behaviour):
                     # print("Condition 1")
                     self._continueMoving()
 
-                    self.current_LTM_updates = self.longTermMemCounter_client(Empty()).resp
+                    # self.current_LTM_updates = self.longTermMemCounter_client(Empty()).resp
             
-                    if self.current_LTM_updates > self.prev_step_LTM_updates:
-                        print("prev_updates =", self.prev_step_LTM_updates)
-                        print("current_LTM_updates=", self.current_LTM_updates)
-                        self.prev_step_LTM_updates = self.current_LTM_updates
-                        self.ready_for_path = True
-                        self.ready_for_new_path.publish(self.ready_for_path)
-                        return pt.common.Status.FAILURE
-                    else:
+                    # if self.current_LTM_updates > self.prev_step_LTM_updates:
+                    #     print("prev_updates =", self.prev_step_LTM_updates)
+                    #     print("current_LTM_updates=", self.current_LTM_updates)
+                    #     self.prev_step_LTM_updates = self.current_LTM_updates
+                    #     self.ready_for_path = True
+                    #     self.ready_for_new_path.publish(self.ready_for_path)
+                    #     return pt.common.Status.FAILURE
+                    # else:
 
-                        return pt.common.Status.RUNNING
+                    return pt.common.Status.RUNNING
 
                 elif self.ready_for_pose and not self.tooFar:#nd self.pose_to_send == len(self.path.poses) :
                     # print("condition 2")
                     self._reachedFinalGoal()
-                    print("Reached final pose in path, ready for new path")
+                    print("Reached final pose in path, starting to approach")
                     self.__init__(self.exploring)
                     
                     return pt.common.Status.SUCCESS
@@ -772,8 +773,8 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
             "/send_goal", PoseStamped, queue_size=1, latch=True
         )
         self.subcribe_ready_for_path = rospy.Subscriber(
-            "/ready_for_new_path", Bool, self.ready_for_path_callback
-        )
+            "/ready_for_new_path", Bool, self.ready_for_path_callback)
+
         self.publish_obj_id = rospy.Publisher(
             "/current_obj_id", String, queue_size=1, latch=True
         )
@@ -781,9 +782,15 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
         self.publisher_focus_frame_id = rospy.Publisher(
             "/current_focus_id", String, queue_size=1, latch= True
         )
+
+        self.approach_bool_sub = rospy.Subscriber(
+            "/approach_done", Bool, self.approach_bool_cb)
+
         self.occupancy_client = rospy.ServiceProxy("/occupied_service", isOccupied)
 
-        self.ready_for_path = True
+        self.ready_for_path = None
+        self.approach_bool = None
+        rospy.wait_for_service("/get_closest_obj", timeout=2)
 
         self.getPose_client = rospy.ServiceProxy("/get_closest_obj", closestObj)
         rospy.wait_for_service("/get_closest_obj", timeout=2)
@@ -792,6 +799,9 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
 
         # become a behaviour
         super(GetClosestObjectPose, self).__init__("Get pick up pose")
+
+    def approach_bool_cb(self,msg):
+        self.approach_bool = msg.data
 
     def ready_for_path_callback(self, msg):
         self.ready_for_path = msg.data
@@ -805,7 +815,7 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
             print("Poop No object found D:<")
             return pt.common.Status.FAILURE
 
-        elif self.ready_for_path:
+        elif self.ready_for_path or not self.approach_bool:
             # desPose.pose.pose.position.x += 0.1 #NOTE: look here, offset to not crash into object
             # gen = self.spiral_points()
             # orig_desPose = desPose
@@ -824,8 +834,8 @@ class GetClosestObjectPose(pt.behaviour.Behaviour):
             resp = self.processPose_client(req)
 
 
-
-            self.publish_goal.publish(resp.poseOut)
+            if self.ready_for_path:
+                self.publish_goal.publish(resp.poseOut)
             # self.publish_goal.publish(desPose)
             print("Sending current desired pose\n")
             self.publish_obj_id.publish(desPose.foundId)
