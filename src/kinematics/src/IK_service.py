@@ -139,6 +139,13 @@ class IKService:
             rospy.loginfo(f"couldn't solve pose for wrist pictch {wrist_pitch}")
             return False
 
+    def process_angle(self, raw_angle:float)->float:
+        if raw_angle < 90:
+            return -raw_angle
+
+        raw_angle = (raw_angle%90)-90
+        return -raw_angle
+
     def pickup_routine_callback(self, req: TriggerRequest) -> TriggerResponse:
         rospy.loginfo("pickup routine started")
         self.pose_service(RefPoses.PREPICK_F.value.to_joint_angles_req())
@@ -147,8 +154,9 @@ class IKService:
         xnyreq = XnYRequest()
         xnyresp = self.blob_service(xnyreq)
         angle = xnyresp.h
-        print(angle)
-        angle= np.deg2rad(angle)
+        print(f"raw angle {angle}")
+        angle= np.deg2rad(self.process_angle(angle))
+        print(f"processed angle {np.rad2deg(angle)}")
         self.rot=angle
         rospy.sleep(2)
         self.gripper_open_service(TriggerRequest())

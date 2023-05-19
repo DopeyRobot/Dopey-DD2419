@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from tf2_geometry_msgs import PoseStamped
 from std_msgs.msg import String, Bool
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
-PLOT = False
+PLOT = True
 class armcamDetection:
     def __init__(self) -> None:
         self.blob_service: rospy.Service = rospy.Service("/blob_detection", XnY, self.blob_detection_cb)
@@ -118,29 +118,55 @@ class armcamDetection:
     
     def find_biggest_blob_ellipse(self, img) -> Tuple[int, int, int, int]:
         self.plotimg(img, "original")
-        lower = np.array([67, 71, 70])
-        upper = np.array([190, 190, 188])
-        #lower = np.array([75, 74, 76])
-        #upper = np.array([185, 185, 185])
-        mask = cv.inRange(img, lower, upper)
-        masked = cv.bitwise_and(img, img, mask=mask)
-        # result = img - masked
+        # lower = np.array([67, 71, 70])
+        # upper = np.array([190, 190, 188])
+        # #lower = np.array([75, 74, 76])
+        # #upper = np.array([185, 185, 185])
+        # mask = cv.inRange(img, lower, upper)
+        # masked = cv.bitwise_and(img, img, mask=mask)
+        # # result = img - masked
+
+            # Set minimum and max HSV values to display
+
+        hMin = 0
+        sMin = 3
+        vMin = 50
+
+        hMax = 179
+        sMax = 39
+        vMax = 185
+
+        # hMin = 5
+        # sMin = 0
+        # vMin = 40
+
+        # hMax = 179
+        # sMax = 255
+        # vMax = 185
+        
+        lower = np.array([hMin, sMin, vMin])
+        upper = np.array([hMax, sMax, vMax])
+
+        # Create HSV Image and threshold into a range.
+        hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+        mask = cv.inRange(hsv, lower, upper)
+        masked = cv.bitwise_and(img,img, mask= mask)
 
         self.plotimg(mask,"mask")
         self.plotimg(masked, "masked")
         
         #Thresholding
-        _,thresholded = cv.threshold(masked, 80, 255, cv.THRESH_BINARY)
-        self.plotimg(thresholded, "thresholded")
-        thresholded = cv.cvtColor(thresholded, cv.COLOR_BGR2GRAY)
-        self.plotimg(thresholded, "thresholdedBGR2Gray")
-        _,thresholded = cv.threshold(thresholded, 122, 255, cv.THRESH_BINARY)
-        self.plotimg(thresholded, "thresholdedBinary")
+        # _,thresholded = cv.threshold(masked, 80, 255, cv.THRESH_BINARY)
+        # self.plotimg(thresholded, "thresholded")
+        # thresholded = cv.cvtColor(thresholded, cv.COLOR_BGR2GRAY)
+        # self.plotimg(thresholded, "thresholdedBGR2Gray")
+        # _,thresholded = cv.threshold(thresholded, 122, 255, cv.THRESH_BINARY)
+        # self.plotimg(thresholded, "thresholdedBinary")
 
         # Use fillPoly() function and give input as
         # image, end points, color of polygon
         # Here color of polygon will be white
-        cut_img = thresholded.copy()
+        cut_img = mask.copy()
         points = np.array([[0, 479], [0, 330], [450, 410], [540,479]])
         cv.fillPoly(cut_img, pts=[points], color=(
             255
@@ -148,7 +174,7 @@ class armcamDetection:
         self.plotimg(cut_img, "cut_img")
         
         #Morphological operations
-        closed = cv.morphologyEx(cut_img, cv.MORPH_CLOSE, np.ones((3,3), np.uint8), iterations=3)
+        closed = cv.morphologyEx(cut_img, cv.MORPH_CLOSE, np.ones((4,4), np.uint8), iterations=3)
         self.plotimg(closed, "closed")
 
         open = cv.morphologyEx(closed, cv.MORPH_OPEN, np.ones((4,4), np.uint8), iterations=3)

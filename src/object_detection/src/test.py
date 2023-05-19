@@ -25,7 +25,7 @@ cv2.setTrackbarPos('VMax', 'image', 255)
 hMin = sMin = vMin = hMax = sMax = vMax = 0
 phMin = psMin = pvMin = phMax = psMax = pvMax = 0
 
-img = cv2.imread('/home/dopey/dd2419_ws/src/object_detection/src/test_images/binky.jpg')
+img = cv2.imread('/home/dopey/dd2419_ws/src/object_detection/src/test_images/oakie2.jpg')
 output = img
 waitTime = 33
 
