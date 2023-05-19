@@ -106,9 +106,12 @@ class armcamDetection:
             h = angle
             w = 0           
         # remove object from map
-        instance_name = rospy.wait_for_message(self.current_obj, String)
-        print(instance_name)
-        self.set_obj_location_caller(instance_name, String("gripper"))
+        try:
+            instance_name = rospy.wait_for_message(self.current_obj, String, timeout=2)
+            print(instance_name)
+            self.set_obj_location_caller(instance_name, String("gripper"))
+        except:
+            pass
         if x == -1 or y == -1:
             return XnYResponse(-1,-1,-1,-1,-1,-1, Bool(False)) #TODO: check Types!! 
         return XnYResponse(cx,cy,x,y,h,w, Bool(True))
