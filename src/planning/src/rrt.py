@@ -72,6 +72,10 @@ class RRTPlanner:
         self.pub_path = rospy.Publisher("/path_topic", Path, queue_size=10,latch=True)
         self.sub_goal = rospy.Subscriber("/send_goal", PoseStamped, self.send_goal_callback)
         self.sub_map = rospy.Subscriber('/occupancygrid', OccupancyGrid, self.get_map_callback)
+        self.subcribe_ready_for_path = rospy.Subscriber(
+            "/ready_for_new_path", Bool, self.ready_for_path_callback
+        )
+
         self.rate = rospy.Rate(1)
 
         # self.cur_obj_subscriber = rospy.Subscriber(
@@ -120,7 +124,7 @@ class RRTPlanner:
     def send_goal_callback(self, msg):
         msgGoal = [msg.pose.position.x, msg.pose.position.y]
         # self.goal = [msg.pose.position.x, msg.pose.position.y]
-     
+
 
         if not np.allclose(np.array(self.goal,dtype=float),np.array(msgGoal,dtype=float)) or self.goal is None:#self.goal != msgGoal:
             # try:
@@ -130,6 +134,9 @@ class RRTPlanner:
             # self.goalReceivedTicker += 1
             # except:
             #     print("error")
+
+    def ready_for_path_callback(self, msg):
+        self.ready_for_path = msg.data
             
 
     def sample_random(self) -> Tuple[int]:
@@ -301,7 +308,7 @@ class RRTPlanner:
             #print(self.goal)
             # print("R: ",self.goalReceivedTicker)
             # print("P: ", self.goalProcessedTicker)
-            if self.ready4path:#self.goal is not None and self.goalReceivedTicker != self.goalProcessedTicker and self.ready4path:
+            if self.ready4path and self.ready_for_path: #self.goal is not None and self.goalReceivedTicker != self.goalProcessedTicker and self.ready4path:
                 
                 self.__init__(num_iterations=self.num_iterations,step_size=self.step_size,runInit=False)
                 #TODO: after successfully arriving atfirst goal, the secodn goal always has teh first noed in the origin of odom and not base_link. Fix this. 
