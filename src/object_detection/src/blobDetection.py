@@ -32,7 +32,7 @@ class armcamDetection:
         )
 
     def plotimg(self, image, title: str = "Default title = DiquePique"):
-        if PLOT
+        if PLOT:
             plt.imshow(image)
             plt.title(title)
             plt.show()
