@@ -53,13 +53,14 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # #...
         # #... add more nodes
         # #...
+        
 
         ## EXPLORATION SUBTREE 
         root_explore = pt.composites.Sequence(
             name="->",
         )
 
-        P = 0.3 #percentage to check for complete exploration
+        P = 0.8 #percentage to check for complete exploration
 
 
         frontier_exploration_behaviour = FrontierExploration()
@@ -73,12 +74,18 @@ class BehaviourTree(ptr.trees.BehaviourTree):
 
         percentage_of_known_behaviour_2 = ReturnKnownMapPercent(P)
         
+        give_path_selector = pt.composites.Selector(name="?")
+        # stop_2_sec_give_path = StopRobot(2)
+        # give_path_selector.add_children([give_path_behaviour,stop_2_sec_give_path])
+        give_path_sequence = pt.composites.Sequence(name="->")
+        give_path_sequence.add_children([playTuneBehaviour("nogod"),StopRobot(2)])
+        give_path_selector.add_children([give_path_behaviour,give_path_sequence])
 
-        
         root_explore.add_child(stop_robot_behaviour)
         root_explore.add_child(lebron_tune_behaviour)
         root_explore.add_child(frontier_exploration_behaviour)
-        root_explore.add_child(give_path_behaviour)
+        # root_explore.add_child(give_path_behaviour)
+        root_explore.add_child(give_path_selector)
         root_explore.add_child(percentage_of_known_behaviour_1)
 
         OR_explore = pt.composites.Selector(
@@ -166,31 +173,81 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         reversebehav = ReverseRobot(4)
         reversebehav_again = ReverseRobot(4)        
 
-        main_mission_subtree.add_children(
-            [stop_2_sec, 
-             get_closest_obj, 
-             go_to_pose, 
-             bombastic_tune_behavior,
-             get_closest_obj, 
-             approach_behavs,
-            #  approach_behavs_test,
-            #  approach_seq,
-            #  look_at_focus, 
-             stop_2_sec_again, 
-             send_goal_to_arm, 
-             pickup_seq,
-             reversebehav, 
-             get_box_pose, 
-             go_to_box, 
-             bombastic_tune_behavior_again, 
+        
+        
+        # main_mission_subtree.add_children(
+        #     [stop_2_sec, 
+        #      get_closest_obj, 
+        #      go_to_pose, 
+        #      bombastic_tune_behavior,
+        #      get_closest_obj, 
+        #      approach_behavs,
+        #     #  approach_behavs_test,
+        #     #  approach_seq,
+        #     #  look_at_focus, 
+        #      stop_2_sec_again, 
+        #      send_goal_to_arm, 
+        #      pickup_seq,
+        #      reversebehav, 
+        #      get_box_pose, 
+        #      go_to_box, 
+        #      bombastic_tune_behavior_again, 
+        #      approach_behavs_again,
+        #     #  approach_behavs_test_2,
+        #     #  approach_seq_again,
+        #     #  look_at_focus_again, 
+        #      drop_seq,
+        #      reversebehav_again,
+        #      aaaah_tune_behavior]   
+        # )
+        
+        go_to_pose2 = self.give_pathNnextORSUCESS(go_to_box,[bombastic_tune_behavior_again, 
              approach_behavs_again,
             #  approach_behavs_test_2,
             #  approach_seq_again,
             #  look_at_focus_again, 
              drop_seq,
              reversebehav_again,
-             aaaah_tune_behavior]   
+             aaaah_tune_behavior])
+        
+        go_to_pose1 = self.give_pathNnextORSUCESS(go_to_pose,[bombastic_tune_behavior,
+             get_closest_obj, 
+             approach_behavs,
+             stop_2_sec_again, 
+             send_goal_to_arm, 
+             pickup_seq,
+             reversebehav, 
+             get_box_pose, 
+             go_to_pose2])
+
+        main_mission_subtree.add_children(
+            [stop_2_sec, 
+             get_closest_obj, 
+             go_to_pose1
+            #  go_to_pose, 
+            #  bombastic_tune_behavior,
+            #  get_closest_obj, 
+            #  approach_behavs,
+            # #  approach_behavs_test,
+            # #  approach_seq,
+            # #  look_at_focus, 
+            #  stop_2_sec_again, 
+            #  send_goal_to_arm, 
+            #  pickup_seq,
+            #  reversebehav, 
+            #  get_box_pose, 
+            #  go_to_box, 
+            #  bombastic_tune_behavior_again, 
+            #  approach_behavs_again,
+            # #  approach_behavs_test_2,
+            # #  approach_seq_again,
+            # #  look_at_focus_again, 
+            #  drop_seq,
+            #  reversebehav_again,
+            #  aaaah_tune_behavior
+            ]   
         )
+
 
         ## TEST 
         give_path_behaviour_test = give_path(exploring= False)
@@ -240,9 +297,20 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             ascii_tree = pt.display.ascii_tree(
                 self.root, snapshot_information=snapshot_visitor
             )
-            print(ascii_tree)
+            # print(ascii_tree)
 
+    def give_pathNnextORSUCESS(self,give_path,next_behavs_arr):
+            sequence = pt.composites.Sequence(name="->")
+            sequence.add_child(give_path)
+            sequence.add_children(next_behavs_arr)
 
+            sequence2 = pt.composites.Sequence(name="->")
+            sequence2.add_children([playTuneBehaviour("nogod"),StopRobot(2)])
+
+            selector = pt.composites.Selector(name="?")
+            selector.add_children([sequence,sequence2])
+            return selector
+    
 if __name__ == "__main__":
 
     rospy.init_node("behaviour_tree")

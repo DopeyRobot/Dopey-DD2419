@@ -407,7 +407,7 @@ class Occupancygrid:
         pose = req.pose.pose  # is a PoseStamped
         x = self.get_i_index(pose.position.x)
         y = self.get_j_index(pose.position.y)
-        return isOccupiedResponse(self.grid_occupied[x, y] > 0)
+        return isOccupiedResponse(self.grid[x, y] >0)
 
 
 if __name__ == "__main__":

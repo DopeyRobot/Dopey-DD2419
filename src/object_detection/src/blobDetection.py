@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from tf2_geometry_msgs import PoseStamped
 from std_msgs.msg import String, Bool
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener, TransformStamped
-PLOT = True
+PLOT = False
 class armcamDetection:
     def __init__(self) -> None:
         self.blob_service: rospy.Service = rospy.Service("/blob_detection", XnY, self.blob_detection_cb)
@@ -90,8 +90,10 @@ class armcamDetection:
             self.cam_image_publisher.publish(self.draw_bounding_box(image,cx,cy, x, y, h, w))
         # ELLIPSE ALTERNATIVE:
         elif ellipse_mode:
-            
-            (ellipse,cx,cy, short_axis, long_axis, angle) = self.find_biggest_blob_ellipse(image)
+            try:
+                (ellipse,cx,cy, short_axis, long_axis, angle) = self.find_biggest_blob_ellipse(image)
+            except ValueError as e:
+                return XnYResponse(-1,-1,-1,-1,-1,-1, Bool(False))
             xyz_proj =self.project_blob(cx,cy)
             # convert to base_link frame
             pickUpPose = self.convert_to_base_link(xyz_proj)
@@ -190,6 +192,8 @@ class armcamDetection:
         self.plotimg(canny_output, "canny_output")
             
         contours, _ = cv.findContours(canny_output, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        if len(contours) <1: 
+            raise ValueError()
         max_contour_area = -1
         max_contour = -1
         (cX_final,cY_final,short_axis_final,long_axis_final,angle_final) = (-1,-1,-1,-1,-1)

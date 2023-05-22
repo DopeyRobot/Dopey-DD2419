@@ -154,6 +154,17 @@ class IKService:
         xnyreq = XnYRequest()
         xnyresp = self.blob_service(xnyreq)
         angle = xnyresp.h
+        if angle <0:
+            rospy.loginfo("no object detected")
+            rospy.loginfo("closing gripper")
+            grip_req = GripStrengthRequest(String("cube"))
+            self.gripper_close_service(grip_req)
+            rospy.sleep(2)
+            rospy.loginfo("going back home")
+            self.pose_service(RefPoses.HOME.value.to_joint_angles_req())
+            rospy.sleep(2)
+            return TriggerResponse(True, "pickup routine finished")
+
         print(f"raw angle {angle}")
         angle= np.deg2rad(self.process_angle(angle))
         print(f"processed angle {np.rad2deg(angle)}")

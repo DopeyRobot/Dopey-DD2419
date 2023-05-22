@@ -67,6 +67,7 @@ class give_path(pt.behaviour.Behaviour):
         # rospy.sleep(2) #NOTE
         # self.ready_for_pose_pub.publish(self.ready_for_pose)
         # self.ready_for_new_path.publish(self.ready_for_path)
+        self.occupancy_client = rospy.ServiceProxy("/occupied_service", isOccupied)
 
 
         # self.update()
@@ -89,26 +90,50 @@ class give_path(pt.behaviour.Behaviour):
     def check_euc_dist(self):
         dist = self.get_distance_to_goal()
         #print("dist:",dist)
-        if dist < 0.5:
+        if dist < 0.2: #NOTE 0.5 before
             self.tooFar = False
             self.ready_for_pose = True
             self.ready_for_pose_pub.publish(self.ready_for_pose)
 
         else:
             self.tooFar = True
+
+    def _poseIsOccupied(self,pose):
+        ocReq = isOccupiedRequest(pose)
+        poseIsOccupied = self.occupancy_client(ocReq).isOccBool
+        print("occupiedPose:",poseIsOccupied)
+        return poseIsOccupied
     
     def _continueMoving(self):
         # and self.path.poses != []:
         # print('Ready for new pose! Sending RUNNING in tree')
-        self.ready_for_pose = False
-        self.ready_for_pose_pub.publish(self.ready_for_pose)
-        self.goal_pub.publish(self.path.poses[self.pose_to_send])
-        self.pose_to_send = self.pose_to_send + 1
-        
+        nextPose = self.path.poses[self.pose_to_send]
+        if not self._poseIsOccupied(nextPose):
+            self.ready_for_pose = False
+            self.ready_for_pose_pub.publish(self.ready_for_pose)
+            self.goal_pub.publish(self.path.poses[self.pose_to_send])
+            self.pose_to_send = self.pose_to_send + 1
+            print("unoccupied, all ok")
+            return True
+        else:
+            "Interrupt in case we would go into occupied space"
+            self._reachedFinalGoal()
+            print("WE WOULD CRASH --> STOPPING!")
+            return False
+            
     def _reachedFinalGoal(self):
         #self.__init__(self.exploring)
         self.path = None  # path = None
         self.pose_to_send = 0
+        if self.exploring:
+            self.ready_for_path = True
+            self.ready_for_new_path.publish(self.ready_for_path)
+        
+            self.__init__(self.exploring)
+        else:
+            self.__init__(self.exploring)
+
+
 
 
     def update(self):
@@ -130,8 +155,8 @@ class give_path(pt.behaviour.Behaviour):
                 if self.ready_for_pose and self.pose_to_send < len(
                     self.path.poses) and self.tooFar: 
                     # print("Condition 1")
-                    self._continueMoving()
-
+                    if self._continueMoving():
+                        print("1")
                     # self.current_LTM_updates = self.longTermMemCounter_client(Empty()).resp
             
                     # if self.current_LTM_updates > self.prev_step_LTM_updates:
@@ -143,13 +168,17 @@ class give_path(pt.behaviour.Behaviour):
                     #     return pt.common.Status.FAILURE
                     # else:
 
-                    return pt.common.Status.RUNNING
+                        return pt.common.Status.RUNNING
+                    else:
+                        print("2")
+                        return pt.common.Status.FAILURE
+
 
                 elif self.ready_for_pose and not self.tooFar:#nd self.pose_to_send == len(self.path.poses) :
                     # print("condition 2")
                     self._reachedFinalGoal()
                     print("Reached final pose in path, starting to approach")
-                    self.__init__(self.exploring)
+                    # self.__init__(self.exploring)
                     
                     return pt.common.Status.SUCCESS
 
@@ -165,18 +194,20 @@ class give_path(pt.behaviour.Behaviour):
                 if self.ready_for_pose and self.pose_to_send < len(
                     self.path.poses): 
                     # print("Condition 1")
-                    self._continueMoving()
-                    if self.T0 is None:
-                        self.T0 = rospy.Time.now()
-                    return pt.common.Status.RUNNING
+                    if self._continueMoving():
+                        if self.T0 is None:
+                            self.T0 = rospy.Time.now()
+                        return pt.common.Status.RUNNING
+                    else:
+                        return pt.common.Status.FAILURE
 
                 elif (self.ready_for_pose and self.pose_to_send == len(self.path.poses)) or rospy.Time.now()-self.T0 >= rospy.Duration(self.explorationTime):
                     # print("condition 2")
                     self._reachedFinalGoal()
-                    self.ready_for_path = True
-                    self.ready_for_new_path.publish(self.ready_for_path)
-                    print("Reached final pose, sending SUCCESS in tree")
-                    self.__init__(self.exploring)
+                    # self.ready_for_path = True
+                    # self.ready_for_new_path.publish(self.ready_for_path)
+                    # print("Reached final pose, sending SUCCESS in tree")
+                    # self.__init__(self.exploring)
                     
                     return pt.common.Status.SUCCESS
 
