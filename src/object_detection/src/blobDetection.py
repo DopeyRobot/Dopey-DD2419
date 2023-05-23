@@ -93,6 +93,12 @@ class armcamDetection:
             try:
                 (ellipse,cx,cy, short_axis, long_axis, angle) = self.find_biggest_blob_ellipse(image)
             except ValueError as e:
+                try:
+                    instance_name = rospy.wait_for_message(self.current_obj, String, timeout=2)
+                    print(instance_name)
+                    self.set_obj_location_caller(instance_name, String("gripper"))
+                except:
+                    pass
                 return XnYResponse(-1,-1,-1,-1,-1,-1, Bool(False))
             xyz_proj =self.project_blob(cx,cy)
             # convert to base_link frame

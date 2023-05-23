@@ -367,9 +367,11 @@ class FrontierExploration(pt.behaviour.Behaviour):
 
         # closest frontier cell
         if len(distances) != 0:
-            # min_distance_idx = np.argmin(distances)
-            # closest_frontier = frontier_cells[min_distance_idx]
-            closest_frontier = frontier_cells[np.random.randint(0,len(distances))]
+            if np.random.random() < 0.5:
+                min_distance_idx = np.argmin(distances)
+                closest_frontier = frontier_cells[min_distance_idx]
+            else:
+                closest_frontier = frontier_cells[np.random.randint(0,len(distances))]
 
 
             return closest_frontier
