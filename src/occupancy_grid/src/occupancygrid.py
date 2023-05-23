@@ -397,6 +397,18 @@ class Occupancygrid:
             x = self.get_i_index(obj_pos.pose.position.x)
             y = self.get_j_index(obj_pos.pose.position.y)
             self.grid_occupied[x, y] = 1
+        
+        landmarks_to_inflate = ["landmark2", "landmark3", "landmark4"]
+        for frame_id in landmarks_to_inflate:
+            obj_pos = self.get_pose_client(
+                twoStrInPoseOutRequest(String("map"), String(frame_id))
+            ).pose
+            if obj_pos.pose.position.x == 0.0 and obj_pos.pose.position.y == 0.0:
+                continue 
+            x = self.get_i_index(obj_pos.pose.position.x)
+            y = self.get_j_index(obj_pos.pose.position.y)
+            self.grid_occupied[x, y] = 1
+        
 
     def run(self):
         while not rospy.is_shutdown():

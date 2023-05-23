@@ -90,7 +90,7 @@ class give_path(pt.behaviour.Behaviour):
     def check_euc_dist(self):
         dist = self.get_distance_to_goal()
         #print("dist:",dist)
-        if dist < 0.2: #NOTE 0.5 before
+        if dist < 0.5: #NOTE 0.5 before
             self.tooFar = False
             self.ready_for_pose = True
             self.ready_for_pose_pub.publish(self.ready_for_pose)
@@ -170,7 +170,7 @@ class give_path(pt.behaviour.Behaviour):
 
                         return pt.common.Status.RUNNING
                     else:
-                        print("2")
+                        print("2:sending failure")
                         return pt.common.Status.FAILURE
 
 
@@ -199,6 +199,7 @@ class give_path(pt.behaviour.Behaviour):
                             self.T0 = rospy.Time.now()
                         return pt.common.Status.RUNNING
                     else:
+                        print("2 in exlpore:sending failure")
                         return pt.common.Status.FAILURE
 
                 elif (self.ready_for_pose and self.pose_to_send == len(self.path.poses)) or rospy.Time.now()-self.T0 >= rospy.Duration(self.explorationTime):
@@ -779,6 +780,7 @@ class StopRobot(pt.behaviour.Behaviour):
 
     def update(self):
         if rospy.Time.now() - self.start > rospy.Duration(self.duration):
+            print('Sending success in StopRobot')
             return pt.common.Status.SUCCESS
         else:
             twist = Twist()
@@ -1247,25 +1249,66 @@ class ReverseRobot(pt.behaviour.Behaviour):
         self.name = "ReverseRobot"
         self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
         self.duration = duration
+        self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
 
         super(ReverseRobot, self).__init__("Reverse Robot for " + str(int(duration)) + " sec")
 
         self.start = rospy.Time.now()
 
     def update(self):
+        print("condition 0 reveerse")
+        print("time now:",rospy.Time.now())
+        print("start time:", self.start)
+        print(rospy.Time.now() - self.start > rospy.Duration(self.duration))
+        print("diff:",rospy.Time.now() - self.start)
         if rospy.Time.now() - self.start > rospy.Duration(self.duration):
+            print("condition 1 reveerse")
+
             return pt.common.Status.SUCCESS
         else:
+            print("condition 2 reveerse")
             twist = Twist()
-            publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
             twist.linear.x = -1.0
             twist.angular.z = 0.0
-            publisher_twist.publish(twist)
+            self.publisher_twist.publish(twist)
             # msg = DutyCycles()
             # msg.duty_cycle_left = 0
             # msg.duty_cycle_right = 0
             # self.duty_pub.publish(msg)
+            print("condition 2b")
             return pt.common.Status.RUNNING
+        
+
+    def initialise(self):
+        print("Reversing robot for ",self.duration)
+        self.start = rospy.Time.now()
+
+class ReverseRobotWhileLoop(pt.behaviour.Behaviour):
+    def __init__(self, duration):
+        self.name = "ReverseRobotWhileLoop"
+        self.duty_pub = rospy.Publisher("/motor/duty_cycles", DutyCycles, queue_size=10)
+        self.duration = duration
+        self.publisher_twist = rospy.Publisher('motor_controller/twist', Twist, queue_size=10)
+
+        super(ReverseRobotWhileLoop, self).__init__("Reverse Robot While Loop for " + str(int(duration)) + " sec")
+
+        self.start = rospy.Time.now()
+
+    def update(self):
+        print("condition 0 reveerse loop")
+        # print("time now:",rospy.Time.now())
+        # print("start time:", self.start)
+        # print(rospy.Time.now() - self.start > rospy.Duration(self.duration))
+        # print("diff:",rospy.Time.now() - self.start)
+        while rospy.Time.now() - self.start < rospy.Duration(self.duration):
+            print("publishing reverse")
+            twist = Twist()
+            twist.linear.x = -1.0
+            twist.angular.z = 0.0
+            self.publisher_twist.publish(twist)
+        print("I have reversed, now im a'ok")
+        return pt.common.Status.SUCCESS
+        
 
     def initialise(self):
         print("Reversing robot for ",self.duration)

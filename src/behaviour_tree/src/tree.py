@@ -78,7 +78,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
         # stop_2_sec_give_path = StopRobot(2)
         # give_path_selector.add_children([give_path_behaviour,stop_2_sec_give_path])
         give_path_sequence = pt.composites.Sequence(name="->")
-        give_path_sequence.add_children([playTuneBehaviour("nogod"),StopRobot(2)])
+        give_path_sequence.add_children([playTuneBehaviour("nogod"), ReverseRobotWhileLoop(4)])# StopRobot(2)])
         give_path_selector.add_children([give_path_behaviour,give_path_sequence])
 
         root_explore.add_child(stop_robot_behaviour)
@@ -305,7 +305,7 @@ class BehaviourTree(ptr.trees.BehaviourTree):
             sequence.add_children(next_behavs_arr)
 
             sequence2 = pt.composites.Sequence(name="->")
-            sequence2.add_children([playTuneBehaviour("nogod"),StopRobot(2)])
+            sequence2.add_children([playTuneBehaviour("nogod"),ReverseRobotWhileLoop(4)])
 
             selector = pt.composites.Selector(name="?")
             selector.add_children([sequence,sequence2])

@@ -500,8 +500,8 @@ class MemoryNode:
             # rospy.loginfo("pose of"+ frame_id + str(pose))
             return pose
         except Exception as e:
-            rospy.loginfo("could not find transform for" + object_frame_id)
-            rospy.logerr(e)
+            # rospy.loginfo("could not find transform for" + object_frame_id)
+            # rospy.logerr(e)
             return None
 
     def check_for_obj_type(self, instance_name: str, desired_class_of_obj: str) -> bool:
